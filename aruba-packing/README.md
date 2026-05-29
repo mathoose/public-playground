@@ -12,12 +12,12 @@ After deploy, your URL will appear here:
 
 Open the **HTTPS** Netlify URL in Safari (not a local file).
 
-- [ ] **List** — check items, change quantities, laundry/repeat toggles
+- [ ] **Outfits** — use counters for each piece, pack checkboxes, laundry/repeat toggles
 - [ ] **Wardrobe** — tap **+** on a slot → Photo Library → thumbnail appears
 - [ ] Take a new photo with the camera (if offered) → saves correctly
 - [ ] Tap a photo → **Replace** / **Remove** work
 - [ ] Force-close Safari, reopen → photos and checklist remain
-- [ ] Change shirt count on List (e.g. 7 → 5) → extra wardrobe slots removed
+- [ ] Change shirt count on Outfits (e.g. 7 → 5) → extra wardrobe slots removed
 - [ ] **Share → Add to Home Screen** → opens full screen; photos still work
 
 ## Privacy

@@ -583,6 +583,15 @@
 
     .tips strong { display: block; margin-bottom: 4px; color: #78350f; }
 
+    .essentials-body { padding-top: 0; }
+    .essentials-group { border-top: 1px solid var(--border); }
+    .essentials-group:first-child { border-top: none; }
+    .essentials-subhead {
+      padding: 12px 16px;
+      background: #f8fafc;
+    }
+    .essentials-group.collapsed .essentials-subhead + .section-body { display: none; }
+
     body.view-grid .list-only { display: none !important; }
     body:not(.view-grid) .grid-only { display: none !important; }
 
@@ -872,8 +881,8 @@
         <span class="ring-label" id="ringPct">0%</span>
       </div>
       <div class="progress-text">
-        <h2 id="progressTitle">Ready to pack</h2>
-        <p id="progressSub">0 of 0 items packed</p>
+        <h2 id="progressTitle">Count your outfits</h2>
+        <p id="progressSub">0 outfit pieces</p>
       </div>
     </div>
   </header>
@@ -882,7 +891,7 @@
     <div class="hero-top">
       <div>
         <h1>Wardrobe</h1>
-        <p class="hero-meta" id="gridHeroMeta">Photo grid · synced with your list</p>
+        <p class="hero-meta" id="gridHeroMeta">Photo grid · synced with outfit counts</p>
       </div>
     </div>
     <div class="progress-wrap">
@@ -932,9 +941,9 @@
   </div>
 
   <nav class="tab-bar" aria-label="Main navigation">
-    <button type="button" class="tab on" id="tabList" data-view="list">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
-      List
+    <button type="button" class="tab on" id="tabOutfits" data-view="outfits">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="19" cy="12" r="3"/><path d="M19 9v6"/></svg>
+      Outfits
     </button>
     <button type="button" class="tab" id="tabGrid" data-view="grid">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -943,10 +952,10 @@
   </nav>
 
   <div class="fab-bar list-only">
-    <button type="button" class="btn-secondary" id="btnReset" title="Reset list">Reset</button>
+    <button type="button" class="btn-secondary" id="btnReset" title="Reset packing list">Reset</button>
     <button type="button" class="btn-primary" id="btnAdd">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      Add item
+      Add outfit
     </button>
   </div>
 
@@ -954,7 +963,7 @@
   <div class="overlay" id="addOverlay" role="dialog" aria-modal="true" aria-labelledby="addTitle">
     <div class="sheet">
       <div class="sheet-handle"></div>
-      <h3 id="addTitle">Add to your list</h3>
+      <h3 id="addTitle">Add outfit item</h3>
       <div class="field">
         <label for="addName">Item name</label>
         <input type="text" id="addName" placeholder="e.g. GoPro charger" autocomplete="off" maxlength="120" />
@@ -1242,7 +1251,7 @@
   let state = loadState();
   let saveTimer = null;
   let openDeleteId = null;
-  let currentView = "list";
+  let currentView = "outfits";
   let pendingPhoto = null;
   let viewerPhoto = null;
   const thumbCache = {};
@@ -1624,13 +1633,13 @@
     const groups = gridGroups();
 
     if (!groups.length) {
-      root.innerHTML = '<div class="grid-empty">No wardrobe items on your list yet. Add clothing from the List tab, or turn on activities in Settings.</div>';
+      root.innerHTML = '<div class="grid-empty">No wardrobe items yet. Set outfit counts on the Outfits tab, or turn on activities in Settings.</div>';
       updateGridProgress({});
       return;
     }
 
     const showTip = !localStorage.getItem("aruba-pack-homescreen-tip");
-    root.innerHTML = '<p class="grid-intro">Tap <strong>+</strong> on each slot to add a photo of the exact piece you’re packing. Counts match your list (e.g. 7 shirts → 7 slots). Photos stay on this device only.' +
+    root.innerHTML = '<p class="grid-intro">Tap <strong>+</strong> on each slot to add a photo of the exact piece you’re packing. Counts match your outfit counter (e.g. 7 shirts → 7 slots). Photos stay on this device only.' +
       (showTip ? '<span class="grid-intro-tip"><strong>iPhone tip:</strong> In Safari, tap Share → <strong>Add to Home Screen</strong> for the best full-screen experience.</span>' : '') +
       '</p>';
     if (showTip) localStorage.setItem("aruba-pack-homescreen-tip", "1");
@@ -1717,7 +1726,7 @@
   function setView(view) {
     currentView = view;
     document.body.classList.toggle("view-grid", view === "grid");
-    document.getElementById("tabList").classList.toggle("on", view === "list");
+    document.getElementById("tabOutfits").classList.toggle("on", view === "outfits");
     document.getElementById("tabGrid").classList.toggle("on", view === "grid");
     if (view === "grid") {
       revokeThumbCache();
@@ -1823,6 +1832,29 @@
     pruneAllGridPhotos();
   }
 
+  function isOutfitItem(id) {
+    return isGridItem(id);
+  }
+
+  function outfitStats() {
+    let pieces = 0;
+    let packedPieces = 0;
+    let types = 0;
+    let packedTypes = 0;
+    Object.keys(state.items).forEach(function (id) {
+      if (!isOutfitItem(id)) return;
+      const row = state.items[id];
+      if (!row || row.qty < 1) return;
+      types++;
+      pieces += row.qty;
+      if (row.packed) {
+        packedTypes++;
+        packedPieces += row.qty;
+      }
+    });
+    return { pieces, packedPieces, types, packedTypes };
+  }
+
   function stats() {
     const all = Object.values(state.items).filter(function (r) { return r.qty >= 1; });
     const packed = all.filter(function (r) { return r.packed; }).length;
@@ -1831,79 +1863,129 @@
   }
 
   function updateProgress() {
-    const { packed, total } = stats();
-    const pct = total ? Math.round((packed / total) * 100) : 0;
+    const { pieces, packedPieces, types, packedTypes } = outfitStats();
+    const pct = pieces ? Math.round((packedPieces / pieces) * 100) : 0;
     const ring = document.getElementById("ringFg");
     ring.style.strokeDashoffset = String(RING_CIRC * (1 - pct / 100));
     document.getElementById("ringPct").textContent = pct + "%";
-    document.getElementById("progressSub").textContent = packed + " of " + total + " items packed";
+    document.getElementById("progressSub").textContent =
+      pieces ? packedPieces + " of " + pieces + " pieces packed · " + types + " categories" : "0 outfit pieces";
     const title = document.getElementById("progressTitle");
-    if (pct === 100 && total > 0) title.textContent = "All packed!";
+    if (pct === 100 && pieces > 0) title.textContent = "Outfits packed!";
     else if (pct >= 75) title.textContent = "Almost there";
     else if (pct >= 40) title.textContent = "Making progress";
-    else title.textContent = "Ready to pack";
+    else title.textContent = "Count your outfits";
+  }
+
+  function sortItemIds(ids) {
+    return ids.slice().sort(function (a, b) {
+      const pa = state.items[a].packed ? 1 : 0;
+      const pb = state.items[b].packed ? 1 : 0;
+      if (pa !== pb) return pa - pb;
+      const ga = gridDisplayName(a);
+      const gb = gridDisplayName(b);
+      return ga.localeCompare(gb);
+    });
+  }
+
+  function renderItemRows(ids) {
+    let html = "";
+    ids.forEach(function (id) {
+      const row = state.items[id];
+      const note = itemNote(id);
+      const label = isOutfitItem(id) ? gridDisplayName(id) : itemLabel(id);
+      html += '<div class="item' + (row.packed ? " packed" : "") + (openDeleteId === id ? " reveal-delete" : "") + '" data-id="' + escapeHtml(id) + '">';
+      html += '<button type="button" class="check" aria-label="' + (row.packed ? "Unpack" : "Pack") + ' ' + escapeHtml(label) + '"><span class="check-box"></span></button>';
+      html += '<div class="item-body"><div class="item-label">' + escapeHtml(label) + '</div>';
+      if (note) html += '<div class="item-note">' + escapeHtml(note) + '</div>';
+      html += '</div>';
+      html += '<div class="qty"><button type="button" class="qty-minus" aria-label="' + (row.qty <= 1 ? "Remove" : "Decrease quantity") + '">−</button>';
+      html += '<span aria-label="Quantity">' + row.qty + '</span>';
+      html += '<button type="button" class="qty-plus" aria-label="Increase quantity">+</button></div>';
+      html += '<button type="button" class="item-delete">Delete</button></div>';
+    });
+    return html;
+  }
+
+  function renderSection(catId, title, icon, ids, collapsedKey) {
+    if (!ids.length) return "";
+    const packedInCat = ids.filter(function (id) { return state.items[id].packed; }).length;
+    const collapsed = !!state.collapsed[collapsedKey || catId];
+    let html = '<section class="section' + (collapsed ? " collapsed" : "") + '" data-cat="' + catId + '">';
+    html += '<div class="section-head" role="button" tabindex="0" aria-expanded="' + !collapsed + '">';
+    html += '<span class="section-icon">' + icon + '</span>';
+    html += '<span class="section-title">' + escapeHtml(title) + '</span>';
+    html += '<span class="section-count">' + packedInCat + "/" + ids.length + '</span>';
+    html += '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+    html += '</div><div class="section-body">';
+    html += renderItemRows(sortItemIds(ids));
+    html += '</div></section>';
+    return html;
   }
 
   function render() {
     syncOptionsFromChips();
     const root = document.getElementById("listRoot");
+    const outfitIds = [];
     const byCat = {};
     for (const cat of CATEGORIES) byCat[cat.id] = [];
 
     visibleItems().forEach(function (id) {
+      if (isOutfitItem(id)) {
+        outfitIds.push(id);
+        return;
+      }
       const c = itemCategory(id);
       if (!byCat[c]) byCat[c] = [];
       byCat[c].push(id);
     });
 
     let html = "";
-    if (!state.opts.hidePacked && stats().packed > 0) {
-      html += '<div class="tips"><strong>Tip</strong>Turn on “Hide packed” while you fill your bag so only what’s left stays on screen.</div>';
+    const { packedTypes } = outfitStats();
+    if (!state.opts.hidePacked && packedTypes > 0) {
+      html += '<div class="tips"><strong>Tip</strong>Use the counters to set how many of each piece you’re bringing. Wardrobe photos match these counts.</div>';
     }
 
-    CATEGORIES.forEach(function (cat) {
-      const ids = byCat[cat.id] || [];
-      if (!ids.length) return;
+    if (outfitIds.length) {
+      html += renderSection("outfits", "Outfit counter", "👗", outfitIds, "outfits");
+    } else {
+      html += '<div class="section"><div class="empty-cat">' +
+        (state.opts.hidePacked ? "All visible outfits are packed. Turn off “Hide packed” to review." : "No outfit items yet. Turn on activities in Settings or add a custom piece.") +
+        '</div></div>';
+    }
 
-      const packedInCat = ids.filter(function (id) { return state.items[id].packed; }).length;
-      const collapsed = !!state.collapsed[cat.id];
-
-      html += '<section class="section' + (collapsed ? " collapsed" : "") + '" data-cat="' + cat.id + '">';
-      html += '<div class="section-head" role="button" tabindex="0" aria-expanded="' + !collapsed + '">';
-      html += '<span class="section-icon">' + cat.icon + '</span>';
-      html += '<span class="section-title">' + escapeHtml(cat.label) + '</span>';
-      html += '<span class="section-count">' + packedInCat + "/" + ids.length + '</span>';
+    const essentialCats = CATEGORIES.filter(function (cat) { return (byCat[cat.id] || []).length > 0; });
+    if (essentialCats.length) {
+      const essentialsCollapsed = state.collapsed.essentials !== false;
+      html += '<section class="section' + (essentialsCollapsed ? " collapsed" : "") + '" data-cat="essentials">';
+      html += '<div class="section-head" role="button" tabindex="0" aria-expanded="' + !essentialsCollapsed + '">';
+      html += '<span class="section-icon">🎒</span>';
+      html += '<span class="section-title">Trip essentials</span>';
+      html += '<span class="section-count">' + essentialCats.length + " sections</span>";
       html += '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
-      html += '</div><div class="section-body">';
+      html += '</div><div class="section-body essentials-body">';
 
-      ids.sort(function (a, b) {
-        const pa = state.items[a].packed ? 1 : 0;
-        const pb = state.items[b].packed ? 1 : 0;
-        if (pa !== pb) return pa - pb;
-        return itemLabel(a).localeCompare(itemLabel(b));
-      });
-
-      ids.forEach(function (id) {
-        const row = state.items[id];
-        const note = itemNote(id);
-        html += '<div class="item' + (row.packed ? " packed" : "") + (openDeleteId === id ? " reveal-delete" : "") + '" data-id="' + escapeHtml(id) + '">';
-        html += '<button type="button" class="check" aria-label="' + (row.packed ? "Unpack" : "Pack") + ' ' + escapeHtml(itemLabel(id)) + '"><span class="check-box"></span></button>';
-        html += '<div class="item-body"><div class="item-label">' + escapeHtml(itemLabel(id)) + '</div>';
-        if (note) html += '<div class="item-note">' + escapeHtml(note) + '</div>';
-        html += '</div>';
-        html += '<div class="qty"><button type="button" class="qty-minus" aria-label="' + (row.qty <= 1 ? "Remove from list" : "Decrease quantity") + '">−</button>';
-        html += '<span aria-label="Quantity">' + row.qty + '</span>';
-        html += '<button type="button" class="qty-plus" aria-label="Increase quantity">+</button></div>';
-        html += '<button type="button" class="item-delete">Delete</button></div>';
+      essentialCats.forEach(function (cat) {
+        const ids = byCat[cat.id] || [];
+        if (!ids.length) return;
+        const packedInCat = ids.filter(function (id) { return state.items[id].packed; }).length;
+        const subCollapsed = !!state.collapsed["ess-" + cat.id];
+        html += '<div class="essentials-group' + (subCollapsed ? " collapsed" : "") + '" data-cat="ess-' + cat.id + '">';
+        html += '<div class="section-head essentials-subhead" role="button" tabindex="0" aria-expanded="' + !subCollapsed + '">';
+        html += '<span class="section-icon">' + cat.icon + '</span>';
+        html += '<span class="section-title">' + escapeHtml(cat.label) + '</span>';
+        html += '<span class="section-count">' + packedInCat + "/" + ids.length + '</span>';
+        html += '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+        html += '</div><div class="section-body">';
+        html += renderItemRows(sortItemIds(ids));
+        html += '</div></div>';
       });
 
       html += '</div></section>';
-    });
+    }
 
-    if (!html || !visibleItems().length) {
-      html = '<div class="section"><div class="empty-cat">' +
-        (state.opts.hidePacked ? "Everything visible is packed. Turn off “Hide packed” to review." : "Your list is empty. Add items or reset to defaults.") +
-        '</div></div>';
+    if (!visibleItems().length && !html) {
+      html = '<div class="section"><div class="empty-cat">Nothing to pack yet. Reset to defaults or adjust activities in Settings.</div></div>';
     }
 
     root.innerHTML = html;
@@ -1922,7 +2004,9 @@
   function bindListEvents() {
     document.querySelectorAll(".section-head").forEach(function (head) {
       head.onclick = function () {
-        const cat = head.closest(".section").dataset.cat;
+        const section = head.closest(".section, .essentials-group");
+        const cat = section && section.dataset.cat;
+        if (!cat) return;
         state.collapsed[cat] = !state.collapsed[cat];
         saveState();
         render();
@@ -2084,6 +2168,7 @@
     document.getElementById("addName").value = "";
     document.getElementById("addQty").value = "1";
     populateAddCategory();
+    document.getElementById("addCategory").value = "clothing";
     openOverlay("addOverlay");
     setTimeout(function () { document.getElementById("addName").focus(); }, 300);
   };
@@ -2113,7 +2198,7 @@
         saveState();
         render();
         if (currentView === "grid") renderGrid();
-        toast("List reset for Aruba · 7 days");
+        toast("Reset for Aruba · 7 days");
       }).catch(function () {
         saveState();
         render();
@@ -2122,7 +2207,7 @@
     }
   };
 
-  document.getElementById("tabList").onclick = function () { setView("list"); };
+  document.getElementById("tabOutfits").onclick = function () { setView("outfits"); };
   document.getElementById("tabGrid").onclick = function () { setView("grid"); };
 
   document.getElementById("fileInput").addEventListener("change", function (e) {
