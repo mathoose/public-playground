@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brazilian Press — Reader, Archive &amp; Community</title>
+    <meta
+      name="description"
+      content="A modern reader, searchable archive and small community feed for the Brazilian Press newspaper."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://e.issuu.com" />
+    <link rel="preconnect" href="https://image.isu.pub" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#/archive" aria-label="Brazilian Press home">
+          <span class="brand-mark" aria-hidden="true">BP</span>
+          <span class="brand-text">
+            <strong>Brazilian Press</strong>
+            <small>Since 1980 • Issuu archive</small>
+          </span>
+        </a>
+        <nav class="primary-nav" aria-label="Primary">
+          <a href="#/archive" data-route="archive">Archive</a>
+          <a href="#/search" data-route="search">Search</a>
+          <a href="#/local" data-route="local">Local</a>
+        </nav>
+        <button class="btn btn-primary" id="open-latest" type="button">
+          Read latest
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ARCHIVE -->
+      <section class="view" data-view="archive">
+        <header class="view-header">
+          <div>
+            <p class="eyebrow">Archive</p>
+            <h1>Every issue, one click away.</h1>
+            <p class="lede">
+              The complete run of Brazilian Press currently mirrored on Issuu —
+              <span id="archive-count">…</span> editions and counting.
+            </p>
+          </div>
+          <div class="filters">
+            <label class="field">
+              <span>Year</span>
+              <select id="year-filter"><option value="">All years</option></select>
+            </label>
+            <label class="field grow">
+              <span>Filter</span>
+              <input
+                type="search"
+                id="archive-filter"
+                placeholder="Filter by edition, date…"
+                autocomplete="off"
+              />
+            </label>
+          </div>
+        </header>
+        <div class="grid" id="archive-grid" aria-live="polite"></div>
+        <p class="empty" id="archive-empty" hidden>
+          No issues match this filter.
+        </p>
+      </section>
+
+      <!-- SEARCH -->
+      <section class="view" data-view="search" hidden>
+        <header class="view-header">
+          <div>
+            <p class="eyebrow">Search</p>
+            <h1>Find an edition.</h1>
+            <p class="lede">
+              We search titles, edition numbers, dates and docnames in the local
+              catalogue. To look <em>inside</em> the PDFs themselves, use the
+              Issuu search link that appears with your results.
+            </p>
+          </div>
+          <form class="search-form" id="search-form" role="search">
+            <label class="field grow">
+              <span class="sr-only">Search</span>
+              <input
+                type="search"
+                id="search-input"
+                placeholder='Try "2024", "ed 2200" or "May 2026"'
+                autocomplete="off"
+              />
+            </label>
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+        </header>
+        <div class="search-meta" id="search-meta" hidden></div>
+        <div class="grid" id="search-grid" aria-live="polite"></div>
+        <p class="empty" id="search-empty" hidden>
+          No matches in the local catalogue.
+        </p>
+      </section>
+
+      <!-- LOCAL -->
+      <section class="view" data-view="local" hidden>
+        <section class="hero" aria-labelledby="local-hero-title">
+          <div class="hero-text">
+            <p class="eyebrow eyebrow-yellow">Local</p>
+            <h1 id="local-hero-title">
+              Your neighborhood, in conversation with the paper.
+            </h1>
+            <p class="lede lede-on-dark">
+              Pick where you are, leave a note, see what other readers in your
+              city are saying right now. Live — no refresh needed.
+            </p>
+            <div class="status-row">
+              <span class="status-pill" id="status-pill">
+                <span class="status-dot"></span>
+                <span class="status-text">connecting…</span>
+              </span>
+              <span class="status-count" id="status-count"></span>
+            </div>
+          </div>
+          <button class="latest-tile" id="latest-tile" type="button">
+            <div class="latest-tile-eyebrow">Latest issue</div>
+            <div class="latest-tile-body">
+              <img id="latest-tile-img" alt="" />
+              <div>
+                <div class="latest-tile-title" id="latest-tile-title">…</div>
+                <div class="latest-tile-date" id="latest-tile-date"></div>
+                <span class="latest-tile-cta">Open reader →</span>
+              </div>
+            </div>
+          </button>
+        </section>
+
+        <div class="local-grid">
+          <form class="composer card" id="composer">
+            <h2>Post to the feed</h2>
+            <label class="field">
+              <span>Username</span>
+              <input
+                type="text"
+                id="username"
+                maxlength="40"
+                placeholder="e.g. Marina"
+                required
+              />
+            </label>
+            <label class="field">
+              <span>Location</span>
+              <select id="location" required></select>
+            </label>
+            <label class="field" id="custom-location-wrap" hidden>
+              <span>Your city</span>
+              <input
+                type="text"
+                id="custom-location"
+                maxlength="60"
+                placeholder="e.g. Lowell, MA"
+              />
+            </label>
+            <label class="field">
+              <span
+                >Message
+                <small id="char-count" class="char-count">0 / 600</small></span
+              >
+              <textarea
+                id="content"
+                maxlength="600"
+                rows="4"
+                placeholder="What's happening in your community?"
+                required
+              ></textarea>
+            </label>
+            <div class="composer-actions">
+              <button class="btn btn-primary" type="submit" id="post-submit">
+                Post
+              </button>
+              <span class="composer-error" id="composer-error"></span>
+            </div>
+          </form>
+
+          <section class="feed" aria-label="Community feed">
+            <header class="feed-header">
+              <h2>Feed</h2>
+              <label class="field inline">
+                <span>Showing</span>
+                <select id="feed-filter">
+                  <option value="__all__">All locations</option>
+                </select>
+              </label>
+            </header>
+            <ol class="feed-list" id="feed-list"></ol>
+            <p class="empty" id="feed-empty">
+              No posts yet — be the first to say hi.
+            </p>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- READER OVERLAY -->
+    <div
+      class="reader"
+      id="reader"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Issue reader"
+      hidden
+    >
+      <header class="reader-bar">
+        <button class="btn btn-ghost" id="reader-back" type="button">
+          ← Back
+        </button>
+        <div class="reader-title" id="reader-title"></div>
+        <a
+          class="btn btn-ghost"
+          id="reader-open-issuu"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          >Open on Issuu ↗</a
+        >
+      </header>
+      <div class="reader-frame-wrap">
+        <iframe
+          id="reader-frame"
+          title="Issuu reader"
+          allow="fullscreen"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div>
+        © <span id="year"></span> Brazilian Press — an unofficial reader for
+        <a href="https://issuu.com/brazilianpress" rel="noopener" target="_blank"
+          >issuu.com/brazilianpress</a
+        >.
+      </div>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js" defer></script>
+  </body>
+</html>
