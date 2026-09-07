@@ -28,11 +28,11 @@ This Cloud Agent **could not complete** the 7920 trial. Blockers are access, not
 | Self-hosted Cursor worker on a work PC | None connected |
 | Lot count for this trial | **Not given** (you said you would specify lots + material; only 7920 / photoresist arrived) |
 
-This VM is on the public internet. Qsidono looks like an **internal** quality/SPC app (lots + material number + control charts). It is not reachable from here without a URL and a logged-in session on the company network.
+This VM is on the public internet. Confirmed later: the app is **QC Dono**, a company Palantir Foundry workshop. Still not reachable from here without the Meeting view URL and SSO.
 
 ## Suggested actions for desktop Cursor
 
 - [ ] Do **not** commit real lot numbers, CoAs, or SPC exports into `public-playground` (this repo is public)
-- [ ] Next voice dump should include: **how many lots**, confirm material **7920**, and the **Qsidono URL** (paste from the browser) or a screenshot of the logged-in screen
-- [ ] To actually run this from Cursor: start a **self-hosted worker** on the work PC (`cursor worker start`) while on VPN, or add a private-repo agent with SSO — then re-run this playbook
-- [ ] Follow `cloud-notes/playbooks/qsidono-spc.md`
+- [ ] Next retry: **how many lots**, material **7920**, and the **QC Dono Meeting view URL**
+- [ ] Run from a **self-hosted worker** on the work PC (`cursor worker start`) on SSO, then follow `cloud-notes/playbooks/qc-dono-spc.md`
+- [ ] Meeting view + filter fields only; screenshots; no other Foundry changes

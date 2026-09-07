@@ -14,7 +14,7 @@ title: Qsidono SPC charts for 7920 photoresist
 
 ## What this is about
 
-A standalone Cursor task against **Qsidono** (likely an internal SPC / quality system): given a **lot count** and a **material number**, find and export every SPC chart, screenshot each chart, and report the **most recent lot** in the dataset.
+A standalone Cursor task against **QC Dono** (company Palantir Foundry; voice-to-text said Qsidono): given a **lot count** and a **material number**, use **Meeting view** only, set **filters** only, screenshot every SPC chart, and report the **most recent lot**.
 
 First trial: material **7920**, photoresist. Lot count was not given for this trial — use whatever the system shows (or a reasonable default) and say how many lots were in the pull.
 
@@ -22,6 +22,7 @@ First trial: material **7920**, photoresist. Lot count was not given for this tr
 
 - [x] Attempt 7920 trial from this Cloud Agent (2026-09-07)
 - [x] Report result: **did not work** — no Qsidono URL, login, or work-network access; lot count not given (see `1325-qsidono-7920-trial-did-not-work.md`)
-- [ ] Re-run on a work-connected Cursor (self-hosted worker or desktop on VPN) with lot count + URL
-- [ ] For material 7920 (photoresist), find all SPC charts, screenshot/export each, report most recent lot
+- [ ] Re-run on work Foundry SSO (self-hosted worker or desktop on VPN) with lot count + QC Dono Meeting view URL
+- [ ] For material 7920 (photoresist): Meeting view filters only, screenshot each chart, report most recent lot
 - [ ] Keep exports **out** of this public repo
+- [ ] Do not open BATCH GENEALOGY until asked
