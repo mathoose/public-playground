@@ -1,0 +1,28 @@
+---
+description: QC Dono and Batch Genealogy are company Palantir Foundry apps — meeting view and filters only unless the user expands authorization
+alwaysApply: true
+---
+
+# Company Foundry tools (QC Dono, Batch Genealogy)
+
+Voice-to-text may say “Qsidono”. The SPC app is **QC Dono**. **BATCH GENEALOGY** is a different Foundry tool.
+
+These are internal Palantir Foundry workshops. This public repo must not receive lot numbers, chart images, or other process data.
+
+## QC Dono — authorized use (until the user changes it)
+
+The user authorized **only**:
+
+1. Open **Meeting view** (nothing else).
+2. Type into **filter** fields (material number, lot count, etc.).
+3. Take screenshots and report what the screen shows (charts, most recent lot).
+
+**Do not:** switch modules/views, click save/submit except as required to apply filters, edit ontology/objects, run pipelines, export beyond on-screen capture, or change data. If a control would write anything besides applying a filter, stop and ask.
+
+If login or the Meeting view is unreachable, report the blocker. Do not guess passwords or probe other Foundry apps.
+
+## BATCH GENEALOGY
+
+Do not open it until the user explicitly asks to try it. Then treat that as its own task.
+
+Playbook: `cloud-notes/playbooks/qc-dono-spc.md`
