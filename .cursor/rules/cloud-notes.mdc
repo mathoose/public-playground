@@ -1,0 +1,50 @@
+---
+description: Save every voice/thought capture into dated cloud-notes files so desktop Cursor can act on them
+alwaysApply: true
+---
+
+# Cloud notes (voice inbox)
+
+This repo is a talking inbox. Phone / Cloud Agent voice dumps must land as files so a later desktop Cursor session can `@cloud-notes` and start work.
+
+Read `cloud-notes/README.md` and copy `cloud-notes/_template.md`.
+
+## When to save
+
+Save a new note for each user message that is a thought, idea, task, reminder, question-dump, or “note this” — including **voice transcripts**. Do this **before** (or immediately as you start) other work so the capture is not lost.
+
+Skip a new file only for:
+
+- Pure follow-ups on the **same in-progress coding task** in this chat (“try again”, “fix the test”, “looks good”)
+- Acknowledgments (“ok”, “thanks”)
+- The user explicitly saying not to file a note
+
+If unsure, save the note.
+
+## Where and how to name it
+
+1. Folder: `cloud-notes/YYYY-MM-DD/` using **UTC date** (create the folder if needed).
+2. Filename: `HHMM-kebab-description.md`
+   - `HHMM` is UTC 24-hour time when they sent the message
+   - `kebab-description` is a short title of **what they talked about** (not “voice-note” or “untitled”)
+   - Keep the description readable; max ~60 characters; lowercase kebab-case; no spaces
+3. If that filename exists, bump the minute or append `-2`.
+
+## File contents
+
+Use the template. Always include:
+
+- YAML frontmatter: `recorded` (ISO-8601 UTC), `timezone: UTC`, `source` (`mobile-voice` | `desktop` | `typed`), `status: inbox`, `title`
+- `## Transcript` — their words, quoted
+- `## What this is about` — 2–4 sentences
+- `## Suggested actions for desktop Cursor` — concrete checkboxes Cursor can execute later (`repo`, files, commands). If they only wanted it captured, say so and still list any implied next steps.
+
+## Inbox index
+
+Append one row to the **Open** table in `cloud-notes/INBOX.md` linking to the new file. Do not rewrite history of other rows except to move a row to **Done** when its work is finished (`status: done` on the note too).
+
+## After saving
+
+- If they asked you to **do** something now, do it after the note is written.
+- If they only dumped a thought, confirm the saved path in one short sentence and stop.
+- Commit the note files with the rest of your work so desktop can pull them.
