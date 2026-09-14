@@ -6,6 +6,7 @@ Open captures for a later Cursor session. Work **Open** top to bottom. After fin
 
 | When (UTC) | Note | Do this |
 | --- | --- | --- |
+| 2026-09-14 15:20 | [Baseline is daily-tank-tracker.html on the work PC](2026-09-14/1520-baseline-daily-tank-tracker-on-work-pc.md) | Use `C:\Users\M341004\Projects\tracker-system-v2-complete\daily-tank-tracker.html` only; do not build more preview apps |
 | 2026-09-14 15:14 | [Keep Post-it board aesthetic](2026-09-14/1514-keep-postit-board-aesthetic.md) | Add Sep 14 lines on Daily Tasks & Tank Tracker Post-it board (To-do, Normal), then drag; do not IMPORT ZIP a tasks-only file |
 | 2026-09-14 13:49 | [Sep 14 batch sheets, holds, and 8Ds](2026-09-14/1349-sep14-batch-sheets-8d-incoming-board.md) | Same list: use Post-it **Add**, not the playground stand-in board |
 | 2026-09-08 11:23 | [SAP lots 790516 / 790519 — production vs aging](2026-09-08/1123-sap-lots-790516-790519-production-vs-aging.md) | SAP read-only search `*790516*` and `*790519*`; USAW=production, 79+suffix=aging; spreadsheet + missing tests per batch |
