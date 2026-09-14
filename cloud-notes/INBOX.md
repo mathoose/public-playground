@@ -6,6 +6,7 @@ Open captures for a later Cursor session. Work **Open** top to bottom. After fin
 
 | When (UTC) | Note | Do this |
 | --- | --- | --- |
+| 2026-09-14 13:49 | [Sep 14 batch sheets, holds, and 8Ds](2026-09-14/1349-sep14-batch-sheets-8d-incoming-board.md) | Import `posted-board/imports/2026-09-14-incoming.json` onto the posted board; drag Incoming → urgency |
 | 2026-09-08 11:23 | [SAP lots 790516 / 790519 — production vs aging](2026-09-08/1123-sap-lots-790516-790519-production-vs-aging.md) | SAP read-only search `*790516*` and `*790519*`; USAW=production, 79+suffix=aging; spreadsheet + missing tests per batch |
 | 2026-09-07 13:18 | [QC Dono is Foundry — meeting view and filters only](2026-09-07/1318-qc-dono-foundry-meeting-view-only.md) | Use QC Dono Meeting view + filters + screenshots only; Batch Genealogy only when asked |
 | 2026-09-07 13:25 | [Qsidono 7920 trial — did not work](2026-09-07/1325-qsidono-7920-trial-did-not-work.md) | Retry as QC Dono Meeting view on work Foundry SSO; still need lot count + URL |

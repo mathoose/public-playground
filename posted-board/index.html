@@ -1,0 +1,541 @@
+<!-- build: posted-board-v1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Posted Board" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Posted Board</title>
+  <style>
+    :root {
+      --bg: #e8eef4;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --card: #ffffff;
+      --line: #dbe3ec;
+      --incoming: #334155;
+      --high: #b45309;
+      --medium: #0369a1;
+      --low: #0f766e;
+      --waiting: #6d28d9;
+      --done: #3f6212;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.06);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: calc(14px + var(--safe-top)) 16px 12px;
+      background: #0f172a;
+      color: #fff;
+    }
+    header h1 { font-size: 1.15rem; letter-spacing: -0.02em; }
+    header p { color: #94a3b8; font-size: 0.8rem; margin-top: 4px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    button, .file-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: #1e293b;
+      color: #fff;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    button.primary { background: #0d9488; }
+    button.ghost { background: #334155; }
+    .file-btn { display: inline-flex; align-items: center; }
+    .file-btn input { display: none; }
+    .status {
+      min-height: 1.2em;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: #99f6e4;
+    }
+    .board {
+      flex: 1;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(260px, 1fr);
+      gap: 12px;
+      padding: 12px 12px calc(28px + var(--safe-bottom));
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .col {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+    }
+    .col.drop-target { outline: 2px dashed #0d9488; outline-offset: -4px; }
+    .col-h {
+      padding: 12px 12px 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .col[data-col="incoming"] .col-h { color: var(--incoming); }
+    .col[data-col="high"] .col-h { color: var(--high); }
+    .col[data-col="medium"] .col-h { color: var(--medium); }
+    .col[data-col="low"] .col-h { color: var(--low); }
+    .col[data-col="waiting"] .col-h { color: var(--waiting); }
+    .col[data-col="done"] .col-h { color: var(--done); }
+    .cards {
+      flex: 1;
+      padding: 0 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 80px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 10px 8px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+    }
+    .card.dragging { opacity: 0.45; }
+    .card h3 { font-size: 0.92rem; line-height: 1.3; }
+    .meta { margin-top: 6px; font-size: 0.75rem; color: var(--muted); }
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: #e2e8f0;
+      color: #334155;
+      border-radius: 999px;
+      padding: 2px 7px;
+    }
+    .move {
+      width: 100%;
+      margin-top: 8px;
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #0f172a;
+      border-radius: 8px;
+    }
+    footer {
+      padding: 8px 16px calc(10px + var(--safe-bottom));
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .ghost {
+      position: fixed;
+      z-index: 50;
+      pointer-events: none;
+      width: 250px;
+      transform: translate(-50%, -20%);
+      box-shadow: var(--shadow);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Posted board</h1>
+    <p>Imports land in Incoming. Drag a card, or use Move, to set urgency.</p>
+    <div class="toolbar">
+      <button class="primary" id="load-sep14" type="button">Add Sep 14 list to Incoming</button>
+      <label class="file-btn">Import JSON or CSV
+        <input id="file" type="file" accept=".json,.csv,application/json,text/csv" />
+      </label>
+      <button class="ghost" id="export-json" type="button">Export JSON</button>
+    </div>
+    <div class="status" id="status"></div>
+  </header>
+  <main class="board" id="board"></main>
+  <footer>Posted Board v1 · Sep 14, 2026</footer>
+
+  <script>
+    const APP_VERSION = "1 · Sep 14, 2026";
+    const STORAGE_KEY = "posted-board-v1";
+    const COLUMNS = [
+      { id: "incoming", label: "Incoming" },
+      { id: "high", label: "High" },
+      { id: "medium", label: "Medium" },
+      { id: "low", label: "Low" },
+      { id: "waiting", label: "Waiting" },
+      { id: "done", label: "Done" }
+    ];
+
+    const SEP14_IMPORT = {
+      column: "incoming",
+      items: [
+        {
+          id: "2026-09-14-release-7908-cascade-usaw799792",
+          title: "Release batch sheet — 7908 Cascade (from 7920)",
+          lot: "USAW799792",
+          notes: "Product 7908 Cascade, sourced from 7920. Release the batch sheet.",
+          tags: ["batch-sheet", "release"]
+        },
+        {
+          id: "2026-09-14-release-125-nxt-10b-usaw803678",
+          title: "Release batch sheet — 125 NXT-10B, tank 2",
+          lot: "USAW803678",
+          tank: "2",
+          notes: "Release the batch sheet for 125 NXT-10B in tank 2.",
+          tags: ["batch-sheet", "release"]
+        },
+        {
+          id: "2026-09-14-release-eb18b-tank21-usaw804019",
+          title: "Release batch sheet — EB18B stock, tank 21",
+          lot: "USAW804019",
+          tank: "21",
+          notes: "Release the batch sheet for EB18B stock in tank 21.",
+          tags: ["batch-sheet", "release"]
+        },
+        {
+          id: "2026-09-14-hold-eb18b50-tank6-usaw802248",
+          title: "Hold — EB18B50 tank 6, waiting on DBSA",
+          lot: "USAW802248",
+          tank: "6",
+          notes: "Delayed. Need more DBSA before this lot can move. Not a release today.",
+          tags: ["hold", "DBSA"]
+        },
+        {
+          id: "2026-09-14-update-existing-8d",
+          title: "Update existing 8D",
+          notes: "Update the 8D already in progress (unspecified which 8D in the voice dump).",
+          tags: ["8D"]
+        },
+        {
+          id: "2026-09-14-update-sgpl-8d-spc-plots",
+          title: "Update SGPL 8D — SPC plots, box-and-whisker, soak",
+          notes: "Add SPC value plots and box-and-whisker plots. Include a soak plot.",
+          tags: ["8D", "SGPL", "SPC"]
+        }
+      ]
+    };
+
+    function emptyState() {
+      const columns = {};
+      for (const c of COLUMNS) columns[c.id] = [];
+      return { columns };
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return emptyState();
+        const parsed = JSON.parse(raw);
+        const base = emptyState();
+        for (const c of COLUMNS) {
+          base.columns[c.id] = Array.isArray(parsed.columns?.[c.id]) ? parsed.columns[c.id] : [];
+        }
+        return base;
+      } catch {
+        return emptyState();
+      }
+    }
+
+    function save(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    let state = load();
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function normalizeItem(raw, fallbackId) {
+      const tags = Array.isArray(raw.tags)
+        ? raw.tags
+        : String(raw.tags || "")
+            .split(/[;,]/)
+            .map((t) => t.trim())
+            .filter(Boolean);
+      return {
+        id: String(raw.id || fallbackId),
+        title: String(raw.title || raw.Name || "Untitled"),
+        lot: raw.lot ? String(raw.lot) : "",
+        tank: raw.tank ? String(raw.tank) : "",
+        notes: String(raw.notes || raw.Description || raw.description || ""),
+        tags
+      };
+    }
+
+    function allIds() {
+      const ids = new Set();
+      for (const col of COLUMNS) {
+        for (const item of state.columns[col.id]) ids.add(item.id);
+      }
+      return ids;
+    }
+
+    function importItems(items, column) {
+      const dest = COLUMNS.some((c) => c.id === column) ? column : "incoming";
+      const existing = allIds();
+      let added = 0;
+      let skipped = 0;
+      items.forEach((raw, i) => {
+        const item = normalizeItem(raw, "imp-" + Date.now() + "-" + i);
+        if (existing.has(item.id)) {
+          skipped += 1;
+          return;
+        }
+        existing.add(item.id);
+        state.columns[dest].push(item);
+        added += 1;
+      });
+      save(state);
+      render();
+      setStatus("Added " + added + " to Incoming" + (skipped ? " · skipped " + skipped + " already on the board" : "") + ".");
+    }
+
+    function parseCsv(text) {
+      const lines = text.replace(/^\uFEFF/, "").trim().split(/\r?\n/);
+      if (!lines.length) return [];
+      const headers = splitCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+      return lines.slice(1).filter(Boolean).map((line) => {
+        const cells = splitCsvLine(line);
+        const row = {};
+        headers.forEach((h, i) => { row[h] = cells[i] || ""; });
+        return {
+          id: row.id || undefined,
+          title: row.title || row.name,
+          lot: row.lot,
+          tank: row.tank,
+          notes: row.notes || row.description,
+          tags: row.tags
+        };
+      });
+    }
+
+    function splitCsvLine(line) {
+      const out = [];
+      let cur = "";
+      let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (q) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') q = false;
+          else cur += ch;
+        } else if (ch === '"') q = true;
+        else if (ch === ",") { out.push(cur); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur);
+      return out;
+    }
+
+    function parseImportPayload(text, filename) {
+      const trimmed = text.trim();
+      if (filename.endsWith(".csv") || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+        return { column: "incoming", items: parseCsv(trimmed) };
+      }
+      const data = JSON.parse(trimmed);
+      if (Array.isArray(data)) return { column: "incoming", items: data };
+      return {
+        column: data.column || data.list || "incoming",
+        items: data.items || data.cards || []
+      };
+    }
+
+    function moveCard(id, toCol) {
+      let found = null;
+      for (const col of COLUMNS) {
+        const idx = state.columns[col.id].findIndex((c) => c.id === id);
+        if (idx >= 0) {
+          found = state.columns[col.id].splice(idx, 1)[0];
+          break;
+        }
+      }
+      if (!found) return;
+      state.columns[toCol].push(found);
+      save(state);
+      render();
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+      for (const col of COLUMNS) {
+        const colEl = document.createElement("section");
+        colEl.className = "col";
+        colEl.dataset.col = col.id;
+        const count = state.columns[col.id].length;
+        colEl.innerHTML =
+          '<div class="col-h"><span>' + col.label + '</span><span>' + count + '</span></div>' +
+          '<div class="cards" data-col="' + col.id + '"></div>';
+        const list = colEl.querySelector(".cards");
+        for (const item of state.columns[col.id]) {
+          list.appendChild(renderCard(item, col.id));
+        }
+        boardEl.appendChild(colEl);
+      }
+      bindColumnDrops();
+    }
+
+    function renderCard(item, colId) {
+      const el = document.createElement("article");
+      el.className = "card";
+      el.dataset.id = item.id;
+      const bits = [];
+      if (item.lot) bits.push("Lot " + item.lot);
+      if (item.tank) bits.push("Tank " + item.tank);
+      const tags = (item.tags || []).map((t) => '<span class="tag">' + escapeHtml(t) + "</span>").join("");
+      const options = COLUMNS.map((c) => {
+        const sel = c.id === colId ? " selected" : "";
+        return '<option value="' + c.id + '"' + sel + ">" + c.label + "</option>";
+      }).join("");
+      el.innerHTML =
+        "<h3>" + escapeHtml(item.title) + "</h3>" +
+        (bits.length || item.notes
+          ? '<div class="meta">' + escapeHtml(bits.join(" · ")) +
+            (item.notes ? (bits.length ? "<br>" : "") + escapeHtml(item.notes) : "") +
+            "</div>"
+          : "") +
+        (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        '<select class="move" aria-label="Move card">' + options + "</select>";
+      el.querySelector(".move").addEventListener("change", (e) => {
+        moveCard(item.id, e.target.value);
+      });
+      bindPointerDrag(el);
+      return el;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    let dragId = null;
+    let ghost = null;
+
+    function bindPointerDrag(card) {
+      let startX = 0;
+      let startY = 0;
+      let dragging = false;
+      card.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("select")) return;
+        startX = e.clientX;
+        startY = e.clientY;
+        dragging = false;
+        const onMove = (ev) => {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (!dragging && Math.hypot(dx, dy) < 8) return;
+          if (!dragging) {
+            dragging = true;
+            dragId = card.dataset.id;
+            card.classList.add("dragging");
+            ghost = card.cloneNode(true);
+            ghost.classList.add("ghost");
+            ghost.querySelector(".move")?.remove();
+            document.body.appendChild(ghost);
+            card.setPointerCapture(ev.pointerId);
+          }
+          ghost.style.left = ev.clientX + "px";
+          ghost.style.top = ev.clientY + "px";
+          highlightColumn(ev.clientX, ev.clientY);
+        };
+        const onUp = (ev) => {
+          card.releasePointerCapture(ev.pointerId);
+          card.removeEventListener("pointermove", onMove);
+          card.removeEventListener("pointerup", onUp);
+          card.removeEventListener("pointercancel", onUp);
+          card.classList.remove("dragging");
+          ghost?.remove();
+          ghost = null;
+          document.querySelectorAll(".col").forEach((c) => c.classList.remove("drop-target"));
+          if (dragging) {
+            const col = columnAt(ev.clientX, ev.clientY);
+            if (col && dragId) moveCard(dragId, col);
+          }
+          dragId = null;
+        };
+        card.addEventListener("pointermove", onMove);
+        card.addEventListener("pointerup", onUp);
+        card.addEventListener("pointercancel", onUp);
+      });
+    }
+
+    function columnAt(x, y) {
+      const el = document.elementFromPoint(x, y);
+      return el?.closest(".col")?.dataset.col || null;
+    }
+
+    function highlightColumn(x, y) {
+      const id = columnAt(x, y);
+      document.querySelectorAll(".col").forEach((c) => {
+        c.classList.toggle("drop-target", c.dataset.col === id);
+      });
+    }
+
+    function bindColumnDrops() {
+      // Pointer drag handles drops; this keeps empty columns as hit targets.
+    }
+
+    document.getElementById("load-sep14").addEventListener("click", () => {
+      importItems(SEP14_IMPORT.items, "incoming");
+    });
+
+    document.getElementById("file").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const payload = parseImportPayload(text, file.name.toLowerCase());
+        importItems(payload.items, payload.column || "incoming");
+      } catch (err) {
+        setStatus("Could not import that file.");
+        console.error(err);
+      }
+    });
+
+    document.getElementById("export-json").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "posted-board-export.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    render();
+    void APP_VERSION;
+  </script>
+</body>
+</html>
