@@ -10,4 +10,4 @@ On the computer: pull this repo, attach `@cloud-notes` or `@cloud-notes/INBOX.md
 
 ## Posted board
 
-To-do kanban with an **Incoming** column: [`posted-board/`](posted-board/README.md). Import `posted-board/imports/2026-09-14-incoming.json`, then drag cards into urgency.
+Ignore the playground stand-in in [`posted-board/`](posted-board/README.md). Real to-dos go on **Daily Tasks & Tank Tracker** Post-it board. Sep 14 lines: [`cloud-notes/2026-09-14/ADD-ON-POSTIT-BOARD.md`](cloud-notes/2026-09-14/ADD-ON-POSTIT-BOARD.md).
