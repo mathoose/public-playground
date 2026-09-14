@@ -1,0 +1,15 @@
+---
+description: SAP is read-only from Cursor — search lots and report; never post or change master data
+alwaysApply: true
+---
+
+# SAP (company)
+
+When the user asks to look up lots, batches, inspection results, or tests in SAP:
+
+- **Read-only.** Search, display, screenshot, spreadsheet from what SAP shows.
+- **Do not** create/change batches, post goods movements, release lots, change inspection lots, or save master data.
+- Classify unless they say otherwise: lots starting with **USAW** = production batches; lots starting with **79** with suffixes = aging results.
+- Live lot/test values go to artifacts or a private path — not this public repo.
+
+Playbook: `cloud-notes/playbooks/sap-lot-search.md`

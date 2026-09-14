@@ -1,0 +1,7 @@
+title,lot,tank,notes,tags,column
+Release batch sheet — 7908 Cascade (from 7920),USAW799792,,Product 7908 Cascade, sourced from 7920. Release the batch sheet.,batch-sheet;release,incoming
+Release batch sheet — 125 NXT-10B tank 2,USAW803678,2,Release the batch sheet for 125 NXT-10B in tank 2.,batch-sheet;release,incoming
+Release batch sheet — EB18B stock tank 21,USAW804019,21,Release the batch sheet for EB18B stock in tank 21.,batch-sheet;release,incoming
+Hold — EB18B50 tank 6 waiting on DBSA,USAW802248,6,Delayed. Need more DBSA before this lot can move. Not a release today.,hold;DBSA,incoming
+Update existing 8D,,,Update the 8D already in progress (unspecified which 8D in the voice dump).,8D,incoming
+Update SGPL 8D — SPC plots box-and-whisker soak,,,Add SPC value plots and box-and-whisker plots. Include a soak plot.,8D;SGPL;SPC,incoming
