@@ -1,4 +1,4 @@
-<!-- build: posted-board-v1 -->
+<!-- build: posted-board-v1.4 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,24 +28,29 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
+    html, body { height: 100%; width: 100%; max-width: 100%; }
     body {
       background: var(--bg);
       color: var(--ink);
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
     }
     header {
       padding: calc(14px + var(--safe-top)) 16px 12px;
       background: #0f172a;
       color: #fff;
+      width: 100%;
+      flex-shrink: 0;
+      z-index: 2;
     }
     header h1 { font-size: 1.15rem; letter-spacing: -0.02em; }
     header p { color: #94a3b8; font-size: 0.8rem; margin-top: 4px; }
     .toolbar {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
       margin-top: 12px;
     }
@@ -53,7 +58,7 @@
       appearance: none;
       border: 0;
       border-radius: 10px;
-      padding: 10px 12px;
+      padding: 10px 14px;
       font: inherit;
       font-size: 0.85rem;
       font-weight: 600;
@@ -61,9 +66,12 @@
       color: #fff;
       cursor: pointer;
       min-height: 44px;
+      margin: 0;
+      transform: none;
+      position: static;
     }
     button.primary { background: #0d9488; }
-    button.ghost { background: #334155; }
+    button.secondary { background: #334155; }
     .file-btn { display: inline-flex; align-items: center; }
     .file-btn input { display: none; }
     .status {
@@ -80,6 +88,8 @@
       gap: 12px;
       padding: 12px 12px calc(28px + var(--safe-bottom));
       overflow-x: auto;
+      width: 100%;
+      min-width: 0;
       -webkit-overflow-scrolling: touch;
     }
     .col {
@@ -101,6 +111,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      z-index: 1;
     }
     .col[data-col="incoming"] .col-h { color: var(--incoming); }
     .col[data-col="high"] .col-h { color: var(--high); }
@@ -154,8 +168,9 @@
       font-size: 0.75rem;
       color: var(--muted);
       text-align: center;
+      width: 100%;
     }
-    .ghost {
+    .drag-ghost {
       position: fixed;
       z-index: 50;
       pointer-events: none;
@@ -170,19 +185,19 @@
     <h1>Posted board</h1>
     <p>Imports land in Incoming. Drag a card, or use Move, to set urgency.</p>
     <div class="toolbar">
-      <button class="primary" id="load-sep14" type="button">Add Sep 14 list to Incoming</button>
-      <label class="file-btn">Import JSON or CSV
+      <button class="primary" id="load-sep14" type="button">Load Sep 14</button>
+      <label class="file-btn">Import file
         <input id="file" type="file" accept=".json,.csv,application/json,text/csv" />
       </label>
-      <button class="ghost" id="export-json" type="button">Export JSON</button>
+      <button class="secondary" id="export-json" type="button">Export</button>
     </div>
     <div class="status" id="status"></div>
   </header>
   <main class="board" id="board"></main>
-  <footer>Posted Board v1 · Sep 14, 2026</footer>
+  <footer>Posted Board v1.4 · Sep 14, 2026</footer>
 
   <script>
-    const APP_VERSION = "1 · Sep 14, 2026";
+    const APP_VERSION = "1.4 · Sep 14, 2026";
     const STORAGE_KEY = "posted-board-v1";
     const COLUMNS = [
       { id: "incoming", label: "Incoming" },
@@ -461,7 +476,7 @@
             dragId = card.dataset.id;
             card.classList.add("dragging");
             ghost = card.cloneNode(true);
-            ghost.classList.add("ghost");
+            ghost.classList.add("drag-ghost");
             ghost.querySelector(".move")?.remove();
             document.body.appendChild(ghost);
             card.setPointerCapture(ev.pointerId);

@@ -11,7 +11,7 @@ Open `posted-board/index.html` in a browser (or the Netlify URL if you point a s
 ## Sep 14 list
 
 1. Open the board.
-2. Tap **Add Sep 14 list to Incoming**, or Import the file `imports/2026-09-14-incoming.json` (CSV also works).
+2. Tap **Load Sep 14**, or Import the file `imports/2026-09-14-incoming.json` (CSV also works).
 3. Drag each card into an urgency column.
 
 Cards:
@@ -25,4 +25,4 @@ Cards:
 | Update existing 8D | — |
 | Update SGPL 8D — SPC plots, box-and-whisker, soak | — |
 
-Posted Board v1 · Sep 14, 2026
+Posted Board v1.4 · Sep 14, 2026
