@@ -6,6 +6,7 @@ Open captures for a later Cursor session. Work **Open** top to bottom. After fin
 
 | When (UTC) | Note | Do this |
 | --- | --- | --- |
+| 2026-09-15 11:12 | [Which Cloud Agent for commute notes](2026-09-15/1112-which-cloud-agent-for-commute-notes.md) | Capture in this same Cloud Agent; apply stickies on the work PC tracker, not a new playground app |
 | 2026-09-14 15:25 | [Cannot mount Windows tracker — handoff](2026-09-14/1525-cannot-mount-windows-tracker-handoff.md) | Paste `cloud-notes/HANDOFF-NEW-AGENT.md` into a Cursor session on `tracker-system-v2-complete` |
 | 2026-09-14 15:20 | [Baseline is daily-tank-tracker.html on the work PC](2026-09-14/1520-baseline-daily-tank-tracker-on-work-pc.md) | Use `C:\Users\M341004\Projects\tracker-system-v2-complete\daily-tank-tracker.html` only; do not build more preview apps |
 | 2026-09-14 15:14 | [Keep Post-it board aesthetic](2026-09-14/1514-keep-postit-board-aesthetic.md) | Add Sep 14 lines on Daily Tasks & Tank Tracker Post-it board (To-do, Normal), then drag; do not IMPORT ZIP a tasks-only file |
