@@ -34,12 +34,13 @@ class ClipParams:
     # How far the return arm extends from the hook center toward the open end
     arm_length: float = 22.0
     # Inner gap at the pinch (closest approach of the two arms)
-    pinch_gap: float = 1.6
+    pinch_gap: float = 0.45
     # Where the pinch sits along the arm, 0 = just after hook, 1 = at the lip
-    pinch_t: float = 0.55
-    # Lip curl: radius and how far it turns away from the back (degrees)
-    lip_radius: float = 3.8
-    lip_angle_deg: float = 110.0
+    pinch_t: float = 0.52
+    # How far the tip stands off the wall, and the end heading (degrees from +x
+    # toward +y). One smooth comma — no extra hook after the S-wave.
+    tip_standoff: float = 7.2
+    tip_angle_deg: float = 58.0
     # Samples
     arc_segments: int = 48
     # Tiny rounding on square end caps so they print cleanly
@@ -160,12 +161,17 @@ def centerline(p: ClipParams):
     y_pinch = y_back + t + p.pinch_gap
     x_pinch = cx + p.arm_length * p.pinch_t
 
-    # After the pinch the arm eases away, arriving +x so the lip can curl cleanly.
-    x_lip = cx + p.arm_length
-    y_lip = y_pinch + 2.6
+    # Single comma after the pinch: leave going +x, arrive at the tip heading
+    # tip_angle toward +y. No second arc — that extra hook was the weird bend.
+    tip_ang = math.radians(p.tip_angle_deg)
+    x_tip = cx + p.arm_length
+    y_tip = y_back + p.tip_standoff
+    span = _len(_sub((x_tip, y_tip), (x_pinch, y_pinch)))
+    h_hook = p.arm_length * 0.26
+    h_pin = max(3.5, span * 0.38)
+    h_tip = max(3.5, span * 0.38)
+    tip_dir = (math.cos(tip_ang), math.sin(tip_ang))
 
-    h_hook = p.arm_length * 0.28
-    h_pin = p.arm_length * 0.18
     s1 = cubic_bezier(
         arm0,
         (arm0[0] + tan_hook[0] * h_hook, arm0[1] + tan_hook[1] * h_hook),
@@ -176,20 +182,14 @@ def centerline(p: ClipParams):
     s2 = cubic_bezier(
         (x_pinch, y_pinch),
         (x_pinch + h_pin, y_pinch),
-        (x_lip - 4.0, y_lip),
-        (x_lip, y_lip),
+        (x_tip - tip_dir[0] * h_tip, y_tip - tip_dir[1] * h_tip),
+        (x_tip, y_tip),
         p.arc_segments,
     )
 
-    # Lip: arriving +x, turn toward +y (away from the wall) so the mouth opens.
-    lip_center = (x_lip, y_lip + p.lip_radius)
-    a0 = -math.pi / 2
-    a1 = -math.pi / 2 + math.radians(p.lip_angle_deg)
-    lip = arc_points(lip_center, p.lip_radius, a0, a1, max(20, p.arc_segments // 2))
-
     # Stitch, dropping duplicate joints
     pts = []
-    for group in (back, hook, s1, s2, lip):
+    for group in (back, hook, s1, s2):
         for q in group:
             if pts and _len(_sub(q, pts[-1])) < 1e-6:
                 continue

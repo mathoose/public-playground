@@ -41,7 +41,7 @@ A brim is optional. The part is ~40 × 14 mm on the bed.
 python3 generate.py
 ```
 
-Tweak `ClipParams` at the top of `generate.py` (`width`, `thickness`, `back_length`, `hook_inner_r`, `pinch_gap`, `lip_angle_deg`, …) and re-run.
+Tweak `ClipParams` at the top of `generate.py` (`width`, `thickness`, `back_length`, `hook_inner_r`, `pinch_gap`, `tip_standoff`, …) and re-run.
 
 If you have OpenSCAD, open `postit-wall-clip.scad` and change `width` to reprint a different extrusion without Python.
 
