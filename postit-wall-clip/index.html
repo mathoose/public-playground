@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Post-it wall clip</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --ink: #1c1917;
+      --muted: #78716c;
+      --card: #fff;
+      --line: #e7e5e4;
+      --accent: #44403c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 28px 20px 64px; }
+    h1 { font-size: 1.7rem; margin: 0 0 8px; }
+    p { color: var(--muted); }
+    .lead { font-size: 1.05rem; color: var(--ink); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    img { max-width: 100%; height: auto; display: block; }
+    .row { display: grid; gap: 12px; }
+    @media (min-width: 640px) { .row { grid-template-columns: 1fr 1fr; } }
+    a.btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin: 4px 8px 4px 0;
+    }
+    code { background: #eee; padding: 1px 6px; border-radius: 4px; }
+    ul { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Post-it wall clip</h1>
+    <p class="lead">Reverse-engineered reprint of the gray hairpin clip that holds Post-it notes on a wall.</p>
+
+    <div class="card">
+      <img src="postit-wall-clip-profile.png" alt="Side profile of the clip, wall at the top" />
+    </div>
+    <div class="row">
+      <div class="card">
+        <img src="postit-wall-clip-iso.png" alt="3D view of the 20 mm clip" />
+      </div>
+      <div class="card">
+        <img src="postit-wall-clip-wide-iso.png" alt="3D view of the 76 mm wide clip" />
+      </div>
+    </div>
+
+    <p>
+      <a class="btn" href="postit-wall-clip.stl">Download 20 mm STL</a>
+      <a class="btn" href="postit-wall-clip-wide.stl">Download 76 mm STL</a>
+    </p>
+
+    <h2>Print</h2>
+    <ul>
+      <li>Lay the S-profile on the bed (width is Z). No supports.</li>
+      <li>0.2 mm layers, 3–4 walls. PLA matches the original; PETG is springier.</li>
+    </ul>
+    <h2>Mount</h2>
+    <ul>
+      <li>Tape the long flat back to the wall.</li>
+      <li>Slide notes under the wavy arm from the open lip.</li>
+    </ul>
+    <p>To change size, edit <code>ClipParams</code> in <code>generate.py</code> and run <code>python3 generate.py</code>.</p>
+  </main>
+</body>
+</html>

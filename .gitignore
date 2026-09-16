@@ -1,6 +1,8 @@
 node_modules/
 .netlify/
 .DS_Store
+__pycache__/
+*.pyc
 
 # Do not publish voice notes or tracker dumps
 cloud-notes/
