@@ -4,6 +4,19 @@ A reprint of the small gray hairpin clip that holds Post-it notes on a wall.
 
 The original file is gone; this is a reverse-engineered match from the printed part: a constant-thickness ribbon with a flat taped back, a rounded C-pocket, a wavy spring arm, and a flared lip.
 
+## Live designer
+
+Open the slider preview (needs a local server so the JS modules load):
+
+```bash
+cd postit-wall-clip
+python3 -m http.server 8000
+```
+
+Then visit http://127.0.0.1:8000/ — drag **Thickness** (ribbon) and **Width** (print height when the S-profile is on the bed) and download an STL of the current shape.
+
+## Ready-made STLs
+
 **Print this:** [`postit-wall-clip.stl`](postit-wall-clip.stl)  
 **Full 3×3 in pad:** [`postit-wall-clip-wide.stl`](postit-wall-clip-wide.stl)
 
@@ -37,18 +50,17 @@ A brim is optional. The part is ~40 × 14 mm on the bed.
 
 ## Customize
 
+Use the designer sliders, or edit `ClipParams` in `generate.py` and run:
+
 ```bash
 python3 generate.py
 ```
 
-Tweak `ClipParams` at the top of `generate.py` (`width`, `thickness`, `back_length`, `hook_inner_r`, `pinch_gap`, `tip_standoff`, …) and re-run.
-
-If you have OpenSCAD, open `postit-wall-clip.scad` and change `width` to reprint a different extrusion without Python.
+`clip.js` is a browser port of the same math (reset in the designer matches these defaults).
 
 ## Files
 
-- `generate.py` — source of truth
+- `index.html` / `viewer.js` / `clip.js` — live designer
+- `generate.py` — source for committed STLs
 - `postit-wall-clip.stl` / `-wide.stl` — slice these
 - `*.scad` — same solids, width still parametric
-- `*-profile.png` / `*-iso.png` — previews
-- `index.html` — local preview page

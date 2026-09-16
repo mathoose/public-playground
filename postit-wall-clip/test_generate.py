@@ -44,13 +44,33 @@ class ClipGeometryTests(unittest.TestCase):
         self.assertEqual(len(pa), len(pb))
         self.assertAlmostEqual(g.mesh_volume(fb) / g.mesh_volume(fa), 76.0 / 20.0, places=2)
 
+    def test_js_port_matches_python_defaults(self):
+        import subprocess
+
+        py_faces = g.mesh_for(g.ClipParams())[2]
+        py_vol = g.mesh_volume(py_faces)
+        out = subprocess.check_output(
+            [
+                "node",
+                "--input-type=module",
+                "-e",
+                "import { meshFor } from './clip.js'; const m = meshFor(); "
+                "process.stdout.write(`${m.faces.length} ${m.volume}`)",
+            ],
+            cwd=ROOT,
+            text=True,
+        )
+        n, vol = out.split()
+        self.assertEqual(int(n), len(py_faces))
+        self.assertAlmostEqual(float(vol), py_vol, places=3)
+
     def test_exported_stls_exist(self):
         for name in ("postit-wall-clip.stl", "postit-wall-clip-wide.stl"):
             path = ROOT / name
             self.assertTrue(path.is_file(), name)
-            n = stl_tri_count(path)
-            self.assertGreater(n, 500)
-            self.assertLess(n, 20_000)
+            count = stl_tri_count(path)
+            self.assertGreater(count, 500)
+            self.assertLess(count, 20_000)
 
 
 if __name__ == "__main__":
