@@ -12,7 +12,8 @@ function hemiGeometry(radius, segments) {
     0,
     Math.PI / 2
   );
-  g.rotateX(-Math.PI / 2);
+  // +Y pole -> +Z so the dome faces the camera (print-bed at z=0).
+  g.rotateX(Math.PI / 2);
   return g;
 }
 
@@ -37,7 +38,7 @@ export class FramePreview {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(140, -190, 220);
+    this.camera.position.set(90, -130, 280);
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -56,13 +57,15 @@ export class FramePreview {
       color: 0x292524,
       roughness: 0.32,
       metalness: 0.12,
+      side: THREE.DoubleSide,
     });
-    this.ghostMat = new THREE.MeshPhysicalMaterial({
+    this.ghostMat = new THREE.MeshStandardMaterial({
       color: 0x78716c,
       roughness: 0.4,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.28,
       depthWrite: false,
+      side: THREE.DoubleSide,
     });
     this.plateMat = new THREE.MeshStandardMaterial({
       color: 0xd6d3d1,
@@ -136,10 +139,10 @@ export class FramePreview {
   fit() {
     if (!this.layout) return;
     const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
-    const dist = span * 1.7;
+    const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
-    this.camera.position.set(dist * 0.55, -dist * 0.75, dist * 0.72);
-    this.controls.target.set(0, 0, this.layout.radius * 0.45);
+    this.camera.position.set(dist * 0.28, -dist * 0.42, dist * 0.95);
+    this.controls.target.set(0, 0, this.layout.radius * 0.35);
     this.controls.update();
   }
 
