@@ -77,6 +77,10 @@ export class FramePreview {
       roughness: 0.62,
       metalness: 0.04,
     });
+    this.holeMat = new THREE.MeshBasicMaterial({
+      color: 0x44403c,
+      side: THREE.DoubleSide,
+    });
     this.photoMat = new THREE.MeshBasicMaterial({
       color: 0xf5f5f4,
       side: THREE.DoubleSide,
@@ -205,6 +209,15 @@ export class FramePreview {
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
     this.photoMesh.position.set(0, 0, -0.25);
     this.group.add(this.photoMesh);
+
+    for (const hole of hangHoleLayout(layout.params)) {
+      const ring = new THREE.Mesh(
+        this._trackGeom(new THREE.RingGeometry(Math.max(1.2, hole.r * 0.45), hole.r, 28)),
+        this.holeMat
+      );
+      ring.position.set(hole.x, hole.y, 0.12);
+      this.group.add(ring);
+    }
 
     if (layout.params.standEnabled) {
       const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
@@ -417,13 +430,18 @@ export class FramePreview {
 
     const holes = hangHoleLayout(params);
     for (const hole of holes) {
+      const rr = Math.max(hole.r * map.scale, 5);
       ctx.beginPath();
-      ctx.arc(toX(hole.x), toY(hole.y), hole.r * map.scale, 0, Math.PI * 2);
-      ctx.fillStyle = "#e7e5e4";
+      ctx.arc(toX(hole.x), toY(hole.y), rr, 0, Math.PI * 2);
+      ctx.fillStyle = "#f5f5f4";
       ctx.fill();
-      ctx.strokeStyle = "#78716c";
-      ctx.lineWidth = 1.25;
+      ctx.strokeStyle = "#44403c";
+      ctx.lineWidth = 2;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(toX(hole.x), toY(hole.y), rr * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = "#a8a29e";
+      ctx.fill();
     }
 
     ctx.fillStyle = "#78716c";
