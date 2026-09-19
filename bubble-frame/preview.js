@@ -30,34 +30,32 @@ export class FramePreview {
       canvas: canvas3d,
       antialias: true,
       alpha: false,
+      preserveDrawingBuffer: true,
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.up.set(0, 0, 1);
-    this.camera.position.set(180, -220, 260);
+    this.camera.position.set(140, -190, 220);
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
-    this.controls.target.set(0, 0, 8);
+    this.controls.target.set(0, 0, 6);
     this.group = new THREE.Group();
     this.scene.add(this.group);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 1.15);
-    key.position.set(80, -120, 220);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const key = new THREE.DirectionalLight(0xffffff, 1.05);
+    key.position.set(60, -40, 220);
     this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0xc4b5fd, 0.35);
-    fill.position.set(-140, 80, 80);
-    this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.45);
+    rim.position.set(-120, 90, 40);
+    this.scene.add(rim);
 
-    this.beadMat = new THREE.MeshPhysicalMaterial({
-      color: 0x1c1917,
-      roughness: 0.22,
-      metalness: 0.08,
-      clearcoat: 0.7,
-      clearcoatRoughness: 0.18,
+    this.beadMat = new THREE.MeshStandardMaterial({
+      color: 0x292524,
+      roughness: 0.32,
+      metalness: 0.12,
     });
     this.ghostMat = new THREE.MeshPhysicalMaterial({
       color: 0x78716c,
@@ -138,9 +136,10 @@ export class FramePreview {
   fit() {
     if (!this.layout) return;
     const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
-    const dist = span * 1.55;
-    this.camera.position.set(dist * 0.35, -dist * 0.85, dist * 0.7);
-    this.controls.target.set(0, 0, this.layout.radius * 0.35);
+    const dist = span * 1.7;
+    this.camera.up.set(0, 1, 0);
+    this.camera.position.set(dist * 0.55, -dist * 0.75, dist * 0.72);
+    this.controls.target.set(0, 0, this.layout.radius * 0.45);
     this.controls.update();
   }
 
@@ -177,12 +176,12 @@ export class FramePreview {
 
     const plateGeom = new THREE.BoxGeometry(layout.photo.w, layout.photo.h, layout.params.plateThickness);
     this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, -layout.params.plateThickness / 2 - 0.4);
+    this.plateMesh.position.set(0, 0, -layout.params.plateThickness / 2 - 1.2);
     this.group.add(this.plateMesh);
 
     const photoGeom = new THREE.PlaneGeometry(layout.photo.w, layout.photo.h);
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
-    this.photoMesh.position.set(0, 0, 0.05);
+    this.photoMesh.position.set(0, 0, -0.25);
     this.group.add(this.photoMesh);
   }
 

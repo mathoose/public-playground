@@ -205,6 +205,8 @@ function bind() {
     refresh();
   });
 
+  $("resetView").addEventListener("click", () => preview.fit());
+
   $("photoFile").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) {
