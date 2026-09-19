@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { layoutBeads } from "./geometry.js";
+import { hangHoleLayout, layoutBeads, standPolygon } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -72,6 +72,11 @@ export class FramePreview {
       roughness: 0.7,
       metalness: 0.05,
     });
+    this.standMat = new THREE.MeshStandardMaterial({
+      color: 0xa8a29e,
+      roughness: 0.62,
+      metalness: 0.04,
+    });
     this.photoMat = new THREE.MeshBasicMaterial({
       color: 0xf5f5f4,
       side: THREE.DoubleSide,
@@ -82,6 +87,7 @@ export class FramePreview {
     this.beadMeshes = [];
     this.photoMesh = null;
     this.plateMesh = null;
+    this.tempGeoms = [];
     this.geomCache = new Map();
     this.running = true;
     this._loop = this._loop.bind(this);
@@ -138,7 +144,8 @@ export class FramePreview {
 
   fit() {
     if (!this.layout) return;
-    const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
+    const extra = this.layout.params.standEnabled ? this.layout.params.standHeight * 0.35 : 0;
+    const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
     const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
     this.camera.position.set(dist * 0.28, -dist * 0.42, dist * 0.95);
@@ -152,6 +159,17 @@ export class FramePreview {
     this.controls.dispose();
     this.renderer.dispose();
     for (const g of this.geomCache.values()) g.dispose();
+    for (const g of this.tempGeoms) g.dispose();
+  }
+
+  _trackGeom(geom) {
+    this.tempGeoms.push(geom);
+    return geom;
+  }
+
+  _clearTemps() {
+    for (const g of this.tempGeoms) g.dispose();
+    this.tempGeoms = [];
   }
 
   _hemiGeom(radius, segments) {
@@ -165,6 +183,7 @@ export class FramePreview {
     while (this.group.children.length) {
       this.group.remove(this.group.children[0]);
     }
+    this._clearTemps();
     this.beadMeshes = [];
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
@@ -177,15 +196,63 @@ export class FramePreview {
       this.beadMeshes.push(mesh);
     }
 
-    const plateGeom = new THREE.BoxGeometry(layout.photo.w, layout.photo.h, layout.params.plateThickness);
+    const plateGeom = this._plateGeom(layout);
     this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, -layout.params.plateThickness / 2 - 1.2);
+    this.plateMesh.position.set(0, 0, -layout.params.plateThickness - 1.2);
     this.group.add(this.plateMesh);
 
-    const photoGeom = new THREE.PlaneGeometry(layout.photo.w, layout.photo.h);
+    const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
     this.photoMesh.position.set(0, 0, -0.25);
     this.group.add(this.photoMesh);
+
+    if (layout.params.standEnabled) {
+      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
+      const poly = standPolygon(layout.params);
+      const lip = poly[4] ? poly[4][1] : 3.4;
+      const y0 = -layout.outer.h / 2 - lip;
+      stand.rotation.y = Math.PI / 2;
+      stand.position.set(0, y0, 0);
+      this.group.add(stand);
+    }
+  }
+
+  _plateGeom(layout) {
+    const w = layout.photo.w;
+    const h = layout.photo.h;
+    const t = layout.params.plateThickness;
+    const holes = hangHoleLayout(layout.params);
+    const shape = new THREE.Shape();
+    shape.moveTo(-w / 2, -h / 2);
+    shape.lineTo(w / 2, -h / 2);
+    shape.lineTo(w / 2, h / 2);
+    shape.lineTo(-w / 2, h / 2);
+    shape.closePath();
+    for (const hole of holes) {
+      const path = new THREE.Path();
+      path.absarc(hole.x, hole.y, hole.r, 0, Math.PI * 2, false);
+      shape.holes.push(path);
+    }
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: t,
+      bevelEnabled: false,
+      curveSegments: 20,
+    });
+    return this._trackGeom(geom);
+  }
+
+  _standGeom(params) {
+    const poly = standPolygon(params);
+    const shape = new THREE.Shape();
+    shape.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
+    shape.closePath();
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: params.standWidth,
+      bevelEnabled: false,
+    });
+    geom.translate(0, 0, -params.standWidth / 2);
+    return this._trackGeom(geom);
   }
 
   _loop() {
@@ -346,6 +413,17 @@ export class FramePreview {
         ctx.stroke();
         ctx.setLineDash([]);
       }
+    }
+
+    const holes = hangHoleLayout(params);
+    for (const hole of holes) {
+      ctx.beginPath();
+      ctx.arc(toX(hole.x), toY(hole.y), hole.r * map.scale, 0, Math.PI * 2);
+      ctx.fillStyle = "#e7e5e4";
+      ctx.fill();
+      ctx.strokeStyle = "#78716c";
+      ctx.lineWidth = 1.25;
+      ctx.stroke();
     }
 
     ctx.fillStyle = "#78716c";
