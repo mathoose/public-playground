@@ -66,6 +66,14 @@ export function defaultParams() {
     plateThickness: 1.2,
     segments: 32,
     disabled: [],
+    hangHoles: true,
+    hangHoleCount: 2,
+    hangHoleDiameter: 5,
+    hangInsetTop: 12,
+    hangInsetSide: 18,
+    standEnabled: true,
+    standAngleDeg: 18,
+    standThickness: 4,
   };
 }
 
@@ -82,6 +90,24 @@ export function clampParams(p) {
   next.webThickness = Math.min(5, Math.max(0, Number(p.webThickness) || 0));
   next.plateThickness = Math.min(8, Math.max(0.4, Number(p.plateThickness) || 0));
   next.segments = Math.min(96, Math.max(12, Math.round(Number(p.segments) || 32)));
+  next.hangHoles = p.hangHoles !== false;
+  next.hangHoleCount = Number(p.hangHoleCount) >= 2 ? 2 : 1;
+  next.hangHoleDiameter = Math.min(16, Math.max(2.5, Number(p.hangHoleDiameter) || 5));
+  const holeR = next.hangHoleDiameter / 2;
+  const minInset = holeR + 2.5;
+  next.hangInsetTop = Math.min(
+    next.photoH / 2 - minInset,
+    Math.max(minInset, Number(p.hangInsetTop) || 12)
+  );
+  next.hangInsetSide = Math.min(
+    next.photoW / 2 - minInset,
+    Math.max(minInset, Number(p.hangInsetSide) || 18)
+  );
+  next.standEnabled = p.standEnabled !== false;
+  next.standAngleDeg = Math.min(32, Math.max(8, Number(p.standAngleDeg) || 18));
+  next.standThickness = Math.min(10, Math.max(2.4, Number(p.standThickness) || 4));
+  next.standHeight = Math.min(120, Math.max(28, 0.4 * next.photoH));
+  next.standWidth = Math.min(60, Math.max(22, 0.32 * next.photoW));
   for (const key of ["countTop", "countBottom", "countLeft", "countRight"]) {
     next[key] = Math.min(40, Math.max(2, Math.round(Number(p[key]) || 2)));
   }
@@ -252,4 +278,80 @@ export function toggleDisabled(p, id) {
   else set.add(id);
   next.disabled = [...set];
   return next;
+}
+
+/** Round hanging holes in photo-centered coordinates (same as beads). */
+export function hangHoleLayout(p) {
+  const params = clampParams(p);
+  if (!params.hangHoles) return [];
+  const r = params.hangHoleDiameter / 2;
+  const y = params.photoH / 2 - params.hangInsetTop;
+  if (params.hangHoleCount <= 1) {
+    return [{ x: 0, y, r }];
+  }
+  const x = params.photoW / 2 - params.hangInsetSide;
+  return [
+    { x: -x, y, r },
+    { x, y, r },
+  ];
+}
+
+export function polygonArea(poly) {
+  let a = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p0 = poly[i];
+    const p1 = poly[(i + 1) % poly.length];
+    a += p0[0] * p1[1] - p1[0] * p0[1];
+  }
+  return a / 2;
+}
+
+export function ensureCcw(poly) {
+  return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
+}
+
+/**
+ * Easel stand side profile. Print this polygon on the bed and extrude
+ * `standWidth` in Z. After printing, stand it on the y=0 edge.
+ * +x is toward the front of the photo; +y is up.
+ */
+export function standPolygon(p) {
+  const params = clampParams(p);
+  const θ = (params.standAngleDeg * Math.PI) / 180;
+  const t = params.standThickness;
+  const lip = 3.4;
+  const frontLip = 2.6;
+  const H = params.standHeight;
+  const shelf = Math.max(params.ballDiameter * 0.55, 12);
+  const tanT = Math.tan(θ);
+  const topInnerX = -H * tanT;
+  const topInnerY = lip + H;
+  const topOuterX = topInnerX - Math.cos(θ) * t;
+  const topOuterY = topInnerY - Math.sin(θ) * t;
+  const backFootX = topOuterX - 6;
+
+  const poly = [
+    [shelf + frontLip, 0],
+    [shelf + frontLip, lip + 1.4],
+    [shelf, lip + 1.4],
+    [shelf, lip],
+    [0, lip],
+    [topInnerX, topInnerY],
+    [topOuterX, topOuterY],
+    [backFootX, 0],
+  ];
+  return ensureCcw(poly);
+}
+
+export function standBounds(poly) {
+  const xs = poly.map((p) => p[0]);
+  const ys = poly.map((p) => p[1]);
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+  };
 }
