@@ -1,0 +1,13 @@
+Bubble frame is in the bubble-frame folder.
+
+In Finder:
+1. Open bubble-frame
+2. To print the default 4×6: drag the three .stl files into your slicer
+     bubble-frame-4x6in-frame.stl
+     bubble-frame-4x6in-back.stl
+     bubble-frame-4x6in-stand.stl
+3. To customize sizes: double-click "Start Bubble Frame.command"
+   (first time: right-click → Open)
+
+If you do not see a bubble-frame folder here, this copy of public-playground is old.
+In GitHub Desktop: Fetch origin, then Pull origin. Then look again.

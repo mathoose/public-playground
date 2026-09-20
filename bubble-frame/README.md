@@ -28,11 +28,15 @@ Click a circle in the 2D or 3D preview to turn it off (leaves a gap) or back on.
 
 ## Print
 
+Default **4×6 in** files are already in this folder (open it in Finder):
+
 | File | What it is |
 | --- | --- |
-| `bubble-frame-…-frame.stl` | Hemispheres + optional thin bed web. Flat face on the bed. |
-| `bubble-frame-…-back.stl` | Rectangle exactly the photo size × back-plate thickness, with optional hanging holes. |
-| `bubble-frame-…-stand.stl` | Easel: front shelf + angled backrest. Print the **side profile** flat on the bed. |
+| [`bubble-frame-4x6in-frame.stl`](bubble-frame-4x6in-frame.stl) | Hemispheres + thin bed web. Print flat on the bed. |
+| [`bubble-frame-4x6in-back.stl`](bubble-frame-4x6in-back.stl) | Photo-sized plate with two hanging holes. |
+| [`bubble-frame-4x6in-stand.stl`](bubble-frame-4x6in-stand.stl) | Easel: front shelf + angled backrest. Print the **side profile** flat on the bed. |
+
+The app can download other sizes as `bubble-frame-…-frame.stl` / `-back.stl` / `-stand.stl`.
 
 - Print **flat**, no supports
 - 0.2 mm layers, 0.4 mm nozzle, 3+ walls
@@ -56,4 +60,10 @@ STLs are millimeters. Geometry lives in [`geometry.js`](geometry.js); union happ
 
 ```bash
 node test_geometry.mjs
+```
+
+To regenerate the 4×6 files in this folder (needs `npm install manifold-3d` once):
+
+```bash
+node export_default.mjs
 ```

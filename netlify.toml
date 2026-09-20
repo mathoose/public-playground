@@ -1,4 +1,5 @@
 [build]
+  command = "rm -rf aruba-packing/bubble-frame && cp -R bubble-frame aruba-packing/bubble-frame"
   publish = "aruba-packing"
 
 [[headers]]

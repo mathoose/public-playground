@@ -11,9 +11,12 @@ export async function loadManifold() {
       .catch(() => import(MANIFOLD_JS))
       .then((mod) => {
         const Module = mod.default || mod;
-        return Module({
-          locateFile: (path) => (path.endsWith(".wasm") ? MANIFOLD_WASM : path),
-        });
+        const inBrowser = typeof window !== "undefined";
+        return Module(
+          inBrowser
+            ? { locateFile: (path) => (path.endsWith(".wasm") ? MANIFOLD_WASM : path) }
+            : {}
+        );
       })
       .then((wasm) => {
         wasm.setup();
