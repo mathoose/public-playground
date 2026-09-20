@@ -223,7 +223,7 @@ export class FramePreview {
       this.group.add(boss);
 
       const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      stand.rotation.y = Math.PI / 2;
+      stand.rotation.y = -Math.PI / 2;
       stand.position.set(
         0,
         -layout.outer.h / 2,
