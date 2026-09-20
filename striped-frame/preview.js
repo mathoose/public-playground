@@ -74,6 +74,11 @@ export class FramePreview {
       roughness: 0.75,
       metalness: 0.04,
     });
+    this.edgeFinishMat = new THREE.MeshStandardMaterial({
+      color: 0xa8a29e,
+      roughness: 0.55,
+      metalness: 0.08,
+    });
 
     this.tempGeoms = [];
     this.running = true;
@@ -257,12 +262,13 @@ export class FramePreview {
   _addEdgeFinishPreview(layout) {
     const finish = edgeFinishSizes(layout.params);
     const z = layout.maxHeight;
+    const mat = this.edgeFinishMat;
     const addWedge = (run, size, mode, kind) => {
       if (mode === "none" || size < 0.05) return;
       const len = run.axis === "x" ? run.x1 - run.x0 : run.y1 - run.y0;
       if (len < 0.3) return;
-      const mat = this.bedMat;
       if (mode === "chamfer") {
+        // 45° square prism along the rim — same cue Manifold uses for the STL cut.
         const s = size * Math.SQRT2;
         const mesh = new THREE.Mesh(
           this._trackGeom(
@@ -271,37 +277,29 @@ export class FramePreview {
           mat
         );
         if (run.axis === "x") {
-          mesh.rotation.x = (kind === "outside" ? (run.y > 0 ? 1 : -1) : run.y > 0 ? -1 : 1) * (Math.PI / 4);
+          mesh.rotation.x = Math.PI / 4;
           mesh.position.set((run.x0 + run.x1) / 2, run.y, z);
         } else {
-          mesh.rotation.y = (kind === "outside" ? (run.x > 0 ? -1 : 1) : run.x > 0 ? 1 : -1) * (Math.PI / 4);
+          mesh.rotation.y = Math.PI / 4;
           mesh.position.set(run.x, (run.y0 + run.y1) / 2, z);
         }
         this.group.add(mesh);
       } else {
+        // Quarter-pipe along the rim (preview cue; STL uses a proper fillet cutter).
         const mesh = new THREE.Mesh(
-          this._trackGeom(
-            new THREE.CylinderGeometry(
-              size,
-              size,
-              len,
-              12,
-              1,
-              false,
-              0,
-              Math.PI / 2
-            )
-          ),
+          this._trackGeom(new THREE.CylinderGeometry(size, size, len, 16, 1, false, 0, Math.PI / 2)),
           mat
         );
         if (run.axis === "x") {
           mesh.rotation.z = Math.PI / 2;
-          mesh.rotation.y = run.y > 0 ? 0 : Math.PI;
-          if (kind === "inside") mesh.rotation.y += Math.PI;
-          mesh.position.set((run.x0 + run.x1) / 2, run.y + (kind === "outside" ? (run.y > 0 ? -size : size) : run.y > 0 ? size : -size), z - size);
+          const into = kind === "outside" ? (run.y > 0 ? -1 : 1) : run.y > 0 ? 1 : -1;
+          mesh.rotation.y = into < 0 ? 0 : Math.PI;
+          mesh.position.set((run.x0 + run.x1) / 2, run.y + into * size, z - size);
         } else {
           mesh.rotation.x = Math.PI / 2;
-          mesh.position.set(run.x + (kind === "outside" ? (run.x > 0 ? -size : size) : run.x > 0 ? size : -size), (run.y0 + run.y1) / 2, z - size);
+          const into = kind === "outside" ? (run.x > 0 ? -1 : 1) : run.x > 0 ? 1 : -1;
+          mesh.rotation.z = into < 0 ? 0 : Math.PI;
+          mesh.position.set(run.x + into * size, (run.y0 + run.y1) / 2, z - size);
         }
         this.group.add(mesh);
       }
