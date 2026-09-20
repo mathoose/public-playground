@@ -15,6 +15,7 @@ import {
   polygonArea,
   standBounds,
   standPolygon,
+  standSlotLayout,
   toggleDisabled,
 } from "./geometry.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
@@ -123,15 +124,22 @@ assert(holes1.length === 1 && holes1[0].x === 0, "single centered hole");
 assert(hangHoleLayout({ ...p, hangHoles: false }).length === 0, "holes can be turned off");
 
 const stand = standPolygon(p);
-assert(stand.length >= 6, "stand has a shelf and backrest");
+assert(stand.length >= 4, "stand has a tab and a foot");
 assert(polygonArea(stand) > 50, "stand profile has positive area");
 const sb = standBounds(stand);
 assert(sb.minY >= -1e-6, "stand sits on y=0 for a flat print");
-assert(sb.maxX > 8, "stand has a front shelf");
-assert(sb.minX < 0, "backrest leans behind the shelf");
+assert(sb.maxX <= p.standThickness + 0.05, "tab does not stick in front of the plate");
+assert(sb.minX < 0, "foot stays behind the beads");
 assert(sb.h > 20, "stand is tall enough to prop the frame");
+const slot = standSlotLayout(p);
+assert(slot && slot.insertH >= 12, "back plate has an insert pocket");
+assert(slot.bossH > slot.insertH, "pocket is taller than the tab");
+assert(slot.slotW > p.standWidth, "slot is wider than the tab for clearance");
+assert(stand.every((pt) => pt[0] <= p.standThickness + 0.05), "no stand geometry in front of the plate");
+const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
+assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
 const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
-assert(steeper.w > sb.w - 1e-6, "a steeper lean makes a deeper base");
+assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
 
 const here = dirname(fileURLToPath(import.meta.url));
 for (const [name, minTris] of [

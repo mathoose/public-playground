@@ -205,6 +205,41 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   color: var(--muted);
   min-height: 1.2em;
 }
+.export-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+.export-links-label {
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+.export-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--accent-dark);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+.live-link {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin: 0 0 14px;
+}
+.live-link a {
+  color: var(--accent-dark);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
 
 @media (max-width: 900px) {
   .app {

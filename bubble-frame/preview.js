@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { hangHoleLayout, layoutBeads, standPolygon } from "./geometry.js";
+import { hangHoleLayout, layoutBeads, standPolygon, standSlotLayout } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -38,7 +38,7 @@ export class FramePreview {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(90, -130, 280);
+    this.camera.position.set(40, 25, 300);
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -80,6 +80,11 @@ export class FramePreview {
     this.holeMat = new THREE.MeshBasicMaterial({
       color: 0x44403c,
       side: THREE.DoubleSide,
+    });
+    this.slotMat = new THREE.MeshStandardMaterial({
+      color: 0x57534e,
+      roughness: 0.7,
+      metalness: 0.04,
     });
     this.photoMat = new THREE.MeshBasicMaterial({
       color: 0xf5f5f4,
@@ -152,7 +157,7 @@ export class FramePreview {
     const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
     const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
-    this.camera.position.set(dist * 0.28, -dist * 0.42, dist * 0.95);
+    this.camera.position.set(dist * 0.12, dist * 0.08, dist * 1.05);
     this.controls.target.set(0, 0, this.layout.radius * 0.35);
     this.controls.update();
   }
@@ -200,10 +205,25 @@ export class FramePreview {
       this.beadMeshes.push(mesh);
     }
 
+    const plateZ = -layout.params.plateThickness - 1.2;
     const plateGeom = this._plateGeom(layout);
     this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, -layout.params.plateThickness - 1.2);
+    this.plateMesh.position.set(0, 0, plateZ);
     this.group.add(this.plateMesh);
+
+    const slot = standSlotLayout(layout.params);
+    if (slot) {
+      this._addStandPocket(layout, slot, plateZ);
+
+      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
+      stand.rotation.y = -Math.PI / 2;
+      stand.position.set(
+        0,
+        -layout.outer.h / 2,
+        plateZ - layout.params.standThickness
+      );
+      this.group.add(stand);
+    }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
@@ -218,15 +238,50 @@ export class FramePreview {
       ring.position.set(hole.x, hole.y, 0.12);
       this.group.add(ring);
     }
+  }
 
-    if (layout.params.standEnabled) {
-      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      const poly = standPolygon(layout.params);
-      const lip = poly[4] ? poly[4][1] : 3.4;
-      const y0 = -layout.outer.h / 2 - lip;
-      stand.rotation.y = Math.PI / 2;
-      stand.position.set(0, y0, 0);
-      this.group.add(stand);
+  _addStandPocket(layout, slot, plateZ) {
+    const y0 = -layout.photo.h / 2;
+    const wall = slot.wall;
+    const capH = slot.bossH - slot.insertH;
+    const addBox = (w, h, d, x, y, z) => {
+      const mesh = new THREE.Mesh(this._trackGeom(new THREE.BoxGeometry(w, h, d)), this.slotMat);
+      mesh.position.set(x, y, z);
+      this.group.add(mesh);
+    };
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      -slot.bossW / 2 + wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      slot.bossW / 2 - wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      slot.slotW,
+      slot.bossH,
+      wall,
+      0,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD + wall / 2
+    );
+    if (capH > 0.2) {
+      addBox(
+        slot.slotW,
+        capH,
+        slot.slotD,
+        0,
+        y0 + slot.insertH + capH / 2,
+        plateZ - slot.slotD / 2
+      );
     }
   }
 

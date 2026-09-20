@@ -20,9 +20,10 @@ import {
   buildBackPlateStl,
   buildFrameMesh,
   buildStandStl,
-  downloadArrayBuffer,
   stlTriangleCount,
 } from "./stl.js";
+
+const lastExports = {};
 
 const $ = (id) => document.getElementById(id);
 
@@ -287,6 +288,40 @@ function bind() {
   $("dlBoth").addEventListener("click", () => exportStls("all"));
 }
 
+function rememberExport(kind, filename, buffer) {
+  if (lastExports[kind]) URL.revokeObjectURL(lastExports[kind].url);
+  const blob = new Blob([buffer], { type: "model/stl" });
+  const url = URL.createObjectURL(blob);
+  lastExports[kind] = { url, name: filename };
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  renderExportLinks();
+}
+
+function renderExportLinks() {
+  const el = $("exportLinks");
+  if (!el) return;
+  const order = [
+    ["frame", "Frame"],
+    ["plate", "Back plate"],
+    ["stand", "Stand"],
+  ];
+  const parts = order
+    .filter(([kind]) => lastExports[kind])
+    .map(([kind, label]) => {
+      const file = lastExports[kind];
+      return `<a class="export-link" href="${file.url}" download="${file.name}">${label} STL</a>`;
+    });
+  el.hidden = parts.length === 0;
+  el.innerHTML = parts.length
+    ? `<div class="export-links-label">Latest exports — tap to download again</div>${parts.join("")}`
+    : "";
+}
+
 async function exportStls(which) {
   const label = sizeLabel(params.photoW, params.photoH, params.units);
   const status = $("status");
@@ -297,20 +332,20 @@ async function exportStls(which) {
     if (which === "plate" || which === "all" || which === "both") {
       status.textContent = "Writing back plate…";
       const plate = await buildBackPlateStl(params);
-      downloadArrayBuffer(`bubble-frame-${label}-back.stl`, plate.stl);
+      rememberExport("plate", `bubble-frame-${label}-back.stl`, plate.stl);
       parts.push(`plate ${stlTriangleCount(plate.stl).toLocaleString()} tris`);
     }
     if ((which === "stand" || which === "all") && params.standEnabled) {
       status.textContent = "Building stand…";
       const stand = await buildStandStl(params);
-      downloadArrayBuffer(`bubble-frame-${label}-stand.stl`, stand.stl);
+      rememberExport("stand", `bubble-frame-${label}-stand.stl`, stand.stl);
       parts.push(`stand ${plaGrams(stand.volume).toFixed(1)} g`);
     }
     if (which === "frame" || which === "all" || which === "both") {
       status.textContent = "Unioning beads (first run loads the CAD kernel)…";
       const { stl, volume, layout } = await buildFrameMesh(params);
       const n = stlTriangleCount(stl);
-      downloadArrayBuffer(`bubble-frame-${label}-frame.stl`, stl);
+      rememberExport("frame", `bubble-frame-${label}-frame.stl`, stl);
       parts.push(`frame ${n.toLocaleString()} tris · ${plaGrams(volume).toFixed(1)} g · ${layout.enabledCount} beads`);
     }
     status.textContent = parts.length ? parts.join(" · ") : "Done.";

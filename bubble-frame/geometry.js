@@ -311,34 +311,66 @@ export function ensureCcw(poly) {
 }
 
 /**
+ * Back-plate pocket the stand tab slides into. Open at the bottom and the
+ * back; the front of the plate stays solid so beads hide the joint.
+ */
+export function standSlotLayout(p) {
+  const params = clampParams(p);
+  if (!params.standEnabled) return null;
+  const wall = 2.4;
+  const clearance = 0.4;
+  const insertH = Math.min(24, Math.max(12, 0.12 * params.photoH));
+  const slotW = params.standWidth + clearance;
+  const slotD = params.standThickness + clearance;
+  const bossW = slotW + 2 * wall;
+  const bossH = insertH + 3.5;
+  const bossD = slotD + wall;
+  // Distance from the table (bead bottoms) to the plate’s bottom edge, so the
+  // tab meets the pocket mouth and nothing extra hangs in front of the beads.
+  const lift = Math.max(2.5, params.ballDiameter - params.imageOverlap);
+  return {
+    wall,
+    clearance,
+    insertH,
+    slotW,
+    slotD,
+    bossW,
+    bossH,
+    bossD,
+    lift,
+  };
+}
+
+/**
  * Easel stand side profile. Print this polygon on the bed and extrude
  * `standWidth` in Z. After printing, stand it on the y=0 edge.
  * +x is toward the front of the photo; +y is up.
+ * The tab (x >= 0) slides up into the back-plate pocket. The kickstand stays
+ * at x <= 0 so nothing reads from the front — only the beads.
  */
 export function standPolygon(p) {
   const params = clampParams(p);
+  const slot = standSlotLayout({ ...params, standEnabled: true });
+  const tabT = params.standThickness;
+  const insertH = slot.insertH - 0.7;
+  const lift = slot.lift;
+  // Short below-plate stub so the tab and kickstand share a real rectangle
+  // (a point joint would snap). It sits in the pocket’s open mouth, behind
+  // the plate, so it does not read from the front.
+  const join = Math.min(2.4, lift);
+  const tabBottom = lift - join;
+  const thick = params.standThickness;
   const θ = (params.standAngleDeg * Math.PI) / 180;
-  const t = params.standThickness;
-  const lip = 3.4;
-  const frontLip = 2.6;
-  const H = params.standHeight;
-  const shelf = Math.max(params.ballDiameter * 0.55, 12);
-  const tanT = Math.tan(θ);
-  const topInnerX = -H * tanT;
-  const topInnerY = lip + H;
-  const topOuterX = topInnerX - Math.cos(θ) * t;
-  const topOuterY = topInnerY - Math.sin(θ) * t;
-  const backFootX = topOuterX - 6;
-
+  const heelX = -params.standHeight * Math.tan(θ) - 10;
   const poly = [
-    [shelf + frontLip, 0],
-    [shelf + frontLip, lip + 1.4],
-    [shelf, lip + 1.4],
-    [shelf, lip],
-    [0, lip],
-    [topInnerX, topInnerY],
-    [topOuterX, topOuterY],
-    [backFootX, 0],
+    [tabT, tabBottom],
+    [tabT, lift + insertH],
+    [0, lift + insertH],
+    [0, lift],
+    [-thick, tabBottom],
+    [heelX - thick, 0],
+    [heelX, 0],
+    [0, tabBottom],
   ];
   return ensureCcw(poly);
 }
