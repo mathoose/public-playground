@@ -2,6 +2,7 @@
 
 Scratch repo for small experiments.
 
+- [`3d-printing/`](3d-printing/) — library site for printable apps (bubble frame, Post-it clip, …)
 - [`aruba-packing/`](aruba-packing/) — packing list + wardrobe grid
-- [`postit-wall-clip/`](postit-wall-clip/) — reprint of a wall Post-it holder clip
-- [`bubble-frame/`](https://github.com/mathoose/public-playground/tree/main/bubble-frame) — customizable 3D-printed bubble picture frame (STL). Double-click `Start Bubble Frame.command` (Mac) or `bubble-frame/Start Bubble Frame.bat` (Windows). **Latest files:** [open on GitHub](https://github.com/mathoose/public-playground/tree/main/bubble-frame).
+- [`bubble-frame/`](bubble-frame/) — customizable 3D-printed bubble picture frame (STL). [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html). **Latest files:** [open on GitHub](https://github.com/mathoose/public-playground/tree/main/bubble-frame).
+- [`postit-wall-clip/`](postit-wall-clip/) — Post-it wall clip designer + STLs

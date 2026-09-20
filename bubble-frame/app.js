@@ -372,4 +372,10 @@ function init() {
   window.addEventListener("resize", () => preview.resize());
 }
 
-init();
+try {
+  init();
+} catch (err) {
+  console.error(err);
+  const status = document.getElementById("status");
+  if (status) status.textContent = err.message || String(err);
+}

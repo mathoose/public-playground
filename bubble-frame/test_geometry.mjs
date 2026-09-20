@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   IN,
   actualOverlap,
@@ -137,6 +140,19 @@ const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
 assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
 const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
 assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
+
+const here = dirname(fileURLToPath(import.meta.url));
+for (const [name, minTris] of [
+  ["bubble-frame-4x6in-frame.stl", 1000],
+  ["bubble-frame-4x6in-back.stl", 12],
+  ["bubble-frame-4x6in-stand.stl", 12],
+]) {
+  const path = join(here, name);
+  assert(existsSync(path), `${name} is in the folder so Finder can open it`);
+  const buf = readFileSync(path);
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  assert(stlTriangleCount(ab) >= minTris, `${name} is a real STL`);
+}
 
 if (failed) {
   console.error(`${failed} assertion(s) failed`);

@@ -1,26 +1,26 @@
 # Bubble frame
 
-A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** the same size as the photo (optional hanging holes), and an **easel stand** that props the frame at an angle.
+This **whole folder** is the project. In Finder, put it here:
+
+`Projects / 3d printing / bubble-frame`
+
+Keep other prints as sibling folders (`postit-wall-clip`, the next thing you make, …).
+
+A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** the same size as the photo (optional hanging holes), and an **easel stand** whose tab slides into a pocket on the back of the plate so nothing shows in front of the beads.
 
 **Latest files (always the merged main copy):** [github.com/mathoose/public-playground/tree/main/bubble-frame](https://github.com/mathoose/public-playground/tree/main/bubble-frame)
 
 ## Open the app (no typing)
 
-**On a Mac:** in Finder, open the `bubble-frame` folder and double-click **`Start Bubble Frame.command`**. A small terminal window will appear — leave it. Your browser should open the app. When you are done, close that terminal window.
+**Easiest:** [Open Bubble Frame](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html)
 
-The first time, macOS may say the file cannot be opened. Right-click it → **Open** → **Open**.
+**On a Mac, in Finder:** double-click **`Open Bubble Frame.html`**. That is a normal webpage shortcut — Apple will not block it.
 
-**On Windows:** double-click **`Start Bubble Frame.bat`** in the same folder.
+Do **not** run `python3 -m http.server --directory bubble-frame` from your home folder. There is no `bubble-frame` folder there, so the browser gets 404.
 
-The launcher always serves *this* folder, so you will not get a 404 from starting the server in the wrong place.
+If you double-clicked **`Start Bubble Frame.command`** and macOS said it could not verify the file: click **Done** (not Move to Trash). Then either use the HTML file above, or right-click the `.command` → **Open** → **Open**. You can also allow it in Apple menu → System Settings → Privacy & Security → **Open Anyway**.
 
-If you still want the terminal command, run it **from inside `bubble-frame/`**:
-
-```bash
-python3 -m http.server 8080
-```
-
-Then visit http://127.0.0.1:8080/
+**On Windows:** double-click **`Start Bubble Frame.bat`**, or use the same link.
 
 ## How sizes work
 
@@ -30,11 +30,15 @@ Click a circle in the 2D or 3D preview to turn it off (leaves a gap) or back on.
 
 ## Print
 
+Default **4×6 in** files are already in this folder (open it in Finder):
+
 | File | What it is |
 | --- | --- |
-| `bubble-frame-…-frame.stl` | Hemispheres + optional thin bed web. Flat face on the bed. |
-| `bubble-frame-…-back.stl` | Rectangle exactly the photo size × back-plate thickness, with optional hanging holes. |
-| `bubble-frame-…-stand.stl` | Easel: tab inserts into a back pocket on the plate. Print the **side profile** flat on the bed. |
+| [`bubble-frame-4x6in-frame.stl`](bubble-frame-4x6in-frame.stl) | Hemispheres + thin bed web. Print flat on the bed. |
+| [`bubble-frame-4x6in-back.stl`](bubble-frame-4x6in-back.stl) | Photo-sized plate with two hanging holes and a stand pocket on the back. |
+| [`bubble-frame-4x6in-stand.stl`](bubble-frame-4x6in-stand.stl) | Easel: tab inserts into a back pocket on the plate. Print the **side profile** flat on the bed. |
+
+The app can download other sizes as `bubble-frame-…-frame.stl` / `-back.stl` / `-stand.stl`.
 
 - Print **flat**, no supports
 - 0.2 mm layers, 0.4 mm nozzle, 3+ walls
@@ -58,4 +62,11 @@ STLs are millimeters. Geometry lives in [`geometry.js`](geometry.js); union happ
 
 ```bash
 node test_geometry.mjs
+npm install && node build.mjs   # rebuilds app.bundle.js after JS edits
+```
+
+To regenerate the 4×6 files in this folder (needs `npm install manifold-3d` once):
+
+```bash
+node export_default.mjs
 ```

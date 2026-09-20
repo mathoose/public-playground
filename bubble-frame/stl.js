@@ -7,13 +7,18 @@ let wasmPromise = null;
 
 export async function loadManifold() {
   if (!wasmPromise) {
-    wasmPromise = import("manifold-3d")
-      .catch(() => import(MANIFOLD_JS))
+    const spec =
+      typeof window !== "undefined" ? MANIFOLD_JS : "manifold-3d";
+    wasmPromise = import(/* @vite-ignore */ spec)
+      .catch(() => import(/* @vite-ignore */ MANIFOLD_JS))
       .then((mod) => {
         const Module = mod.default || mod;
-        return Module({
-          locateFile: (path) => (path.endsWith(".wasm") ? MANIFOLD_WASM : path),
-        });
+        const inBrowser = typeof window !== "undefined";
+        return Module(
+          inBrowser
+            ? { locateFile: (path) => (path.endsWith(".wasm") ? MANIFOLD_WASM : path) }
+            : {}
+        );
       })
       .then((wasm) => {
         wasm.setup();

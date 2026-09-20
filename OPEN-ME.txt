@@ -1,0 +1,19 @@
+Your 3D print library on this Mac should look like:
+
+  Projects
+    3d printing
+      bubble-frame
+      postit-wall-clip
+      (next print project…)
+
+Open the website (customize + download STLs) from the library page
+linked in the pull request. Bookmark that.
+
+In Finder, drag bubble-frame and postit-wall-clip into
+Projects / 3d printing so each print stays in its own folder.
+
+Chrome saves new STLs to Downloads. Move them into the matching folder.
+
+Do not run python from your home folder. That is why localhost:8080 said 404.
+If Apple blocked Start Bubble Frame.command, click Done (not Move to Trash)
+and use the website instead.

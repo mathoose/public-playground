@@ -5,19 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bubble frame STL</title>
   <link rel="stylesheet" href="./styles.css" />
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-      "manifold-3d": "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js"
-    }
-  }
-  </script>
 </head>
 <body>
   <div class="app">
     <aside class="panel">
+      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
       <h1>Bubble frame</h1>
       <p class="lead">Print a flat-backed bead frame around a photo. Sizes are the photo; the balls overlap inward over the picture.</p>
 
@@ -186,8 +178,7 @@
         stand on its <b>side profile</b> (also flat, no supports). Sandwich
         <b>frame → photo → back plate</b> and glue the plate on. Slide the stand’s tab up into
         the pocket on the back of the plate — from the front you only see the beads. STL units
-        are millimeters. Serve this folder over HTTP so the CAD kernel can load
-        (<code>python3 -m http.server</code>).
+        are millimeters.
       </p>
     </aside>
 
@@ -205,6 +196,12 @@
       </div>
     </main>
   </div>
-  <script type="module" src="./app.js"></script>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.library-nav");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
 </body>
 </html>

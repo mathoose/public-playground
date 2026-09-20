@@ -1,85 +1,240 @@
 <!DOCTYPE html>
+<!-- build: postit-clip-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Post-it wall clip</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Post-it clip designer</title>
   <style>
     :root {
-      --bg: #f4f1ea;
+      --bg: #ece8e1;
+      --panel: #f7f4ef;
       --ink: #1c1917;
       --muted: #78716c;
-      --card: #fff;
-      --line: #e7e5e4;
+      --line: #ddd6cc;
       --accent: #44403c;
+      --accent-2: #0f766e;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
     body {
-      margin: 0;
-      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--ink);
+      min-height: 100dvh;
     }
-    main { max-width: 720px; margin: 0 auto; padding: 28px 20px 64px; }
-    h1 { font-size: 1.7rem; margin: 0 0 8px; }
-    p { color: var(--muted); }
-    .lead { font-size: 1.05rem; color: var(--ink); }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-      margin: 16px 0;
+    .app {
+      display: grid;
+      grid-template-rows: auto minmax(280px, 1fr) auto;
+      min-height: 100dvh;
+      min-height: 100svh;
     }
-    img { max-width: 100%; height: auto; display: block; }
-    .row { display: grid; gap: 12px; }
-    @media (min-width: 640px) { .row { grid-template-columns: 1fr 1fr; } }
-    a.btn {
-      display: inline-block;
+    @media (min-width: 900px) {
+      .app {
+        grid-template-rows: auto 1fr;
+        grid-template-columns: 1fr min(380px, 42vw);
+        height: 100dvh;
+      }
+      header { grid-column: 1 / -1; }
+      .stage { min-height: 0; }
+      .panel { border-top: 0; border-left: 1px solid var(--line); }
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: calc(10px + var(--safe-top)) 16px 10px;
+      background: rgba(236, 232, 225, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    header .lib {
+      display: block;
+      color: #0f766e;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; }
+    header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+    .ready {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .ready a {
+      display: inline-flex;
+      align-items: center;
+      background: #e7e5e4;
+      color: var(--ink);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .foot {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .stage {
+      position: relative;
+      background: #d7d2c8;
+      min-height: 280px;
+    }
+    #view { width: 100%; height: 100%; display: block; touch-action: none; }
+    .hint {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      color: #57534e;
+      font-size: 0.75rem;
+      pointer-events: none;
+    }
+    .panel {
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      padding: 14px 16px calc(20px + var(--safe-bottom));
+      overflow: auto;
+    }
+    @media (min-width: 900px) {
+      .panel { border-top: 0; }
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    button {
+      appearance: none;
+      border: 0;
       background: var(--accent);
       color: #fff;
-      text-decoration: none;
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 10px;
-      margin: 4px 8px 4px 0;
+      font: inherit;
+      cursor: pointer;
     }
-    code { background: #eee; padding: 1px 6px; border-radius: 4px; }
-    ul { color: var(--ink); }
+    button.secondary { background: #a8a29e; color: #1c1917; }
+    button.wide { background: var(--accent-2); }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      align-items: center;
+      margin: 0 0 12px;
+    }
+    .row label { font-size: 0.9rem; }
+    .row output {
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    input[type="range"] { width: 100%; grid-column: 1 / -1; accent-color: var(--accent); }
+    .meta { color: var(--muted); font-size: 0.8rem; margin: 4px 0 0; }
+    .meta strong { color: var(--ink); font-weight: 600; }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Post-it wall clip</h1>
-    <p class="lead">Reverse-engineered reprint of the gray hairpin clip that holds Post-it notes on a wall.</p>
-
-    <div class="card">
-      <img src="postit-wall-clip-profile.png" alt="Side profile of the clip, wall at the top" />
-    </div>
-    <div class="row">
-      <div class="card">
-        <img src="postit-wall-clip-iso.png" alt="3D view of the 20 mm clip" />
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
+        <h1>Post-it clip designer</h1>
       </div>
-      <div class="card">
-        <img src="postit-wall-clip-wide-iso.png" alt="3D view of the 76 mm wide clip" />
-      </div>
+      <p>v3 · Sep 20, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
     </div>
+    <aside class="panel">
+      <div class="actions">
+        <button type="button" id="preset-original">Original 20 mm</button>
+        <button type="button" class="wide" id="preset-wide">Wide 76 mm</button>
+        <button type="button" class="secondary" id="reset">Reset</button>
+        <button type="button" id="download">Download this STL</button>
+      </div>
+      <div class="ready">
+        <a href="postit-wall-clip-v3.stl" download>Print this version · 20 mm</a>
+        <a href="postit-wall-clip-wide-v3.stl" download>Wide pad · 76 mm</a>
+      </div>
 
-    <p>
-      <a class="btn" href="postit-wall-clip.stl">Download 20 mm STL</a>
-      <a class="btn" href="postit-wall-clip-wide.stl">Download 76 mm STL</a>
-    </p>
-
-    <h2>Print</h2>
-    <ul>
-      <li>Lay the S-profile on the bed (width is Z). No supports.</li>
-      <li>0.2 mm layers, 3–4 walls. PLA matches the original; PETG is springier.</li>
-    </ul>
-    <h2>Mount</h2>
-    <ul>
-      <li>Tape the long flat back to the wall.</li>
-      <li>Slide notes under the wavy arm from the open lip.</li>
-    </ul>
-    <p>To change size, edit <code>ClipParams</code> in <code>generate.py</code> and run <code>python3 generate.py</code>.</p>
-  </main>
+      <div class="row">
+        <label for="thickness">Thickness (ribbon)</label>
+        <output id="thickness-out"></output>
+        <input id="thickness" type="range" min="1.2" max="5" step="0.1" value="2.8" />
+      </div>
+      <div class="row">
+        <label for="width">Width (print height on its side)</label>
+        <output id="width-out"></output>
+        <input id="width" type="range" min="8" max="80" step="1" value="20" />
+      </div>
+      <div class="row">
+        <label for="back_length">Back length</label>
+        <output id="back_length-out"></output>
+        <input id="back_length" type="range" min="25" max="60" step="0.5" value="40" />
+      </div>
+      <div class="row">
+        <label for="slot_from_end">Putty slot location (from tab end)</label>
+        <output id="slot_from_end-out"></output>
+        <input id="slot_from_end" type="range" min="0.5" max="18" step="0.1" value="2.5" />
+      </div>
+      <div class="row">
+        <label for="slot_along">Putty chamfer along</label>
+        <output id="slot_along-out"></output>
+        <input id="slot_along" type="range" min="0" max="10" step="0.1" value="4" />
+      </div>
+      <div class="row">
+        <label for="slot_depth">Putty chamfer depth</label>
+        <output id="slot_depth-out"></output>
+        <input id="slot_depth" type="range" min="0" max="3.5" step="0.1" value="2" />
+      </div>
+      <div class="row">
+        <label for="pinch_gap">Pinch gap</label>
+        <output id="pinch_gap-out"></output>
+        <input id="pinch_gap" type="range" min="0.15" max="4" step="0.05" value="0.45" />
+      </div>
+      <div class="row">
+        <label for="hook_inner_r">Hook radius</label>
+        <output id="hook_inner_r-out"></output>
+        <input id="hook_inner_r" type="range" min="2" max="8" step="0.1" value="4" />
+      </div>
+      <div class="row">
+        <label for="arm_length">Arm length</label>
+        <output id="arm_length-out"></output>
+        <input id="arm_length" type="range" min="12" max="35" step="0.5" value="22" />
+      </div>
+      <div class="row">
+        <label for="tip_standoff">Tip stand-off</label>
+        <output id="tip_standoff-out"></output>
+        <input id="tip_standoff" type="range" min="4" max="14" step="0.1" value="7.2" />
+      </div>
+      <div class="row">
+        <label for="tip_angle_deg">Tip angle</label>
+        <output id="tip_angle_deg-out"></output>
+        <input id="tip_angle_deg" type="range" min="20" max="90" step="1" value="58" />
+      </div>
+      <p class="meta" id="stats"></p>
+      <p class="meta">Print on its side (S-profile on the bed). Thickness is the plastic ribbon; width is Z in the slicer. Press sticky putty into the chamfered slot on the flat back.</p>
+      <p class="foot" id="app-version">Post-it clip v3 · Sep 20, 2026</p>
+    </aside>
+  </div>
+  <script src="./clip.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
 </body>
 </html>
