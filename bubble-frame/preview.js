@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { hangHoleLayout, layoutBeads, standPolygon } from "./geometry.js";
+import { hangHoleLayout, layoutBeads, standPolygon, standSlotLayout } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -80,6 +80,11 @@ export class FramePreview {
     this.holeMat = new THREE.MeshBasicMaterial({
       color: 0x44403c,
       side: THREE.DoubleSide,
+    });
+    this.slotMat = new THREE.MeshStandardMaterial({
+      color: 0x57534e,
+      roughness: 0.7,
+      metalness: 0.04,
     });
     this.photoMat = new THREE.MeshBasicMaterial({
       color: 0xf5f5f4,
@@ -200,10 +205,32 @@ export class FramePreview {
       this.beadMeshes.push(mesh);
     }
 
+    const plateZ = -layout.params.plateThickness - 1.2;
     const plateGeom = this._plateGeom(layout);
     this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, -layout.params.plateThickness - 1.2);
+    this.plateMesh.position.set(0, 0, plateZ);
     this.group.add(this.plateMesh);
+
+    const slot = standSlotLayout(layout.params);
+    if (slot) {
+      const bossGeom = this._trackGeom(new THREE.BoxGeometry(slot.bossW, slot.bossH, slot.bossD));
+      const boss = new THREE.Mesh(bossGeom, this.slotMat);
+      boss.position.set(
+        0,
+        -layout.photo.h / 2 + slot.bossH / 2,
+        plateZ - slot.bossD / 2
+      );
+      this.group.add(boss);
+
+      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
+      stand.rotation.y = Math.PI / 2;
+      stand.position.set(
+        0,
+        -layout.outer.h / 2,
+        plateZ - layout.params.standThickness
+      );
+      this.group.add(stand);
+    }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
@@ -217,16 +244,6 @@ export class FramePreview {
       );
       ring.position.set(hole.x, hole.y, 0.12);
       this.group.add(ring);
-    }
-
-    if (layout.params.standEnabled) {
-      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      const poly = standPolygon(layout.params);
-      const lip = poly[4] ? poly[4][1] : 3.4;
-      const y0 = -layout.outer.h / 2 - lip;
-      stand.rotation.y = Math.PI / 2;
-      stand.position.set(0, y0, 0);
-      this.group.add(stand);
     }
   }
 

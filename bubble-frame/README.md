@@ -32,13 +32,13 @@ Click a circle in the 2D or 3D preview to turn it off (leaves a gap) or back on.
 | --- | --- |
 | `bubble-frame-…-frame.stl` | Hemispheres + optional thin bed web. Flat face on the bed. |
 | `bubble-frame-…-back.stl` | Rectangle exactly the photo size × back-plate thickness, with optional hanging holes. |
-| `bubble-frame-…-stand.stl` | Easel: front shelf + angled backrest. Print the **side profile** flat on the bed. |
+| `bubble-frame-…-stand.stl` | Easel: tab inserts into a back pocket on the plate. Print the **side profile** flat on the bed. |
 
 - Print **flat**, no supports
 - 0.2 mm layers, 0.4 mm nozzle, 3+ walls
 - PLA is fine; higher infill on the beads looks better
 
-Sandwich **frame → photo → back plate** and glue or tape the plate to the frame’s flat back. Hang from the holes (nail, hook, or wire) or set the frame on the easel shelf so it leans on the backrest.
+Sandwich **frame → photo → back plate** and glue or tape the plate to the frame’s flat back. Hang from the holes, or slide the stand tab up into the pocket on the **back** of the plate so the easel stays hidden behind the beads.
 
 ## Parameters
 
@@ -49,7 +49,7 @@ Sandwich **frame → photo → back plate** and glue or tape the plate to the fr
 - **Bed web** — thin connecting slab under the beads (0 = hemispheres only)
 - **Back plate** — thickness of the photo-sized plate
 - **Hanging holes** — 1 centered hole or 2 near the top; diameter and insets
-- **Easel stand** — lean angle; height and width follow the photo size
+- **Easel stand** — lean angle; a tab inserts into a back-plate pocket so it does not show from the front
 - **Mesh quality** — sphere segments used only on export
 
 STLs are millimeters. Geometry lives in [`geometry.js`](geometry.js); union happens in [`stl.js`](stl.js) via [manifold-3d](https://github.com/elalish/manifold).
