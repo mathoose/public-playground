@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!-- build: striped-frame-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Striped frame STL</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/striped-frame-e1e5/3d-printing/index.html">← 3D printing library</a>
+      <h1>Striped frame</h1>
+      <p class="lead">Concentric rectangular stripes around a photo. Same height by default — then tune each stripe. Live preview → download STL.</p>
+
+      <details class="settings-group" open>
+        <summary>Photo size</summary>
+        <div class="group-body">
+          <div class="presets">
+            <button class="chip" data-preset="4x6" type="button">4×6</button>
+            <button class="chip" data-preset="5x7" type="button">5×7</button>
+            <button class="chip" data-preset="8x10" type="button">8×10</button>
+            <button class="chip" data-preset="wallet" type="button">Wallet</button>
+            <button class="chip" id="rotate" type="button">Rotate 90°</button>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Units</label>
+              <select id="units">
+                <option value="in">inches</option>
+                <option value="mm">mm</option>
+              </select>
+            </div>
+            <div class="field"></div>
+            <div class="field">
+              <label>Photo width <span class="val" id="unitW">in</span></label>
+              <input id="photoW" type="number" min="0.5" step="0.01" />
+            </div>
+            <div class="field">
+              <label>Photo height <span class="val" id="unitH">in</span></label>
+              <input id="photoH" type="number" min="0.5" step="0.01" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Lip over the photo <span class="val">mm</span></label>
+            <input id="lipRange" type="range" min="0" max="30" step="0.5" />
+            <input id="lip" type="number" min="0" max="60" step="0.5" />
+            <div class="hint">How far the innermost stripe covers the picture edge.</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Stripes</summary>
+        <div class="group-body">
+          <div class="field">
+            <label>Number of stripes</label>
+            <input id="stripeCountRange" type="range" min="1" max="12" step="1" />
+            <input id="stripeCount" type="number" min="1" max="12" step="1" />
+          </div>
+          <div class="field">
+            <label>Stripe width <span class="val">mm</span></label>
+            <input id="stripeWidthRange" type="range" min="1.5" max="24" step="0.5" />
+            <input id="stripeWidth" type="number" min="1.5" max="40" step="0.5" />
+            <div class="hint">Radial thickness of each concentric band.</div>
+          </div>
+          <label class="check"><input id="equalHeights" type="checkbox" checked /> Same height for all stripes</label>
+          <div class="field" id="sharedHeightBlock">
+            <label>Stripe height <span class="val">mm</span></label>
+            <input id="sharedHeightRange" type="range" min="1" max="40" step="0.5" />
+            <input id="sharedHeight" type="number" min="1" max="40" step="0.5" />
+          </div>
+          <div id="stripeHeightsBlock">
+            <p class="group-note">Edit any stripe below to unlock individual heights.</p>
+            <div id="stripeHeights"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Bed &amp; back plate</summary>
+        <div class="group-body">
+          <div class="row">
+            <div class="field">
+              <label>Bed web <span class="val">mm</span></label>
+              <input id="bedThickness" type="number" min="0" max="5" step="0.1" />
+              <div class="hint">Thin connecting slab under the stripes. 0 = stripes only.</div>
+            </div>
+            <div class="field">
+              <label>Back plate <span class="val">mm</span></label>
+              <input id="plateThickness" type="number" min="0.4" max="8" step="0.1" />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Hang</summary>
+        <div class="group-body">
+          <label class="check"><input id="hangHoles" type="checkbox" /> Holes in the back plate</label>
+          <div id="hangFields">
+            <div class="seg">
+              <button class="chip" type="button" data-holes="1">1 hole</button>
+              <button class="chip" type="button" data-holes="2">2 holes</button>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Hole diameter <span class="val">mm</span></label>
+                <input id="hangHoleDiameter" type="number" min="2.5" max="16" step="0.5" />
+              </div>
+              <div class="field">
+                <label>From top <span class="val">mm</span></label>
+                <input id="hangInsetTop" type="number" min="4" max="80" step="0.5" />
+              </div>
+            </div>
+            <div class="field" id="hangSideRow">
+              <label>From each side <span class="val">mm</span></label>
+              <input id="hangInsetSide" type="number" min="4" max="80" step="0.5" />
+              <div class="hint">Two holes near the top for a nail, hook, or hanging wire.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Stand</summary>
+        <div class="group-body">
+          <label class="check"><input id="standEnabled" type="checkbox" /> Easel stand (separate print)</label>
+          <div id="standFields">
+            <div class="field">
+              <label>Lean angle <span class="val" id="standAngleLabel">18°</span></label>
+              <input id="standAngleRange" type="range" min="8" max="32" step="1" />
+              <input id="standAngleDeg" type="number" min="8" max="32" step="1" />
+              <div class="hint">Print the side profile flat. A tab slides up into a pocket on the back of the plate.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <div class="actions">
+            <button class="btn primary" id="dlFrame" type="button">Download frame STL</button>
+            <button class="btn ghost" id="dlPlate" type="button">Download back plate</button>
+            <button class="btn ghost" id="dlStand" type="button">Download stand</button>
+            <button class="btn ghost" id="dlBoth" type="button">Download all</button>
+          </div>
+          <div class="status" id="status"></div>
+          <div class="export-links" id="exportLinks" hidden></div>
+        </div>
+      </details>
+
+      <p class="live-link">
+        Latest app:
+        <a href="https://github.com/mathoose/public-playground/tree/main/striped-frame">github.com/mathoose/public-playground/tree/main/striped-frame</a>
+      </p>
+      <p class="notes">
+        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers. Print the
+        stand on its <b>side profile</b>. Sandwich <b>frame → photo → back plate</b>. STL units
+        are millimeters.
+      </p>
+      <p class="foot" id="app-version">Striped frame v1 · Sep 20, 2026</p>
+    </aside>
+
+    <main class="stage">
+      <div class="view3d">
+        <canvas id="view3d"></canvas>
+        <div class="badge">3D · drag to orbit</div>
+        <button class="chip photo-btn" id="resetView" type="button">Reset view</button>
+      </div>
+      <div class="view2d">
+        <canvas id="view2d"></canvas>
+        <label class="chip photo-btn">Drop in a photo
+          <input id="photoFile" type="file" accept="image/*" hidden />
+        </label>
+      </div>
+    </main>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.library-nav");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
