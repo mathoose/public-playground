@@ -325,7 +325,9 @@ export function standSlotLayout(p) {
   const bossW = slotW + 2 * wall;
   const bossH = insertH + 3.5;
   const bossD = slotD + wall;
-  const lift = Math.max(2.5, params.ballDiameter - params.imageOverlap + 0.8);
+  // Distance from the table (bead bottoms) to the plate’s bottom edge, so the
+  // tab meets the pocket mouth and nothing extra hangs in front of the beads.
+  const lift = Math.max(2.5, params.ballDiameter - params.imageOverlap);
   return {
     wall,
     clearance,
@@ -343,7 +345,8 @@ export function standSlotLayout(p) {
  * Easel stand side profile. Print this polygon on the bed and extrude
  * `standWidth` in Z. After printing, stand it on the y=0 edge.
  * +x is toward the front of the photo; +y is up.
- * Everything stays at x <= tab thickness so nothing shows in front of the beads.
+ * The tab (x >= 0) slides up into the back-plate pocket. The kickstand stays
+ * at x <= 0 so nothing reads from the front — only the beads.
  */
 export function standPolygon(p) {
   const params = clampParams(p);
@@ -351,13 +354,23 @@ export function standPolygon(p) {
   const tabT = params.standThickness;
   const insertH = slot.insertH - 0.7;
   const lift = slot.lift;
+  // Short below-plate stub so the tab and kickstand share a real rectangle
+  // (a point joint would snap). It sits in the pocket’s open mouth, behind
+  // the plate, so it does not read from the front.
+  const join = Math.min(2.4, lift);
+  const tabBottom = lift - join;
+  const thick = params.standThickness;
   const θ = (params.standAngleDeg * Math.PI) / 180;
-  const heelX = -params.standHeight * Math.tan(θ) - 8;
+  const heelX = -params.standHeight * Math.tan(θ) - 10;
   const poly = [
-    [tabT, lift],
+    [tabT, tabBottom],
     [tabT, lift + insertH],
     [0, lift + insertH],
+    [0, lift],
+    [-thick, tabBottom],
+    [heelX - thick, 0],
     [heelX, 0],
+    [0, tabBottom],
   ];
   return ensureCcw(poly);
 }

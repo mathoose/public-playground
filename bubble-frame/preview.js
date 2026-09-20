@@ -38,7 +38,7 @@ export class FramePreview {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(90, -130, 280);
+    this.camera.position.set(40, 25, 300);
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -157,7 +157,7 @@ export class FramePreview {
     const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
     const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
-    this.camera.position.set(dist * 0.28, -dist * 0.42, dist * 0.95);
+    this.camera.position.set(dist * 0.12, dist * 0.08, dist * 1.05);
     this.controls.target.set(0, 0, this.layout.radius * 0.35);
     this.controls.update();
   }
@@ -213,14 +213,7 @@ export class FramePreview {
 
     const slot = standSlotLayout(layout.params);
     if (slot) {
-      const bossGeom = this._trackGeom(new THREE.BoxGeometry(slot.bossW, slot.bossH, slot.bossD));
-      const boss = new THREE.Mesh(bossGeom, this.slotMat);
-      boss.position.set(
-        0,
-        -layout.photo.h / 2 + slot.bossH / 2,
-        plateZ - slot.bossD / 2
-      );
-      this.group.add(boss);
+      this._addStandPocket(layout, slot, plateZ);
 
       const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
       stand.rotation.y = -Math.PI / 2;
@@ -244,6 +237,51 @@ export class FramePreview {
       );
       ring.position.set(hole.x, hole.y, 0.12);
       this.group.add(ring);
+    }
+  }
+
+  _addStandPocket(layout, slot, plateZ) {
+    const y0 = -layout.photo.h / 2;
+    const wall = slot.wall;
+    const capH = slot.bossH - slot.insertH;
+    const addBox = (w, h, d, x, y, z) => {
+      const mesh = new THREE.Mesh(this._trackGeom(new THREE.BoxGeometry(w, h, d)), this.slotMat);
+      mesh.position.set(x, y, z);
+      this.group.add(mesh);
+    };
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      -slot.bossW / 2 + wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      slot.bossW / 2 - wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      slot.slotW,
+      slot.bossH,
+      wall,
+      0,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD + wall / 2
+    );
+    if (capH > 0.2) {
+      addBox(
+        slot.slotW,
+        capH,
+        slot.slotD,
+        0,
+        y0 + slot.insertH + capH / 2,
+        plateZ - slot.slotD / 2
+      );
     }
   }
 

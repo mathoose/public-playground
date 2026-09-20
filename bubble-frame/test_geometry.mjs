@@ -132,6 +132,9 @@ const slot = standSlotLayout(p);
 assert(slot && slot.insertH >= 12, "back plate has an insert pocket");
 assert(slot.bossH > slot.insertH, "pocket is taller than the tab");
 assert(slot.slotW > p.standWidth, "slot is wider than the tab for clearance");
+assert(stand.every((pt) => pt[0] <= p.standThickness + 0.05), "no stand geometry in front of the plate");
+const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
+assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
 const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
 assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
 
