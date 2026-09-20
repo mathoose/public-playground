@@ -2,6 +2,8 @@
 
 A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** the same size as the photo (optional hanging holes), and an **easel stand** that props the frame at an angle.
 
+**Latest files (always the merged main copy):** [github.com/mathoose/public-playground/tree/main/bubble-frame](https://github.com/mathoose/public-playground/tree/main/bubble-frame)
+
 ## Open the app (no typing)
 
 **On a Mac:** in Finder, open the `bubble-frame` folder and double-click **`Start Bubble Frame.command`**. A small terminal window will appear — leave it. Your browser should open the app. When you are done, close that terminal window.
