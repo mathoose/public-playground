@@ -6,8 +6,10 @@ import {
   boxesForArc,
   clampParams,
   defaultParams,
+  edgeFinishSizes,
   hangHoleLayout,
   layoutStripes,
+  outerPerimeterPoly,
   pathLength,
   polygonArea,
   setColorCount,
@@ -31,13 +33,15 @@ function almost(a, b, eps, msg) {
   assert(Math.abs(a - b) <= eps, `${msg}: ${a} vs ${b}`);
 }
 
-assert(APP_VERSION_TAG === "v2", "version tag");
+assert(APP_VERSION_TAG === "v3", "version tag");
 assert(APP_VERSION.includes("Sep 20, 2026"), "version date");
 
 const p = defaultParams();
 assert(p.colorCount === 2, "default 2 colors");
 assert(p.equalHeights === true, "equal heights by default");
 assert(p.colors.every((c) => c.height === p.sharedHeight), "heights equal");
+assert(p.outerCornerRadius === 0, "sharp corners by default");
+assert(p.insideEdgeMode === "none" && p.outsideEdgeMode === "none", "no edge finish by default");
 
 const layout = layoutStripes(p);
 assert(layout.colors.length === 2, "layout colors");
@@ -91,6 +95,29 @@ assert(stlTriangleCount(boxStl(10, 10, 2, "t")) === 12, "box tris");
 // Adjacent segments alternate color index in the repeating pattern
 const pattern = layout.segments.slice(0, layout.colors.length).map((s) => s.colorIndex);
 assert(pattern.join(",") === "0,1", "alternating color indices in pattern");
+
+// Outer corner radius changes path length and keeps stripes on the ring
+const rounded = layoutStripes(clampParams({ ...p, outerCornerRadius: 8 }));
+assert(rounded.outerCornerRadius === 8, "corner radius in layout");
+assert(Math.abs(rounded.pathLength - layout.pathLength) > 1, "rounded path length differs");
+const roundedCovered = rounded.segments.reduce((a, s) => a + s.length, 0);
+almost(roundedCovered, rounded.pathLength, 0.05, "rounded segments cover path");
+
+const poly = outerPerimeterPoly(rounded.outer.w, rounded.outer.h, 8, 8);
+assert(poly.length > 8, "rounded perimeter has arc points");
+
+const finished = clampParams({
+  ...p,
+  outsideEdgeMode: "chamfer",
+  outsideEdgeSize: 2,
+  insideEdgeMode: "round",
+  insideEdgeSize: 1.5,
+});
+const sizes = edgeFinishSizes(finished);
+assert(sizes.outside.mode === "chamfer" && sizes.outside.size === 2, "outside chamfer");
+assert(sizes.inside.mode === "round" && sizes.inside.size === 1.5, "inside round");
+const noneSizes = edgeFinishSizes(p);
+assert(noneSizes.outside.size === 0 && noneSizes.inside.size === 0, "none → zero size");
 
 if (failed) {
   console.error(`${failed} failed`);
