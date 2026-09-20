@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: postit-clip-v2 -->
+<!-- build: postit-clip-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -148,7 +148,7 @@
   <div class="app">
     <header>
       <h1>Post-it clip designer</h1>
-      <p>v2 · Sep 20, 2026</p>
+      <p>v3 · Sep 20, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -162,8 +162,8 @@
         <button type="button" id="download">Download this STL</button>
       </div>
       <div class="ready">
-        <a href="postit-wall-clip-v2.stl" download>Print this version · 20 mm</a>
-        <a href="postit-wall-clip-wide-v2.stl" download>Wide pad · 76 mm</a>
+        <a href="postit-wall-clip-v3.stl" download>Print this version · 20 mm</a>
+        <a href="postit-wall-clip-wide-v3.stl" download>Wide pad · 76 mm</a>
       </div>
 
       <div class="row">
@@ -180,6 +180,11 @@
         <label for="back_length">Back length</label>
         <output id="back_length-out"></output>
         <input id="back_length" type="range" min="25" max="60" step="0.5" value="40" />
+      </div>
+      <div class="row">
+        <label for="slot_from_end">Putty slot location (from tab end)</label>
+        <output id="slot_from_end-out"></output>
+        <input id="slot_from_end" type="range" min="0.5" max="18" step="0.1" value="2.5" />
       </div>
       <div class="row">
         <label for="slot_along">Putty chamfer along</label>
@@ -218,7 +223,7 @@
       </div>
       <p class="meta" id="stats"></p>
       <p class="meta">Print on its side (S-profile on the bed). Thickness is the plastic ribbon; width is Z in the slicer. Press sticky putty into the chamfered slot on the flat back.</p>
-      <p class="foot" id="app-version">Post-it clip v2 · Sep 20, 2026</p>
+      <p class="foot" id="app-version">Post-it clip v3 · Sep 20, 2026</p>
     </aside>
   </div>
   <script type="module" src="viewer.js"></script>

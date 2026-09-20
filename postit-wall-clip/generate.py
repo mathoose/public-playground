@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent
-APP_VERSION = "2 · Sep 20, 2026"
-APP_VERSION_TAG = "v2"
+APP_VERSION = "3 · Sep 20, 2026"
+APP_VERSION_TAG = "v3"
 
 
 @dataclass
@@ -45,9 +45,11 @@ class ClipParams:
     tip_angle_deg: float = 58.0
     # Chamfered putty slot on the wall face of the back (sticky putty / Blu-Tack).
     # along = run of each chamfer along the wall; depth = how far it cuts in.
+    # from_end = how far the cut sits from the free tab end toward the hook.
     # A 4 mm floor sits between the two chamfers.
     slot_along: float = 4.0
     slot_depth: float = 2.0
+    slot_from_end: float = 2.5
     # Samples
     arc_segments: int = 48
     # Tiny rounding on square end caps so they print cleanly
@@ -223,8 +225,8 @@ def slot_layout(p: ClipParams):
     x_max = p.back_length - t / 2.0
     floor = along
     opening = floor + 2.0 * along
-    # Sit the slot on the back tab, a little in from the free end.
-    x_open_right = x_max - 2.5
+    # Sit the slot on the back tab; from_end slides it toward the hook.
+    x_open_right = x_max - max(0.5, p.slot_from_end)
     x_open_left = x_open_right - opening
     if x_open_left < x_min:
         x_open_left = x_min

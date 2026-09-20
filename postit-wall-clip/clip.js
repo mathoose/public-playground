@@ -1,7 +1,7 @@
 /** Browser port of generate.py — same defaults and ribbon mesh. */
 
-export const APP_VERSION = "2 · Sep 20, 2026";
-export const APP_VERSION_TAG = "v2";
+export const APP_VERSION = "3 · Sep 20, 2026";
+export const APP_VERSION_TAG = "v3";
 
 export const DEFAULT_PARAMS = Object.freeze({
   width: 20.0,
@@ -15,6 +15,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   tip_angle_deg: 58.0,
   slot_along: 4.0,
   slot_depth: 2.0,
+  slot_from_end: 2.5,
   arc_segments: 48,
   end_radius: 0.35,
 });
@@ -167,7 +168,7 @@ function slotLayout(p) {
   const xMax = p.back_length - t / 2;
   const floor = along;
   const opening = floor + 2 * along;
-  let xOpenRight = xMax - 2.5;
+  let xOpenRight = xMax - Math.max(0.5, p.slot_from_end);
   let xOpenLeft = xOpenRight - opening;
   if (xOpenLeft < xMin) {
     xOpenLeft = xMin;

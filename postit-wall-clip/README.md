@@ -2,7 +2,7 @@
 
 A reprint of the small gray hairpin clip that holds Post-it notes on a wall.
 
-**This version:** Post-it clip v2 · Sep 20, 2026
+**This version:** Post-it clip v3 · Sep 20, 2026
 
 ## Your place (bookmark this)
 
@@ -12,20 +12,20 @@ A reprint of the small gray hairpin clip that holds Post-it notes on a wall.
 
 **Wide pad:** https://cdn.jsdelivr.net/gh/mathoose/public-playground@469c090/postit-wall-clip/postit-wall-clip-wide-v2.stl
 
-Open the designer, drag sliders, then tap **Download this STL**. Or tap the ready-made v2 file and send it to your printer.
+Open the designer, drag sliders, then tap **Download this STL**. Or tap the ready-made v3 file and send it to your printer.
 
 ## Ready-made STLs
 
 | File | Size (mm) | Use |
 | --- | --- | --- |
-| `postit-wall-clip-v2.stl` | 40 × 14 × **20** | This version — matches the printed clip + putty slot |
-| `postit-wall-clip-wide-v2.stl` | 40 × 14 × **76** | Full 3×3 in Post-it pad |
+| `postit-wall-clip-v3.stl` | 40 × 14 × **20** | This version — matches the printed clip + putty slot |
+| `postit-wall-clip-wide-v3.stl` | 40 × 14 × **76** | Full 3×3 in Post-it pad |
 
 `postit-wall-clip.stl` and `-wide.stl` are the same meshes without the version in the name.
 
 ## How it works
 
-1. Press sticky putty (Blu-Tack / Patafix) into the **chamfered slot** on the flat back (default 4 mm along × 2 mm deep), or use tape.
+1. Press sticky putty (Blu-Tack / Patafix) into the **chamfered slot** on the flat back (default 4 mm along × 2 mm deep, 2.5 mm in from the tab end — drag **Putty slot location** to slide it), or use tape.
 2. Stick it to the wall with the C-hook on the left or right — the open lip should be reachable.
 3. Slide a Post-it pad or loose notes under the wavy arm. The C-pocket takes a small stack; the wave pinches them so they stay put.
 
@@ -58,5 +58,5 @@ python3 generate.py
 
 - `index.html` / `viewer.js` / `clip.js` — live designer
 - `generate.py` — source for committed STLs
-- `postit-wall-clip-v2.stl` / `-wide-v2.stl` — slice these
+- `postit-wall-clip-v3.stl` / `-wide-v3.stl` — slice these
 - `*.scad` — same solids, width still parametric
