@@ -5,16 +5,25 @@ import {
   defaultParams,
   displayToMm,
   estimateVolumeMm3,
-  layoutBeads,
+  hangHoleLayout,
   mmToDisplay,
   plaGrams,
+  polygonArea,
   pruneDisabled,
   sizeLabel,
+  standPolygon,
   syncTargetOverlapFromCounts,
   toggleDisabled,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
-import { buildBackPlateStl, buildFrameMesh, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import {
+  buildBackPlateStl,
+  buildFrameMesh,
+  buildStandStl,
+  stlTriangleCount,
+} from "./stl.js";
+
+const lastExports = {};
 
 const $ = (id) => document.getElementById(id);
 
@@ -51,6 +60,21 @@ function renderForm() {
   $("ballOverlapRange").value = params.targetBallOverlap;
   $("webThickness").value = params.webThickness.toFixed(1);
   $("plateThickness").value = params.plateThickness.toFixed(1);
+  $("hangHoles").checked = params.hangHoles;
+  $("hangFields").hidden = !params.hangHoles;
+  $("hangHoleDiameter").value = params.hangHoleDiameter.toFixed(1);
+  $("hangInsetTop").value = params.hangInsetTop.toFixed(1);
+  $("hangInsetSide").value = params.hangInsetSide.toFixed(1);
+  $("hangSideRow").hidden = params.hangHoleCount < 2;
+  for (const btn of document.querySelectorAll("[data-holes]")) {
+    btn.classList.toggle("active", Number(btn.dataset.holes) === params.hangHoleCount);
+  }
+  $("standEnabled").checked = params.standEnabled;
+  $("standFields").hidden = !params.standEnabled;
+  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
+  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
+  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  $("dlStand").hidden = !params.standEnabled;
   $("segments").value = params.segments;
   $("countTop").textContent = params.countTop;
   $("countBottom").textContent = params.countBottom;
@@ -73,12 +97,18 @@ function renderForm() {
 
 function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout, params.webThickness));
-  const plateG = plaGrams(params.photoW * params.photoH * params.plateThickness);
+  const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
+  const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
+  const standG = params.standEnabled
+    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
+    : 0;
   $("readout").innerHTML = `
     <div><b>${layout.enabledCount}</b> beads · outer <b>${fmtMm(layout.outer.w)} × ${fmtMm(layout.outer.h)}</b></div>
     <div>Window ~ <b>${fmtMm(layout.opening.w)} × ${fmtMm(layout.opening.h)}</b> (scalloped)</div>
     <div>Bead overlap T/B <b>${fmtMm(layout.overlap.top)}</b> · L/R <b>${fmtMm(layout.overlap.left)}</b></div>
-    <div>Est. PLA · frame ~ <b>${grams.toFixed(1)} g</b> · back plate ~ <b>${plateG.toFixed(1)} g</b></div>
+    <div>Est. PLA · frame ~ <b>${grams.toFixed(1)} g</b> · back plate ~ <b>${plateG.toFixed(1)} g</b>${
+      params.standEnabled ? ` · stand ~ <b>${standG.toFixed(1)} g</b>` : ""
+    }</div>
   `;
   $("warnings").innerHTML = layout.warnings.map((w) => `<div class="warn">${w}</div>`).join("");
   $("restore").hidden = params.disabled.length === 0;
@@ -165,6 +195,40 @@ function bind() {
     params.plateThickness = num("plateThickness");
     refresh();
   });
+  $("hangHoles").addEventListener("change", () => {
+    params.hangHoles = $("hangHoles").checked;
+    refresh();
+  });
+  for (const btn of document.querySelectorAll("[data-holes]")) {
+    btn.addEventListener("click", () => {
+      params.hangHoleCount = Number(btn.dataset.holes);
+      refresh();
+    });
+  }
+  $("hangHoleDiameter").addEventListener("change", () => {
+    params.hangHoleDiameter = num("hangHoleDiameter");
+    refresh();
+  });
+  $("hangInsetTop").addEventListener("change", () => {
+    params.hangInsetTop = num("hangInsetTop");
+    refresh();
+  });
+  $("hangInsetSide").addEventListener("change", () => {
+    params.hangInsetSide = num("hangInsetSide");
+    refresh();
+  });
+  $("standEnabled").addEventListener("change", () => {
+    params.standEnabled = $("standEnabled").checked;
+    refresh({ fit: true });
+  });
+  $("standAngleRange").addEventListener("input", () => {
+    params.standAngleDeg = Number($("standAngleRange").value);
+    refresh();
+  });
+  $("standAngleDeg").addEventListener("change", () => {
+    params.standAngleDeg = num("standAngleDeg");
+    refresh();
+  });
   $("segments").addEventListener("change", () => {
     params.segments = num("segments");
     refresh();
@@ -220,29 +284,71 @@ function bind() {
 
   $("dlFrame").addEventListener("click", () => exportStls("frame"));
   $("dlPlate").addEventListener("click", () => exportStls("plate"));
-  $("dlBoth").addEventListener("click", () => exportStls("both"));
+  $("dlStand").addEventListener("click", () => exportStls("stand"));
+  $("dlBoth").addEventListener("click", () => exportStls("all"));
+}
+
+function rememberExport(kind, filename, buffer) {
+  if (lastExports[kind]) URL.revokeObjectURL(lastExports[kind].url);
+  const blob = new Blob([buffer], { type: "model/stl" });
+  const url = URL.createObjectURL(blob);
+  lastExports[kind] = { url, name: filename };
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  renderExportLinks();
+}
+
+function renderExportLinks() {
+  const el = $("exportLinks");
+  if (!el) return;
+  const order = [
+    ["frame", "Frame"],
+    ["plate", "Back plate"],
+    ["stand", "Stand"],
+  ];
+  const parts = order
+    .filter(([kind]) => lastExports[kind])
+    .map(([kind, label]) => {
+      const file = lastExports[kind];
+      return `<a class="export-link" href="${file.url}" download="${file.name}">${label} STL</a>`;
+    });
+  el.hidden = parts.length === 0;
+  el.innerHTML = parts.length
+    ? `<div class="export-links-label">Latest exports — tap to download again</div>${parts.join("")}`
+    : "";
 }
 
 async function exportStls(which) {
   const label = sizeLabel(params.photoW, params.photoH, params.units);
   const status = $("status");
-  const buttons = [$("dlFrame"), $("dlPlate"), $("dlBoth")];
+  const buttons = [$("dlFrame"), $("dlPlate"), $("dlStand"), $("dlBoth")];
   buttons.forEach((b) => (b.disabled = true));
   try {
-    if (which === "plate" || which === "both") {
+    const parts = [];
+    if (which === "plate" || which === "all" || which === "both") {
       status.textContent = "Writing back plate…";
-      const plate = buildBackPlateStl(params);
-      downloadArrayBuffer(`bubble-frame-${label}-back.stl`, plate);
+      const plate = await buildBackPlateStl(params);
+      rememberExport("plate", `bubble-frame-${label}-back.stl`, plate.stl);
+      parts.push(`plate ${stlTriangleCount(plate.stl).toLocaleString()} tris`);
     }
-    if (which === "frame" || which === "both") {
+    if ((which === "stand" || which === "all") && params.standEnabled) {
+      status.textContent = "Building stand…";
+      const stand = await buildStandStl(params);
+      rememberExport("stand", `bubble-frame-${label}-stand.stl`, stand.stl);
+      parts.push(`stand ${plaGrams(stand.volume).toFixed(1)} g`);
+    }
+    if (which === "frame" || which === "all" || which === "both") {
       status.textContent = "Unioning beads (first run loads the CAD kernel)…";
       const { stl, volume, layout } = await buildFrameMesh(params);
       const n = stlTriangleCount(stl);
-      downloadArrayBuffer(`bubble-frame-${label}-frame.stl`, stl);
-      status.textContent = `Frame ${n.toLocaleString()} triangles · ${plaGrams(volume).toFixed(1)} g PLA · ${layout.enabledCount} beads`;
-    } else {
-      status.textContent = "Back plate downloaded.";
+      rememberExport("frame", `bubble-frame-${label}-frame.stl`, stl);
+      parts.push(`frame ${n.toLocaleString()} tris · ${plaGrams(volume).toFixed(1)} g · ${layout.enabledCount} beads`);
     }
+    status.textContent = parts.length ? parts.join(" · ") : "Done.";
   } catch (err) {
     console.error(err);
     status.textContent = err.message || String(err);

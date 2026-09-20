@@ -7,7 +7,12 @@ import {
   clampParams,
   countFromOverlap,
   defaultParams,
+  hangHoleLayout,
   layoutBeads,
+  polygonArea,
+  standBounds,
+  standPolygon,
+  standSlotLayout,
   toggleDisabled,
 } from "./geometry.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
@@ -102,6 +107,36 @@ assert(gappy.warnings.some((w) => /do not touch/i.test(w)), "warns on gaps");
 const plate = boxStl(photoW, photoH, 1.2, "back");
 assert(stlTriangleCount(plate) === 12, "back plate is a 12-triangle box");
 assert(plate.byteLength === 84 + 12 * 50, "binary STL size");
+
+const holes2 = hangHoleLayout({ ...p, hangHoles: true, hangHoleCount: 2, hangHoleDiameter: 5, hangInsetTop: 12, hangInsetSide: 18 });
+assert(holes2.length === 2, "two hanging holes");
+almost(holes2[0].x, -holes2[1].x, 1e-9, "holes are mirrored");
+almost(holes2[0].y, photoH / 2 - 12, 1e-6, "holes sit inset from the top");
+assert(holes2.every((h) => Math.abs(h.x) + h.r < photoW / 2 - 0.2), "holes stay inside the plate width");
+assert(holes2.every((h) => h.y + h.r < photoH / 2 - 0.2), "holes stay inside the plate height");
+assert(Math.hypot(holes2[0].x - holes2[1].x, holes2[0].y - holes2[1].y) > 10, "holes do not overlap");
+
+const holes1 = hangHoleLayout({ ...p, hangHoles: true, hangHoleCount: 1 });
+assert(holes1.length === 1 && holes1[0].x === 0, "single centered hole");
+assert(hangHoleLayout({ ...p, hangHoles: false }).length === 0, "holes can be turned off");
+
+const stand = standPolygon(p);
+assert(stand.length >= 4, "stand has a tab and a foot");
+assert(polygonArea(stand) > 50, "stand profile has positive area");
+const sb = standBounds(stand);
+assert(sb.minY >= -1e-6, "stand sits on y=0 for a flat print");
+assert(sb.maxX <= p.standThickness + 0.05, "tab does not stick in front of the plate");
+assert(sb.minX < 0, "foot stays behind the beads");
+assert(sb.h > 20, "stand is tall enough to prop the frame");
+const slot = standSlotLayout(p);
+assert(slot && slot.insertH >= 12, "back plate has an insert pocket");
+assert(slot.bossH > slot.insertH, "pocket is taller than the tab");
+assert(slot.slotW > p.standWidth, "slot is wider than the tab for clearance");
+assert(stand.every((pt) => pt[0] <= p.standThickness + 0.05), "no stand geometry in front of the plate");
+const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
+assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
+const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
+assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
 
 if (failed) {
   console.error(`${failed} assertion(s) failed`);

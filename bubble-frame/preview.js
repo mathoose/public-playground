@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { layoutBeads } from "./geometry.js";
+import { hangHoleLayout, layoutBeads, standPolygon, standSlotLayout } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -38,7 +38,7 @@ export class FramePreview {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(90, -130, 280);
+    this.camera.position.set(40, 25, 300);
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -72,6 +72,20 @@ export class FramePreview {
       roughness: 0.7,
       metalness: 0.05,
     });
+    this.standMat = new THREE.MeshStandardMaterial({
+      color: 0xa8a29e,
+      roughness: 0.62,
+      metalness: 0.04,
+    });
+    this.holeMat = new THREE.MeshBasicMaterial({
+      color: 0x44403c,
+      side: THREE.DoubleSide,
+    });
+    this.slotMat = new THREE.MeshStandardMaterial({
+      color: 0x57534e,
+      roughness: 0.7,
+      metalness: 0.04,
+    });
     this.photoMat = new THREE.MeshBasicMaterial({
       color: 0xf5f5f4,
       side: THREE.DoubleSide,
@@ -82,6 +96,7 @@ export class FramePreview {
     this.beadMeshes = [];
     this.photoMesh = null;
     this.plateMesh = null;
+    this.tempGeoms = [];
     this.geomCache = new Map();
     this.running = true;
     this._loop = this._loop.bind(this);
@@ -138,10 +153,11 @@ export class FramePreview {
 
   fit() {
     if (!this.layout) return;
-    const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
+    const extra = this.layout.params.standEnabled ? this.layout.params.standHeight * 0.35 : 0;
+    const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
     const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
-    this.camera.position.set(dist * 0.28, -dist * 0.42, dist * 0.95);
+    this.camera.position.set(dist * 0.12, dist * 0.08, dist * 1.05);
     this.controls.target.set(0, 0, this.layout.radius * 0.35);
     this.controls.update();
   }
@@ -152,6 +168,17 @@ export class FramePreview {
     this.controls.dispose();
     this.renderer.dispose();
     for (const g of this.geomCache.values()) g.dispose();
+    for (const g of this.tempGeoms) g.dispose();
+  }
+
+  _trackGeom(geom) {
+    this.tempGeoms.push(geom);
+    return geom;
+  }
+
+  _clearTemps() {
+    for (const g of this.tempGeoms) g.dispose();
+    this.tempGeoms = [];
   }
 
   _hemiGeom(radius, segments) {
@@ -165,6 +192,7 @@ export class FramePreview {
     while (this.group.children.length) {
       this.group.remove(this.group.children[0]);
     }
+    this._clearTemps();
     this.beadMeshes = [];
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
@@ -177,15 +205,122 @@ export class FramePreview {
       this.beadMeshes.push(mesh);
     }
 
-    const plateGeom = new THREE.BoxGeometry(layout.photo.w, layout.photo.h, layout.params.plateThickness);
+    const plateZ = -layout.params.plateThickness - 1.2;
+    const plateGeom = this._plateGeom(layout);
     this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, -layout.params.plateThickness / 2 - 1.2);
+    this.plateMesh.position.set(0, 0, plateZ);
     this.group.add(this.plateMesh);
 
-    const photoGeom = new THREE.PlaneGeometry(layout.photo.w, layout.photo.h);
+    const slot = standSlotLayout(layout.params);
+    if (slot) {
+      this._addStandPocket(layout, slot, plateZ);
+
+      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
+      stand.rotation.y = -Math.PI / 2;
+      stand.position.set(
+        0,
+        -layout.outer.h / 2,
+        plateZ - layout.params.standThickness
+      );
+      this.group.add(stand);
+    }
+
+    const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
     this.photoMesh.position.set(0, 0, -0.25);
     this.group.add(this.photoMesh);
+
+    for (const hole of hangHoleLayout(layout.params)) {
+      const ring = new THREE.Mesh(
+        this._trackGeom(new THREE.RingGeometry(Math.max(1.2, hole.r * 0.45), hole.r, 28)),
+        this.holeMat
+      );
+      ring.position.set(hole.x, hole.y, 0.12);
+      this.group.add(ring);
+    }
+  }
+
+  _addStandPocket(layout, slot, plateZ) {
+    const y0 = -layout.photo.h / 2;
+    const wall = slot.wall;
+    const capH = slot.bossH - slot.insertH;
+    const addBox = (w, h, d, x, y, z) => {
+      const mesh = new THREE.Mesh(this._trackGeom(new THREE.BoxGeometry(w, h, d)), this.slotMat);
+      mesh.position.set(x, y, z);
+      this.group.add(mesh);
+    };
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      -slot.bossW / 2 + wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      wall,
+      slot.bossH,
+      slot.bossD,
+      slot.bossW / 2 - wall / 2,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD / 2
+    );
+    addBox(
+      slot.slotW,
+      slot.bossH,
+      wall,
+      0,
+      y0 + slot.bossH / 2,
+      plateZ - slot.bossD + wall / 2
+    );
+    if (capH > 0.2) {
+      addBox(
+        slot.slotW,
+        capH,
+        slot.slotD,
+        0,
+        y0 + slot.insertH + capH / 2,
+        plateZ - slot.slotD / 2
+      );
+    }
+  }
+
+  _plateGeom(layout) {
+    const w = layout.photo.w;
+    const h = layout.photo.h;
+    const t = layout.params.plateThickness;
+    const holes = hangHoleLayout(layout.params);
+    const shape = new THREE.Shape();
+    shape.moveTo(-w / 2, -h / 2);
+    shape.lineTo(w / 2, -h / 2);
+    shape.lineTo(w / 2, h / 2);
+    shape.lineTo(-w / 2, h / 2);
+    shape.closePath();
+    for (const hole of holes) {
+      const path = new THREE.Path();
+      path.absarc(hole.x, hole.y, hole.r, 0, Math.PI * 2, false);
+      shape.holes.push(path);
+    }
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: t,
+      bevelEnabled: false,
+      curveSegments: 20,
+    });
+    return this._trackGeom(geom);
+  }
+
+  _standGeom(params) {
+    const poly = standPolygon(params);
+    const shape = new THREE.Shape();
+    shape.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
+    shape.closePath();
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: params.standWidth,
+      bevelEnabled: false,
+    });
+    geom.translate(0, 0, -params.standWidth / 2);
+    return this._trackGeom(geom);
   }
 
   _loop() {
@@ -346,6 +481,22 @@ export class FramePreview {
         ctx.stroke();
         ctx.setLineDash([]);
       }
+    }
+
+    const holes = hangHoleLayout(params);
+    for (const hole of holes) {
+      const rr = Math.max(hole.r * map.scale, 5);
+      ctx.beginPath();
+      ctx.arc(toX(hole.x), toY(hole.y), rr, 0, Math.PI * 2);
+      ctx.fillStyle = "#f5f5f4";
+      ctx.fill();
+      ctx.strokeStyle = "#44403c";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(toX(hole.x), toY(hole.y), rr * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = "#a8a29e";
+      ctx.fill();
     }
 
     ctx.fillStyle = "#78716c";

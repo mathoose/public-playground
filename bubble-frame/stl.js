@@ -1,4 +1,4 @@
-import { layoutBeads } from "./geometry.js";
+import { clampParams, hangHoleLayout, layoutBeads, standPolygon, standSlotLayout } from "./geometry.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
 const MANIFOLD_WASM = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.wasm";
@@ -92,9 +92,93 @@ export async function buildFrameMesh(params) {
   }
 }
 
-export function buildBackPlateStl(params) {
+export async function buildBackPlateStl(params) {
   const p = layoutBeads(params).params;
-  return boxStl(p.photoW, p.photoH, p.plateThickness, "bubble-frame-back");
+  const holes = hangHoleLayout(p);
+  const slot = standSlotLayout(p);
+  if (holes.length === 0 && !slot) {
+    return {
+      stl: boxStl(p.photoW, p.photoH, p.plateThickness, "bubble-frame-back"),
+      volume: p.photoW * p.photoH * p.plateThickness,
+    };
+  }
+
+  const wasm = await loadManifold();
+  const { Manifold } = wasm;
+  const temps = [];
+  try {
+    const plate = Manifold.cube([p.photoW, p.photoH, p.plateThickness], true).translate(
+      0,
+      0,
+      p.plateThickness / 2
+    );
+    temps.push(plate);
+    let solid = plate;
+    if (slot) {
+      const boss = Manifold.cube([slot.bossW, slot.bossH, slot.bossD], true).translate(
+        0,
+        -p.photoH / 2 + slot.bossH / 2,
+        p.plateThickness + slot.bossD / 2
+      );
+      temps.push(boss);
+      const withBoss = solid.add(boss);
+      temps.push(withBoss);
+      const cutter = Manifold.cube([slot.slotW, slot.bossH + 8, slot.slotD], true).translate(
+        0,
+        -p.photoH / 2 + slot.insertH / 2 - 2,
+        p.plateThickness + slot.slotD / 2
+      );
+      temps.push(cutter);
+      solid = withBoss.subtract(cutter);
+      temps.push(solid);
+    }
+    if (holes.length) {
+      const drills = holes.map((h) => {
+        const cyl = Manifold.cylinder(p.plateThickness + 4, h.r, h.r, 36, true).translate(
+          h.x,
+          h.y,
+          p.plateThickness / 2
+        );
+        temps.push(cyl);
+        return cyl;
+      });
+      const cutter = drills.length === 1 ? drills[0] : Manifold.union(drills);
+      if (cutter !== drills[0]) temps.push(cutter);
+      solid = solid.subtract(cutter);
+      temps.push(solid);
+    }
+    const status = solid.status ? solid.status() : "NoError";
+    if (status && status !== "NoError") throw new Error(`Back plate manifold error: ${status}`);
+    const mesh = solid.getMesh();
+    const volume = solid.volume();
+    return { stl: meshToStl(mesh, "bubble-frame-back"), volume };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
+export async function buildStandStl(params) {
+  const p = clampParams(params);
+  if (!p.standEnabled) {
+    throw new Error("Stand is turned off.");
+  }
+  const poly = standPolygon(p);
+  const wasm = await loadManifold();
+  const { CrossSection } = wasm;
+  const temps = [];
+  try {
+    const cs = new CrossSection([poly]);
+    temps.push(cs);
+    const solid = cs.extrude(p.standWidth);
+    temps.push(solid);
+    const status = solid.status ? solid.status() : "NoError";
+    if (status && status !== "NoError") throw new Error(`Stand manifold error: ${status}`);
+    const mesh = solid.getMesh();
+    const volume = solid.volume();
+    return { stl: meshToStl(mesh, "bubble-frame-stand"), volume };
+  } finally {
+    deleteAll(temps);
+  }
 }
 
 export function meshToStl(mesh, name = "mesh") {
