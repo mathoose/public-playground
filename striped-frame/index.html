@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: striped-frame-v1 -->
+<!-- build: striped-frame-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,7 +12,7 @@
     <aside class="panel">
       <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/striped-frame-e1e5/3d-printing/index.html">← 3D printing library</a>
       <h1>Striped frame</h1>
-      <p class="lead">Concentric rectangular stripes around a photo. Same height by default — then tune each stripe. Live preview → download STL.</p>
+      <p class="lead">Alternating color bands along the frame path — like an inlay pattern that follows the moulding. Live preview → download STL.</p>
 
       <details class="settings-group" open>
         <summary>Photo size</summary>
@@ -46,35 +46,39 @@
             <label>Lip over the photo <span class="val">mm</span></label>
             <input id="lipRange" type="range" min="0" max="30" step="0.5" />
             <input id="lip" type="number" min="0" max="60" step="0.5" />
-            <div class="hint">How far the innermost stripe covers the picture edge.</div>
+            <div class="hint">How far the moulding covers the picture edge.</div>
+          </div>
+          <div class="field">
+            <label>Moulding width <span class="val">mm</span></label>
+            <input id="mouldingWidthRange" type="range" min="4" max="36" step="0.5" />
+            <input id="mouldingWidth" type="number" min="4" max="40" step="0.5" />
+            <div class="hint">Radial thickness of the frame rail (opening → outer edge).</div>
           </div>
         </div>
       </details>
 
       <details class="settings-group" open>
-        <summary>Stripes</summary>
+        <summary>Stripe pattern</summary>
         <div class="group-body">
           <div class="field">
-            <label>Number of stripes</label>
-            <input id="stripeCountRange" type="range" min="1" max="12" step="1" />
-            <input id="stripeCount" type="number" min="1" max="12" step="1" />
+            <label>Colors in pattern</label>
+            <div class="seg" id="colorCountSeg">
+              <button class="chip" type="button" data-colors="2">2</button>
+              <button class="chip" type="button" data-colors="3">3</button>
+              <button class="chip" type="button" data-colors="4">4</button>
+            </div>
+            <div class="hint">Repeating inlay sequence along the frame loop.</div>
           </div>
-          <div class="field">
-            <label>Stripe width <span class="val">mm</span></label>
-            <input id="stripeWidthRange" type="range" min="1.5" max="24" step="0.5" />
-            <input id="stripeWidth" type="number" min="1.5" max="40" step="0.5" />
-            <div class="hint">Radial thickness of each concentric band.</div>
-          </div>
-          <label class="check"><input id="equalHeights" type="checkbox" checked /> Same height for all stripes</label>
+
+          <label class="check"><input id="equalHeights" type="checkbox" checked /> Same layer height for all colors</label>
           <div class="field" id="sharedHeightBlock">
-            <label>Stripe height <span class="val">mm</span></label>
+            <label>Layer height <span class="val">mm</span></label>
             <input id="sharedHeightRange" type="range" min="1" max="40" step="0.5" />
             <input id="sharedHeight" type="number" min="1" max="40" step="0.5" />
           </div>
-          <div id="stripeHeightsBlock">
-            <p class="group-note">Edit any stripe below to unlock individual heights.</p>
-            <div id="stripeHeights"></div>
-          </div>
+
+          <p class="group-note">Thickness = how wide each color band is along the path. Edit a color’s height to unlock per-color heights.</p>
+          <div id="colorRows"></div>
         </div>
       </details>
 
@@ -85,7 +89,7 @@
             <div class="field">
               <label>Bed web <span class="val">mm</span></label>
               <input id="bedThickness" type="number" min="0" max="5" step="0.1" />
-              <div class="hint">Thin connecting slab under the stripes. 0 = stripes only.</div>
+              <div class="hint">Thin connecting slab under the moulding. 0 = stripes only.</div>
             </div>
             <div class="field">
               <label>Back plate <span class="val">mm</span></label>
@@ -117,7 +121,6 @@
             <div class="field" id="hangSideRow">
               <label>From each side <span class="val">mm</span></label>
               <input id="hangInsetSide" type="number" min="4" max="80" step="0.5" />
-              <div class="hint">Two holes near the top for a nail, hook, or hanging wire.</div>
             </div>
           </div>
         </div>
@@ -132,7 +135,6 @@
               <label>Lean angle <span class="val" id="standAngleLabel">18°</span></label>
               <input id="standAngleRange" type="range" min="8" max="32" step="1" />
               <input id="standAngleDeg" type="number" min="8" max="32" step="1" />
-              <div class="hint">Print the side profile flat. A tab slides up into a pocket on the back of the plate.</div>
             </div>
           </div>
         </div>
@@ -145,6 +147,7 @@
           <div id="warnings"></div>
           <div class="actions">
             <button class="btn primary" id="dlFrame" type="button">Download frame STL</button>
+            <button class="btn ghost" id="dlColors" type="button">Download by color</button>
             <button class="btn ghost" id="dlPlate" type="button">Download back plate</button>
             <button class="btn ghost" id="dlStand" type="button">Download stand</button>
             <button class="btn ghost" id="dlBoth" type="button">Download all</button>
@@ -159,11 +162,11 @@
         <a href="https://github.com/mathoose/public-playground/tree/main/striped-frame">github.com/mathoose/public-playground/tree/main/striped-frame</a>
       </p>
       <p class="notes">
-        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers. Print the
-        stand on its <b>side profile</b>. Sandwich <b>frame → photo → back plate</b>. STL units
-        are millimeters.
+        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers.
+        Use <b>Download by color</b> for multi-material / filament-change prints.
+        Sandwich <b>frame → photo → back plate</b>. STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Striped frame v1 · Sep 20, 2026</p>
+      <p class="foot" id="app-version">Striped frame v2 · Sep 20, 2026</p>
     </aside>
 
     <main class="stage">

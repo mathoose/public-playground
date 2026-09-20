@@ -10,7 +10,7 @@ Browser apps for parts you can customize and download as STL.
 | --- | --- |
 | [`../bubble-frame/`](../bubble-frame/) | Bubble photo frame |
 | [`../postit-wall-clip/`](../postit-wall-clip/) | Post-it wall clip |
-| [`../striped-frame/`](../striped-frame/) | Striped photo frame |
+| [`../striped-frame/`](../striped-frame/) | Striped photo frame (path stripes) |
 
 On the live site those are `/bubble-frame/`, `/clip/`, and `/striped-frame/`.
 

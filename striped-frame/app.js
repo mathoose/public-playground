@@ -1,5 +1,6 @@
 import {
   APP_VERSION,
+  COLOR_SWATCHES,
   PRESETS,
   clampParams,
   defaultParams,
@@ -9,15 +10,18 @@ import {
   mmToDisplay,
   plaGrams,
   polygonArea,
+  setColorCount,
+  setColorHeight,
+  setColorSwatch,
+  setColorThickness,
   setSharedHeight,
-  setStripeCount,
-  setStripeHeight,
   sizeLabel,
   standPolygon,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
 import {
   buildBackPlateStl,
+  buildColorMeshes,
   buildFrameMesh,
   buildStandStl,
   stlTriangleCount,
@@ -28,8 +32,8 @@ const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
 let preview;
-let stripeControlsBound = false;
-let lastStripeCount = -1;
+let colorRowsBound = false;
+let lastColorCount = -1;
 
 function roundForInput(mm, units) {
   const v = mmToDisplay(mm, units);
@@ -40,54 +44,98 @@ function fmtMm(v) {
   return `${v.toFixed(1)} mm`;
 }
 
-function ensureStripeControlsBound() {
-  if (stripeControlsBound) return;
-  const host = $("stripeHeights");
+function hexCss(hex) {
+  return `#${(hex >>> 0).toString(16).padStart(6, "0")}`;
+}
+
+function ensureColorRowsBound() {
+  if (colorRowsBound) return;
+  const host = $("colorRows");
   if (!host) return;
   host.addEventListener("input", (e) => {
     const el = e.target;
-    if (!(el instanceof HTMLInputElement)) return;
-    if (el.dataset.stripeRange == null) return;
-    const i = Number(el.dataset.stripeRange);
-    const sibling = host.querySelector(`[data-stripe-num="${i}"]`);
-    if (sibling) sibling.value = el.value;
-    params = setStripeHeight(params, i, Number(el.value));
-    refresh({ skipStripeRebuild: true });
+    if (!(el instanceof HTMLElement)) return;
+    if (el.dataset.thickRange != null) {
+      const i = Number(el.dataset.thickRange);
+      const num = host.querySelector(`[data-thick-num="${i}"]`);
+      if (num) num.value = el.value;
+      params = setColorThickness(params, i, Number(el.value));
+      refresh({ skipColorRebuild: true });
+    } else if (el.dataset.heightRange != null) {
+      const i = Number(el.dataset.heightRange);
+      const num = host.querySelector(`[data-height-num="${i}"]`);
+      if (num) num.value = el.value;
+      params = setColorHeight(params, i, Number(el.value));
+      refresh({ skipColorRebuild: true });
+    }
   });
   host.addEventListener("change", (e) => {
     const el = e.target;
-    if (!(el instanceof HTMLInputElement)) return;
-    if (el.dataset.stripeNum == null) return;
-    const i = Number(el.dataset.stripeNum);
-    params = setStripeHeight(params, i, Number(el.value));
-    refresh();
+    if (!(el instanceof HTMLElement)) return;
+    if (el.dataset.thickNum != null) {
+      params = setColorThickness(params, Number(el.dataset.thickNum), Number(el.value));
+      refresh();
+    } else if (el.dataset.heightNum != null) {
+      params = setColorHeight(params, Number(el.dataset.heightNum), Number(el.value));
+      refresh();
+    } else if (el.dataset.swatch != null) {
+      params = setColorSwatch(params, Number(el.dataset.swatch), el.value);
+      refresh();
+    }
   });
-  stripeControlsBound = true;
+  colorRowsBound = true;
 }
 
-function renderStripeHeightControls(force) {
-  const host = $("stripeHeights");
+function renderColorRows(force) {
+  const host = $("colorRows");
   if (!host) return;
-  ensureStripeControlsBound();
-  if (!force && lastStripeCount === params.stripeCount && host.children.length === params.stripeCount) {
-    params.stripeHeights.forEach((h, i) => {
-      const range = host.querySelector(`[data-stripe-range="${i}"]`);
-      const numEl = host.querySelector(`[data-stripe-num="${i}"]`);
-      if (range && document.activeElement !== range) range.value = String(h);
-      if (numEl && document.activeElement !== numEl) numEl.value = h.toFixed(1);
+  ensureColorRowsBound();
+  if (!force && lastColorCount === params.colorCount && host.children.length === params.colorCount) {
+    params.colors.forEach((c, i) => {
+      const tr = host.querySelector(`[data-thick-range="${i}"]`);
+      const tn = host.querySelector(`[data-thick-num="${i}"]`);
+      const hr = host.querySelector(`[data-height-range="${i}"]`);
+      const hn = host.querySelector(`[data-height-num="${i}"]`);
+      const sw = host.querySelector(`[data-swatch="${i}"]`);
+      const swatch = host.querySelector(`[data-swatch-dot="${i}"]`);
+      if (tr && document.activeElement !== tr) tr.value = String(c.thickness);
+      if (tn && document.activeElement !== tn) tn.value = c.thickness.toFixed(1);
+      if (hr && document.activeElement !== hr) hr.value = String(c.height);
+      if (hn && document.activeElement !== hn) hn.value = c.height.toFixed(1);
+      if (sw && document.activeElement !== sw) sw.value = c.swatch;
+      if (swatch) swatch.style.background = hexCss(c.hex);
+      const heightBlock = host.querySelector(`[data-height-block="${i}"]`);
+      if (heightBlock) heightBlock.hidden = params.equalHeights;
     });
     return;
   }
-  lastStripeCount = params.stripeCount;
+  lastColorCount = params.colorCount;
   host.innerHTML = "";
-  params.stripeHeights.forEach((h, i) => {
+  params.colors.forEach((c, i) => {
     const row = document.createElement("div");
-    row.className = "field stripe-height-row";
+    row.className = "color-card";
+    const options = COLOR_SWATCHES.map(
+      (s) => `<option value="${s.id}" ${s.id === c.swatch ? "selected" : ""}>${s.label}</option>`
+    ).join("");
     row.innerHTML = `
-      <label>Stripe ${i + 1} height <span class="val">mm</span></label>
-      <div class="dual">
-        <input data-stripe-range="${i}" type="range" min="1" max="40" step="0.5" value="${h}" />
-        <input data-stripe-num="${i}" type="number" min="1" max="40" step="0.5" value="${h.toFixed(1)}" />
+      <div class="color-card-head">
+        <span class="swatch-dot" data-swatch-dot="${i}" style="background:${hexCss(c.hex)}"></span>
+        <strong>Color ${i + 1}</strong>
+        <select data-swatch="${i}">${options}</select>
+      </div>
+      <div class="field">
+        <label>Thickness along path <span class="val">mm</span></label>
+        <div class="dual">
+          <input data-thick-range="${i}" type="range" min="2" max="60" step="0.5" value="${c.thickness}" />
+          <input data-thick-num="${i}" type="number" min="2" max="80" step="0.5" value="${c.thickness.toFixed(1)}" />
+        </div>
+      </div>
+      <div class="field" data-height-block="${i}" ${params.equalHeights ? "hidden" : ""}>
+        <label>Layer height <span class="val">mm</span></label>
+        <div class="dual">
+          <input data-height-range="${i}" type="range" min="1" max="40" step="0.5" value="${c.height}" />
+          <input data-height-num="${i}" type="number" min="1" max="40" step="0.5" value="${c.height.toFixed(1)}" />
+        </div>
       </div>
     `;
     host.appendChild(row);
@@ -95,13 +143,10 @@ function renderStripeHeightControls(force) {
 }
 
 function renderForm(opts = {}) {
-  const skipShared =
-    document.activeElement === $("sharedHeightRange") || document.activeElement === $("sharedHeight");
-  const skipLip = document.activeElement === $("lipRange") || document.activeElement === $("lip");
-  const skipWidth =
-    document.activeElement === $("stripeWidthRange") || document.activeElement === $("stripeWidth");
-  const skipCount =
-    document.activeElement === $("stripeCountRange") || document.activeElement === $("stripeCount");
+  const active = document.activeElement;
+  const skipLip = active === $("lipRange") || active === $("lip");
+  const skipMw = active === $("mouldingWidthRange") || active === $("mouldingWidth");
+  const skipShared = active === $("sharedHeightRange") || active === $("sharedHeight");
 
   $("units").value = params.units;
   $("photoW").value = roundForInput(params.photoW, params.units);
@@ -114,13 +159,9 @@ function renderForm(opts = {}) {
   }
   const maxLip = Math.min(params.photoW, params.photoH) / 2 - 1;
   $("lipRange").max = String(Math.max(1, maxLip).toFixed(1));
-  if (!skipCount) {
-    $("stripeCount").value = String(params.stripeCount);
-    $("stripeCountRange").value = String(params.stripeCount);
-  }
-  if (!skipWidth) {
-    $("stripeWidth").value = params.stripeWidth.toFixed(1);
-    $("stripeWidthRange").value = params.stripeWidth;
+  if (!skipMw) {
+    $("mouldingWidth").value = params.mouldingWidth.toFixed(1);
+    $("mouldingWidthRange").value = params.mouldingWidth;
   }
   $("equalHeights").checked = params.equalHeights;
   if (!skipShared) {
@@ -128,7 +169,6 @@ function renderForm(opts = {}) {
     $("sharedHeightRange").value = params.sharedHeight;
   }
   $("sharedHeightBlock").hidden = !params.equalHeights;
-  $("stripeHeightsBlock").hidden = false;
   $("bedThickness").value = params.bedThickness.toFixed(1);
   $("plateThickness").value = params.plateThickness.toFixed(1);
   $("hangHoles").checked = params.hangHoles;
@@ -139,6 +179,9 @@ function renderForm(opts = {}) {
   $("hangSideRow").hidden = params.hangHoleCount < 2;
   for (const btn of document.querySelectorAll("[data-holes]")) {
     btn.classList.toggle("active", Number(btn.dataset.holes) === params.hangHoleCount);
+  }
+  for (const btn of document.querySelectorAll("[data-colors]")) {
+    btn.classList.toggle("active", Number(btn.dataset.colors) === params.colorCount);
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
@@ -156,7 +199,7 @@ function renderForm(opts = {}) {
     btn.classList.toggle("active", Boolean(on));
   }
 
-  renderStripeHeightControls(!opts.skipStripeRebuild);
+  renderColorRows(!opts.skipColorRebuild);
 }
 
 function renderReadout(layout) {
@@ -166,12 +209,14 @@ function renderReadout(layout) {
   const standG = params.standEnabled
     ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
     : 0;
-  const heights = layout.stripes.map((s) => s.height.toFixed(1)).join(" / ");
+  const pattern = layout.colors
+    .map((c) => `${(c.thickness * layout.scale).toFixed(1)}`)
+    .join(" / ");
   $("readout").innerHTML = `
-    <div><b>${layout.stripes.length}</b> stripes · outer <b>${fmtMm(layout.outer.w)} × ${fmtMm(layout.outer.h)}</b></div>
-    <div>Window ~ <b>${fmtMm(layout.opening.w)} × ${fmtMm(layout.opening.h)}</b></div>
-    <div>Heights <b>${heights}</b> mm</div>
-    <div>Est. PLA · frame ~ <b>${grams.toFixed(1)} g</b> · back plate ~ <b>${plateG.toFixed(1)} g</b>${
+    <div><b>${layout.colors.length}</b>-color pattern × <b>${layout.repeats}</b> around loop</div>
+    <div>Path <b>${fmtMm(layout.pathLength)}</b> · bands ~ <b>${pattern}</b> mm</div>
+    <div>Outer <b>${fmtMm(layout.outer.w)} × ${fmtMm(layout.outer.h)}</b> · window <b>${fmtMm(layout.opening.w)} × ${fmtMm(layout.opening.h)}</b></div>
+    <div>Est. PLA · frame ~ <b>${grams.toFixed(1)} g</b> · plate ~ <b>${plateG.toFixed(1)} g</b>${
       params.standEnabled ? ` · stand ~ <b>${standG.toFixed(1)} g</b>` : ""
     }</div>
   `;
@@ -221,44 +266,29 @@ function bind() {
     });
   }
 
-  const applyShared = () => {
-    params = setSharedHeight(params, Number($("sharedHeightRange").value));
-    refresh({ skipStripeRebuild: true });
-  };
-  $("sharedHeightRange").addEventListener("input", applyShared);
-  $("sharedHeight").addEventListener("change", () => {
-    params = setSharedHeight(params, num("sharedHeight"));
-    refresh();
-  });
-
-  const applyLip = () => {
+  $("lipRange").addEventListener("input", () => {
     params.lip = Number($("lipRange").value);
-    refresh({ skipStripeRebuild: true });
-  };
-  $("lipRange").addEventListener("input", applyLip);
+    refresh({ skipColorRebuild: true });
+  });
   $("lip").addEventListener("change", () => {
     params.lip = num("lip");
     refresh();
   });
+  $("mouldingWidthRange").addEventListener("input", () => {
+    params.mouldingWidth = Number($("mouldingWidthRange").value);
+    refresh({ fit: true, skipColorRebuild: true });
+  });
+  $("mouldingWidth").addEventListener("change", () => {
+    params.mouldingWidth = num("mouldingWidth");
+    refresh({ fit: true });
+  });
 
-  $("stripeCountRange").addEventListener("input", () => {
-    params = setStripeCount(params, Number($("stripeCountRange").value));
-    refresh({ fit: true });
-  });
-  $("stripeCount").addEventListener("change", () => {
-    params = setStripeCount(params, num("stripeCount"));
-    refresh({ fit: true });
-  });
-
-  const applyWidth = () => {
-    params.stripeWidth = Number($("stripeWidthRange").value);
-    refresh({ fit: true, skipStripeRebuild: true });
-  };
-  $("stripeWidthRange").addEventListener("input", applyWidth);
-  $("stripeWidth").addEventListener("change", () => {
-    params.stripeWidth = num("stripeWidth");
-    refresh({ fit: true });
-  });
+  for (const btn of document.querySelectorAll("[data-colors]")) {
+    btn.addEventListener("click", () => {
+      params = setColorCount(params, Number(btn.dataset.colors));
+      refresh({ fit: true });
+    });
+  }
 
   $("equalHeights").addEventListener("change", () => {
     if ($("equalHeights").checked) {
@@ -266,6 +296,14 @@ function bind() {
     } else {
       params.equalHeights = false;
     }
+    refresh();
+  });
+  $("sharedHeightRange").addEventListener("input", () => {
+    params = setSharedHeight(params, Number($("sharedHeightRange").value));
+    refresh({ skipColorRebuild: true });
+  });
+  $("sharedHeight").addEventListener("change", () => {
+    params = setSharedHeight(params, num("sharedHeight"));
     refresh();
   });
 
@@ -305,7 +343,7 @@ function bind() {
   });
   $("standAngleRange").addEventListener("input", () => {
     params.standAngleDeg = Number($("standAngleRange").value);
-    refresh();
+    refresh({ skipColorRebuild: true });
   });
   $("standAngleDeg").addEventListener("change", () => {
     params.standAngleDeg = num("standAngleDeg");
@@ -313,7 +351,6 @@ function bind() {
   });
 
   $("resetView").addEventListener("click", () => preview.fit());
-
   $("photoFile").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) {
@@ -326,6 +363,7 @@ function bind() {
   });
 
   $("dlFrame").addEventListener("click", () => exportStls("frame"));
+  $("dlColors").addEventListener("click", () => exportStls("colors"));
   $("dlPlate").addEventListener("click", () => exportStls("plate"));
   $("dlStand").addEventListener("click", () => exportStls("stand"));
   $("dlBoth").addEventListener("click", () => exportStls("all"));
@@ -348,31 +386,26 @@ function rememberExport(kind, filename, buffer) {
 function renderExportLinks() {
   const el = $("exportLinks");
   if (!el) return;
-  const order = [
-    ["frame", "Frame"],
-    ["plate", "Back plate"],
-    ["stand", "Stand"],
-  ];
-  const parts = order
-    .filter(([kind]) => lastExports[kind])
-    .map(([kind, label]) => {
-      const file = lastExports[kind];
-      return `<a class="export-link" href="${file.url}" download="${file.name}">${label} STL</a>`;
-    });
-  el.hidden = parts.length === 0;
-  el.innerHTML = parts.length
-    ? `<div class="export-links-label">Latest exports — tap to download again</div>${parts.join("")}`
+  const keys = Object.keys(lastExports);
+  el.hidden = keys.length === 0;
+  el.innerHTML = keys.length
+    ? `<div class="export-links-label">Latest exports — tap to download again</div>${keys
+        .map((kind) => {
+          const file = lastExports[kind];
+          return `<a class="export-link" href="${file.url}" download="${file.name}">${file.name}</a>`;
+        })
+        .join("")}`
     : "";
 }
 
 async function exportStls(which) {
   const label = sizeLabel(params.photoW, params.photoH, params.units);
   const status = $("status");
-  const buttons = [$("dlFrame"), $("dlPlate"), $("dlStand"), $("dlBoth")];
+  const buttons = [$("dlFrame"), $("dlColors"), $("dlPlate"), $("dlStand"), $("dlBoth")];
   buttons.forEach((b) => (b.disabled = true));
   try {
     const parts = [];
-    if (which === "plate" || which === "all" || which === "both") {
+    if (which === "plate" || which === "all") {
       status.textContent = "Writing back plate…";
       const plate = await buildBackPlateStl(params);
       rememberExport("plate", `striped-frame-${label}-back.stl`, plate.stl);
@@ -384,13 +417,21 @@ async function exportStls(which) {
       rememberExport("stand", `striped-frame-${label}-stand.stl`, stand.stl);
       parts.push(`stand ${plaGrams(stand.volume).toFixed(1)} g`);
     }
-    if (which === "frame" || which === "all" || which === "both") {
-      status.textContent = "Unioning stripes (first run loads the CAD kernel)…";
+    if (which === "colors" || which === "all") {
+      status.textContent = "Splitting colors…";
+      const { parts: colorParts } = await buildColorMeshes(params);
+      for (const part of colorParts) {
+        const name = `striped-frame-${label}-color${part.colorIndex + 1}-${part.swatch}.stl`;
+        rememberExport(`color${part.colorIndex}`, name, part.stl);
+        parts.push(`c${part.colorIndex + 1} ${stlTriangleCount(part.stl).toLocaleString()} tris`);
+      }
+    }
+    if (which === "frame" || which === "all") {
+      status.textContent = "Unioning path stripes…";
       const { stl, volume, layout } = await buildFrameMesh(params);
-      const n = stlTriangleCount(stl);
       rememberExport("frame", `striped-frame-${label}-frame.stl`, stl);
       parts.push(
-        `frame ${n.toLocaleString()} tris · ${plaGrams(volume).toFixed(1)} g · ${layout.stripes.length} stripes`
+        `frame ${stlTriangleCount(stl).toLocaleString()} tris · ${plaGrams(volume).toFixed(1)} g · ${layout.segments.length} bands`
       );
     }
     status.textContent = parts.length ? parts.join(" · ") : "Done.";

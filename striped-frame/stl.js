@@ -39,7 +39,10 @@ function deleteAll(items) {
   }
 }
 
-/** Rectangular ring: outer box minus inner box, both centered. */
+function boxFromLayout(Manifold, b, height) {
+  return Manifold.cube([b.w, b.h, height], true).translate(b.cx, b.cy, height / 2);
+}
+
 function rectRing(CrossSection, outerW, outerH, innerW, innerH) {
   const outer = CrossSection.square([outerW, outerH], true);
   if (innerW <= 0.05 || innerH <= 0.05) return outer;
@@ -47,10 +50,22 @@ function rectRing(CrossSection, outerW, outerH, innerW, innerH) {
   return outer.subtract(inner);
 }
 
+async function unionBoxes(Manifold, boxes, height, temps) {
+  if (!boxes.length) return null;
+  const parts = boxes.map((b) => {
+    const m = boxFromLayout(Manifold, b, height);
+    temps.push(m);
+    return m;
+  });
+  const solid = parts.length === 1 ? parts[0] : Manifold.union(parts);
+  if (solid !== parts[0]) temps.push(solid);
+  return solid;
+}
+
 export async function buildFrameMesh(params) {
   const layout = layoutStripes(params);
-  if (layout.stripes.length === 0) {
-    throw new Error("Add at least one stripe to export.");
+  if (!layout.segments.length) {
+    throw new Error("No stripe segments to export.");
   }
 
   const wasm = await loadManifold();
@@ -58,12 +73,10 @@ export async function buildFrameMesh(params) {
   const temps = [];
   try {
     const parts = [];
-    for (const s of layout.stripes) {
-      const ring2d = rectRing(CrossSection, s.outerW, s.outerH, s.innerW, s.innerH);
-      temps.push(ring2d);
-      const solid = ring2d.extrude(s.height);
-      temps.push(solid);
-      parts.push(solid);
+    for (const seg of layout.segments) {
+      if (!seg.boxes.length) continue;
+      const solid = await unionBoxes(Manifold, seg.boxes, seg.height, temps);
+      if (solid) parts.push(solid);
     }
 
     if (layout.params.bedThickness > 0.001) {
@@ -80,6 +93,7 @@ export async function buildFrameMesh(params) {
       parts.push(bed);
     }
 
+    if (!parts.length) throw new Error("Empty frame mesh.");
     const solid = parts.length === 1 ? parts[0] : Manifold.union(parts);
     if (solid !== parts[0]) temps.push(solid);
 
@@ -95,6 +109,40 @@ export async function buildFrameMesh(params) {
   } finally {
     deleteAll(temps);
   }
+}
+
+/** One STL per pattern color — useful for multi-material / filament-change prints. */
+export async function buildColorMeshes(params) {
+  const layout = layoutStripes(params);
+  const wasm = await loadManifold();
+  const { Manifold } = wasm;
+  const out = [];
+  for (let ci = 0; ci < layout.colors.length; ci++) {
+    const temps = [];
+    try {
+      const boxes = [];
+      let height = layout.colors[ci].height;
+      for (const seg of layout.segments) {
+        if (seg.colorIndex !== ci) continue;
+        height = seg.height;
+        for (const b of seg.boxes) boxes.push(b);
+      }
+      if (!boxes.length) continue;
+      const solid = await unionBoxes(Manifold, boxes, height, temps);
+      if (!solid) continue;
+      const status = solid.status ? solid.status() : "NoError";
+      if (status && status !== "NoError") throw new Error(`Color ${ci + 1}: ${status}`);
+      out.push({
+        colorIndex: ci,
+        swatch: layout.colors[ci].swatch,
+        stl: meshToStl(solid.getMesh(), `striped-frame-color-${ci + 1}`),
+        volume: solid.volume(),
+      });
+    } finally {
+      deleteAll(temps);
+    }
+  }
+  return { layout, parts: out };
 }
 
 export async function buildBackPlateStl(params) {
@@ -278,18 +326,6 @@ export function boxStl(w, h, t, name = "box") {
   const triVerts = new Uint32Array(faces.flat());
   const vertProperties = new Float32Array(v.flat());
   return meshToStl({ vertProperties, triVerts, numProp: 3 }, name);
-}
-
-export function downloadArrayBuffer(filename, buffer) {
-  const blob = new Blob([buffer], { type: "model/stl" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 export function stlTriangleCount(buffer) {

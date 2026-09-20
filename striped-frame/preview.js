@@ -9,7 +9,7 @@ export class FramePreview {
     this.photoImage = null;
     this.layout = null;
     this.params = null;
-    this.hoverIndex = null;
+    this.hoverSeg = null;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: canvas3d,
@@ -37,18 +37,7 @@ export class FramePreview {
     rim.position.set(-120, 90, 40);
     this.scene.add(rim);
 
-    this.darkMat = new THREE.MeshStandardMaterial({
-      color: 0x292524,
-      roughness: 0.38,
-      metalness: 0.08,
-      side: THREE.DoubleSide,
-    });
-    this.midMat = new THREE.MeshStandardMaterial({
-      color: 0x57534e,
-      roughness: 0.42,
-      metalness: 0.06,
-      side: THREE.DoubleSide,
-    });
+    this.matCache = new Map();
     this.plateMat = new THREE.MeshStandardMaterial({
       color: 0xd6d3d1,
       roughness: 0.7,
@@ -74,7 +63,7 @@ export class FramePreview {
     });
     this.bedMat = new THREE.MeshStandardMaterial({
       color: 0x78716c,
-      roughness: 0.7,
+      roughness: 0.75,
       metalness: 0.04,
     });
 
@@ -85,11 +74,27 @@ export class FramePreview {
 
     canvas2d.addEventListener("pointermove", (e) => this._on2dMove(e));
     canvas2d.addEventListener("pointerleave", () => {
-      this.hoverIndex = null;
+      this.hoverSeg = null;
       this._draw2d();
     });
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas3d.parentElement || canvas3d);
+  }
+
+  _matForHex(hex) {
+    const key = hex >>> 0;
+    if (!this.matCache.has(key)) {
+      this.matCache.set(
+        key,
+        new THREE.MeshStandardMaterial({
+          color: hex,
+          roughness: 0.4,
+          metalness: 0.06,
+          side: THREE.DoubleSide,
+        })
+      );
+    }
+    return this.matCache.get(key);
   }
 
   setPhotoImage(img) {
@@ -147,6 +152,7 @@ export class FramePreview {
     this.controls.dispose();
     this.renderer.dispose();
     for (const g of this.tempGeoms) g.dispose();
+    for (const m of this.matCache.values()) m.dispose();
   }
 
   _trackGeom(geom) {
@@ -159,30 +165,6 @@ export class FramePreview {
     this.tempGeoms = [];
   }
 
-  _ringGeom(outerW, outerH, innerW, innerH, height) {
-    const shape = new THREE.Shape();
-    shape.moveTo(-outerW / 2, -outerH / 2);
-    shape.lineTo(outerW / 2, -outerH / 2);
-    shape.lineTo(outerW / 2, outerH / 2);
-    shape.lineTo(-outerW / 2, outerH / 2);
-    shape.closePath();
-    if (innerW > 0.05 && innerH > 0.05) {
-      const hole = new THREE.Path();
-      hole.moveTo(-innerW / 2, -innerH / 2);
-      hole.lineTo(-innerW / 2, innerH / 2);
-      hole.lineTo(innerW / 2, innerH / 2);
-      hole.lineTo(innerW / 2, -innerH / 2);
-      hole.closePath();
-      shape.holes.push(hole);
-    }
-    return this._trackGeom(
-      new THREE.ExtrudeGeometry(shape, {
-        depth: Math.max(0.2, height),
-        bevelEnabled: false,
-      })
-    );
-  }
-
   _rebuild3d() {
     const layout = this.layout;
     while (this.group.children.length) {
@@ -191,30 +173,45 @@ export class FramePreview {
     this._clearTemps();
 
     if (layout.params.bedThickness > 0.05) {
+      const shape = new THREE.Shape();
+      shape.moveTo(-layout.outer.w / 2, -layout.outer.h / 2);
+      shape.lineTo(layout.outer.w / 2, -layout.outer.h / 2);
+      shape.lineTo(layout.outer.w / 2, layout.outer.h / 2);
+      shape.lineTo(-layout.outer.w / 2, layout.outer.h / 2);
+      shape.closePath();
+      const hole = new THREE.Path();
+      hole.moveTo(-layout.opening.w / 2, -layout.opening.h / 2);
+      hole.lineTo(-layout.opening.w / 2, layout.opening.h / 2);
+      hole.lineTo(layout.opening.w / 2, layout.opening.h / 2);
+      hole.lineTo(layout.opening.w / 2, -layout.opening.h / 2);
+      hole.closePath();
+      shape.holes.push(hole);
       const bed = new THREE.Mesh(
-        this._ringGeom(
-          layout.outer.w,
-          layout.outer.h,
-          layout.opening.w,
-          layout.opening.h,
-          layout.params.bedThickness
+        this._trackGeom(
+          new THREE.ExtrudeGeometry(shape, {
+            depth: layout.params.bedThickness,
+            bevelEnabled: false,
+          })
         ),
         this.bedMat
       );
       this.group.add(bed);
     }
 
-    for (const s of layout.stripes) {
-      const mesh = new THREE.Mesh(
-        this._ringGeom(s.outerW, s.outerH, s.innerW, s.innerH, s.height),
-        s.tone === "dark" ? this.darkMat : this.midMat
-      );
-      this.group.add(mesh);
+    for (const seg of layout.segments) {
+      const mat = this._matForHex(seg.hex);
+      for (const b of seg.boxes) {
+        const mesh = new THREE.Mesh(
+          this._trackGeom(new THREE.BoxGeometry(b.w, b.h, Math.max(0.2, seg.height))),
+          mat
+        );
+        mesh.position.set(b.cx, b.cy, seg.height / 2);
+        this.group.add(mesh);
+      }
     }
 
     const plateZ = -layout.params.plateThickness - 1.2;
-    const plateGeom = this._plateGeom(layout);
-    this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
+    this.plateMesh = new THREE.Mesh(this._plateGeom(layout), this.plateMat);
     this.plateMesh.position.set(0, 0, plateZ);
     this.group.add(this.plateMesh);
 
@@ -336,12 +333,10 @@ export class FramePreview {
   _worldFrom2d(event) {
     const canvas = this.canvas2d;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
     const map = this._map2d();
     return {
-      x: (x - map.ox) / map.scale,
-      y: -(y - map.oy) / map.scale,
+      x: (event.clientX - rect.left - map.ox) / map.scale,
+      y: -(event.clientY - rect.top - map.oy) / map.scale,
     };
   }
 
@@ -365,19 +360,17 @@ export class FramePreview {
   _on2dMove(event) {
     if (!this.layout) return;
     const pt = this._worldFrom2d(event);
-    this.hoverIndex = this._hitStripe(pt);
-    this.canvas2d.style.cursor = this.hoverIndex != null ? "default" : "default";
+    this.hoverSeg = this._hitSeg(pt);
     this._draw2d();
   }
 
-  _hitStripe(pt) {
-    const ax = Math.abs(pt.x);
-    const ay = Math.abs(pt.y);
-    for (let i = this.layout.stripes.length - 1; i >= 0; i--) {
-      const s = this.layout.stripes[i];
-      const inOuter = ax <= s.outerW / 2 && ay <= s.outerH / 2;
-      const inInner = ax < s.innerW / 2 && ay < s.innerH / 2;
-      if (inOuter && !inInner) return i;
+  _hitSeg(pt) {
+    for (const seg of this.layout.segments) {
+      for (const b of seg.boxes) {
+        if (pt.x >= b.minX && pt.x <= b.maxX && pt.y >= b.minY && pt.y <= b.maxY) {
+          return seg;
+        }
+      }
     }
     return null;
   }
@@ -394,17 +387,9 @@ export class FramePreview {
 
     const toX = (x) => map.ox + x * map.scale;
     const toY = (y) => map.oy - y * map.scale;
-    const { photo, opening, stripes, params } = this.layout;
+    const { photo, opening, segments, params } = this.layout;
 
     ctx.save();
-    ctx.fillStyle = "#d6d3d1";
-    ctx.fillRect(
-      toX(-photo.w / 2) - 4,
-      toY(photo.h / 2) - 4,
-      photo.w * map.scale + 8,
-      photo.h * map.scale + 8
-    );
-
     ctx.fillStyle = "#fff";
     ctx.fillRect(toX(-photo.w / 2), toY(photo.h / 2), photo.w * map.scale, photo.h * map.scale);
     if (this.photoImage) {
@@ -426,20 +411,14 @@ export class FramePreview {
       ctx.fillText("photo", toX(0), toY(0));
     }
 
-    for (let i = stripes.length - 1; i >= 0; i--) {
-      const s = stripes[i];
-      const hover = this.hoverIndex === i;
-      ctx.beginPath();
-      ctx.rect(toX(-s.outerW / 2), toY(s.outerH / 2), s.outerW * map.scale, s.outerH * map.scale);
-      ctx.rect(toX(-s.innerW / 2), toY(s.innerH / 2), s.innerW * map.scale, s.innerH * map.scale);
-      ctx.fillStyle = hover
-        ? i % 2 === 0
-          ? "#1c1917"
-          : "#44403c"
-        : i % 2 === 0
-          ? "#292524"
-          : "#57534e";
-      ctx.fill("evenodd");
+    for (const seg of segments) {
+      const hover = this.hoverSeg && this.hoverSeg.id === seg.id;
+      ctx.fillStyle = `#${seg.hex.toString(16).padStart(6, "0")}`;
+      if (hover) ctx.globalAlpha = 0.85;
+      for (const b of seg.boxes) {
+        ctx.fillRect(toX(b.minX), toY(b.maxY), b.w * map.scale, b.h * map.scale);
+      }
+      ctx.globalAlpha = 1;
     }
 
     ctx.beginPath();
@@ -450,8 +429,7 @@ export class FramePreview {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const holes = hangHoleLayout(params);
-    for (const hole of holes) {
+    for (const hole of hangHoleLayout(params)) {
       const rr = Math.max(hole.r * map.scale, 5);
       ctx.beginPath();
       ctx.arc(toX(hole.x), toY(hole.y), rr, 0, Math.PI * 2);
@@ -465,10 +443,11 @@ export class FramePreview {
     ctx.fillStyle = "#78716c";
     ctx.font = "11px system-ui, sans-serif";
     ctx.textAlign = "left";
+    const nColors = this.layout.colors.length;
     ctx.fillText(
-      this.hoverIndex != null
-        ? `stripe ${this.hoverIndex + 1} · ${stripes[this.hoverIndex].height.toFixed(1)} mm high`
-        : `${stripes.length} stripes`,
+      this.hoverSeg
+        ? `color ${this.hoverSeg.colorIndex + 1} · ${this.hoverSeg.length.toFixed(1)} mm along path`
+        : `${nColors}-color pattern · ${this.layout.repeats} loops`,
       10,
       map.h - 10
     );

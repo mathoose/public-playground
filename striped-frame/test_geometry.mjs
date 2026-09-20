@@ -3,14 +3,17 @@ import {
   IN,
   APP_VERSION,
   APP_VERSION_TAG,
+  boxesForArc,
   clampParams,
   defaultParams,
   hangHoleLayout,
   layoutStripes,
+  pathLength,
   polygonArea,
+  setColorCount,
+  setColorHeight,
+  setColorThickness,
   setSharedHeight,
-  setStripeCount,
-  setStripeHeight,
   standBounds,
   standPolygon,
   standSlotLayout,
@@ -28,61 +31,69 @@ function almost(a, b, eps, msg) {
   assert(Math.abs(a - b) <= eps, `${msg}: ${a} vs ${b}`);
 }
 
-assert(APP_VERSION_TAG === "v1", "version tag");
+assert(APP_VERSION_TAG === "v2", "version tag");
 assert(APP_VERSION.includes("Sep 20, 2026"), "version date");
 
 const p = defaultParams();
-assert(p.stripeCount === 4, "default stripe count");
+assert(p.colorCount === 2, "default 2 colors");
 assert(p.equalHeights === true, "equal heights by default");
-assert(p.stripeHeights.every((h) => h === p.sharedHeight), "all heights equal by default");
+assert(p.colors.every((c) => c.height === p.sharedHeight), "heights equal");
 
 const layout = layoutStripes(p);
-assert(layout.stripes.length === 4, "layout has 4 stripes");
-almost(layout.opening.w, p.photoW - 2 * p.lip, 1e-9, "opening width");
-almost(layout.opening.h, p.photoH - 2 * p.lip, 1e-9, "opening height");
-almost(layout.outer.w, layout.opening.w + 2 * p.stripeCount * p.stripeWidth, 1e-9, "outer width");
-almost(layout.stripes[0].innerW, layout.opening.w, 1e-9, "innermost inner = opening");
-almost(layout.stripes[0].height, p.sharedHeight, 1e-9, "stripe 0 height");
+assert(layout.colors.length === 2, "layout colors");
+assert(layout.segments.length >= 2, "has segments");
+assert(layout.repeats >= 1, "has repeats");
+almost(layout.pathLength, pathLength(layout.opening, layout.mouldingWidth), 1e-6, "path length");
+
+// Segments tile the full path
+const covered = layout.segments.reduce((a, s) => a + s.length, 0);
+almost(covered, layout.pathLength, 0.05, "segments cover path");
+
+// Alternating colors along path (not concentric): boxes sit on the ring, not nested rings
+const first = layout.segments[0];
+assert(first.boxes.length >= 1, "segment has boxes");
+const onRing = first.boxes.every((b) => {
+  const inOpening = Math.abs(b.cx) < layout.opening.w / 2 - 0.1 && Math.abs(b.cy) < layout.opening.h / 2 - 0.1;
+  return !inOpening;
+});
+assert(onRing, "stripe boxes stay on moulding ring");
+
+const three = setColorCount(p, 3);
+assert(three.colorCount === 3 && three.colors.length === 3, "3 colors");
+const four = setColorCount(p, 4);
+assert(four.colorCount === 4 && four.colors.length === 4, "4 colors");
+
+const thick = setColorThickness(p, 0, 30);
+almost(thick.colors[0].thickness, 30, 1e-9, "thickness set");
 
 const shared = setSharedHeight(p, 12);
-assert(shared.equalHeights, "shared keeps equal");
-assert(shared.stripeHeights.every((h) => h === 12), "shared updates all");
+assert(shared.colors.every((c) => c.height === 12), "shared height");
 
-const one = setStripeHeight(shared, 2, 5);
-assert(one.equalHeights === false, "per-stripe unlocks equal");
-almost(one.stripeHeights[2], 5, 1e-9, "stripe 2 set");
-almost(one.stripeHeights[0], 12, 1e-9, "other stripes unchanged");
+const oneH = setColorHeight(shared, 1, 5);
+assert(oneH.equalHeights === false, "per-color unlocks");
+almost(oneH.colors[1].height, 5, 1e-9, "color 1 height");
 
-const more = setStripeCount(one, 6);
-assert(more.stripeCount === 6, "stripe count 6");
-assert(more.stripeHeights.length === 6, "heights resized");
+const opening = { w: 4 * IN - 12, h: 6 * IN - 12 };
+const L = pathLength(opening, 14);
+const boxes = boxesForArc(0, L / 8, opening, 14);
+assert(boxes.length >= 1, "arc boxes");
 
-const clamped = clampParams({ ...defaultParams(), stripeCount: 99, sharedHeight: 100 });
-assert(clamped.stripeCount === 12, "count clamp");
+const clamped = clampParams({ ...defaultParams(), colorCount: 9, sharedHeight: 100 });
+assert(clamped.colorCount === 4, "color count clamp");
 assert(clamped.sharedHeight === 40, "height clamp");
 
-const holes = hangHoleLayout(p);
-assert(holes.length === 2, "two hang holes");
-const slot = standSlotLayout(p);
-assert(slot && slot.lift > 0, "stand slot");
-const poly = standPolygon(p);
-assert(poly.length >= 4, "stand polygon");
-assert(Math.abs(polygonArea(poly)) > 0, "stand area");
-const bounds = standBounds(poly);
-assert(bounds.w > 0 && bounds.h > 0, "stand bounds");
+assert(hangHoleLayout(p).length === 2, "hang holes");
+assert(standSlotLayout(p).lift > 0, "stand slot");
+assert(Math.abs(polygonArea(standPolygon(p))) > 0, "stand area");
+assert(standBounds(standPolygon(p)).w > 0, "stand bounds");
+assert(stlTriangleCount(boxStl(10, 10, 2, "t")) === 12, "box tris");
 
-const buf = boxStl(10, 10, 2, "test");
-assert(stlTriangleCount(buf) === 12, "box tris");
-
-const fourBySix = layoutStripes({
-  ...defaultParams(),
-  photoW: 4 * IN,
-  photoH: 6 * IN,
-});
-assert(fourBySix.photo.w === 4 * IN, "4x6 photo");
+// Adjacent segments alternate color index in the repeating pattern
+const pattern = layout.segments.slice(0, layout.colors.length).map((s) => s.colorIndex);
+assert(pattern.join(",") === "0,1", "alternating color indices in pattern");
 
 if (failed) {
   console.error(`${failed} failed`);
   process.exit(1);
 }
-console.log("ok — striped-frame geometry tests passed");
+console.log("ok — path-stripe geometry tests passed");
