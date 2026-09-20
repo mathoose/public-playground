@@ -2,13 +2,23 @@
 
 A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** the same size as the photo (optional hanging holes), and an **easel stand** that props the frame at an angle.
 
-Open [`index.html`](index.html) through a local server (ES modules + WASM):
+## Open the app (no typing)
+
+**On a Mac:** in Finder, open the `bubble-frame` folder and double-click **`Start Bubble Frame.command`**. A small terminal window will appear — leave it. Your browser should open the app. When you are done, close that terminal window.
+
+The first time, macOS may say the file cannot be opened. Right-click it → **Open** → **Open**.
+
+**On Windows:** double-click **`Start Bubble Frame.bat`** in the same folder.
+
+The launcher always serves *this* folder, so you will not get a 404 from starting the server in the wrong place.
+
+If you still want the terminal command, run it **from inside `bubble-frame/`**:
 
 ```bash
-python3 -m http.server 8080 --directory bubble-frame
+python3 -m http.server 8080
 ```
 
-Then visit http://localhost:8080/
+Then visit http://127.0.0.1:8080/
 
 ## How sizes work
 
