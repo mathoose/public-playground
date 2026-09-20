@@ -114,6 +114,46 @@
           <input id="plateThickness" type="number" min="0.4" max="8" step="0.1" />
         </div>
       </div>
+
+      <div class="section">
+        <h2>Hang</h2>
+        <label class="check"><input id="hangHoles" type="checkbox" /> Holes in the back plate</label>
+        <div id="hangFields">
+          <div class="seg">
+            <button class="chip" type="button" data-holes="1">1 hole</button>
+            <button class="chip" type="button" data-holes="2">2 holes</button>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Hole diameter <span class="val">mm</span></label>
+              <input id="hangHoleDiameter" type="number" min="2.5" max="16" step="0.5" />
+            </div>
+            <div class="field">
+              <label>From top <span class="val">mm</span></label>
+              <input id="hangInsetTop" type="number" min="4" max="80" step="0.5" />
+            </div>
+          </div>
+          <div class="field" id="hangSideRow">
+            <label>From each side <span class="val">mm</span></label>
+            <input id="hangInsetSide" type="number" min="4" max="80" step="0.5" />
+            <div class="hint">Two holes near the top for a nail, hook, or hanging wire.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Stand</h2>
+        <label class="check"><input id="standEnabled" type="checkbox" /> Easel stand (separate print)</label>
+        <div id="standFields">
+          <div class="field">
+            <label>Lean angle <span class="val" id="standAngleLabel">18°</span></label>
+            <input id="standAngleRange" type="range" min="8" max="32" step="1" />
+            <input id="standAngleDeg" type="number" min="8" max="32" step="1" />
+            <div class="hint">Print the side profile flat. A tab slides up into a pocket on the back of the plate, so nothing shows in front of the beads.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="field">
         <label>Mesh quality (export segments)</label>
         <select id="segments">
@@ -131,14 +171,17 @@
       <div class="actions">
         <button class="btn primary" id="dlFrame" type="button">Download frame STL</button>
         <button class="btn ghost" id="dlPlate" type="button">Download back plate</button>
-        <button class="btn ghost" id="dlBoth" type="button">Download both</button>
+        <button class="btn ghost" id="dlStand" type="button">Download stand</button>
+        <button class="btn ghost" id="dlBoth" type="button">Download all</button>
       </div>
       <div class="status" id="status"></div>
 
       <p class="notes">
-        Print both parts <b>flat on the bed</b>, no supports, 0.2 mm layers. Sandwich
-        <b>frame → photo → back plate</b> and glue the plate to the frame’s flat back.
-        STL units are millimeters. Serve this folder over HTTP so the CAD kernel can load
+        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers. Print the
+        stand on its <b>side profile</b> (also flat, no supports). Sandwich
+        <b>frame → photo → back plate</b> and glue the plate on. Slide the stand’s tab up into
+        the pocket on the back of the plate — from the front you only see the beads. STL units
+        are millimeters. Serve this folder over HTTP so the CAD kernel can load
         (<code>python3 -m http.server</code>).
       </p>
     </aside>
