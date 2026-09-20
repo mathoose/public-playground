@@ -1,7 +1,9 @@
 # Your place
 
-**Open the designer:** https://mathoose.github.io/public-playground/
+**Edit the clip:** https://rawcdn.githack.com/mathoose/public-playground/469c090/postit-wall-clip/index.html
 
-**Print this version (v2 · Sep 20, 2026):** https://mathoose.github.io/public-playground/postit-wall-clip-v2.stl
+**Download this STL:** https://cdn.jsdelivr.net/gh/mathoose/public-playground@469c090/postit-wall-clip/postit-wall-clip-v2.stl
 
-That is the whole workflow: tap the site, or tap the file and send it to Bambu / your slicer.
+**Wide pad:** https://cdn.jsdelivr.net/gh/mathoose/public-playground@469c090/postit-wall-clip/postit-wall-clip-wide-v2.stl
+
+Open the first link, drag sliders, tap **Download this STL**. Or tap the file link and send it to Bambu.

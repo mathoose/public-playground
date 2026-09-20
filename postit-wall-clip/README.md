@@ -6,11 +6,11 @@ A reprint of the small gray hairpin clip that holds Post-it notes on a wall.
 
 ## Your place (bookmark this)
 
-**Designer:** https://mathoose.github.io/public-playground/
+**Designer:** https://rawcdn.githack.com/mathoose/public-playground/469c090/postit-wall-clip/index.html
 
-**Print this file:** https://mathoose.github.io/public-playground/postit-wall-clip-v2.stl
+**Print this file:** https://cdn.jsdelivr.net/gh/mathoose/public-playground@469c090/postit-wall-clip/postit-wall-clip-v2.stl
 
-**Wide pad:** https://mathoose.github.io/public-playground/postit-wall-clip-wide-v2.stl
+**Wide pad:** https://cdn.jsdelivr.net/gh/mathoose/public-playground@469c090/postit-wall-clip/postit-wall-clip-wide-v2.stl
 
 Open the designer, drag sliders, then tap **Download this STL**. Or tap the ready-made v2 file and send it to your printer.
 
