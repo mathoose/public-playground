@@ -9,6 +9,7 @@
 <body>
   <div class="app">
     <aside class="panel">
+      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
       <h1>Bubble frame</h1>
       <p class="lead">Print a flat-backed bead frame around a photo. Sizes are the photo; the balls overlap inward over the picture.</p>
 
@@ -190,5 +191,11 @@
     </main>
   </div>
   <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.library-nav");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
 </body>
 </html>

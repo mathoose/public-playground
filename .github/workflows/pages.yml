@@ -23,28 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Assemble site
+      - name: Assemble 3D printing library
         run: |
-          mkdir -p _site/bubble-frame
-          cp -R bubble-frame/. _site/bubble-frame/
-          cat > _site/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>public playground</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 28rem; margin: 3rem auto; padding: 0 1.25rem; line-height: 1.45; }
-              a { font-weight: 600; }
-            </style>
-          </head>
-          <body>
-            <h1>public playground</h1>
-            <p><a href="./bubble-frame/">Bubble Frame</a> — customize and download STLs</p>
-          </body>
-          </html>
-          EOF
+          set -e
+          mkdir -p _site/bubble-frame _site/clip
+          cp 3d-printing/index.html 3d-printing/styles.css _site/
+          # Apps
+          tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
+            | tar -C _site/bubble-frame -xf -
+          tar -C postit-wall-clip --exclude='*.scad' --exclude=generate.py --exclude=test_generate.py --exclude=OPEN-ME.md -cf - . \
+            | tar -C _site/clip -xf -
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

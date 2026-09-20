@@ -2,6 +2,7 @@
 
 Scratch repo for small experiments.
 
+- [`3d-printing/`](3d-printing/) — library site for printable apps (bubble frame, Post-it clip, …)
 - [`aruba-packing/`](aruba-packing/) — packing list + wardrobe grid
-- [`bubble-frame/`](bubble-frame/) — bubble picture frame STLs. Copy this folder into `Projects/3d printing/` and keep it as its own local project.
-- [`postit-wall-clip/`](postit-wall-clip/) — wall Post-it holder clip. Same idea: copy the folder into `Projects/3d printing/`.
+- [`bubble-frame/`](bubble-frame/) — bubble picture frame designer + STLs
+- [`postit-wall-clip/`](postit-wall-clip/) — Post-it wall clip designer + STLs

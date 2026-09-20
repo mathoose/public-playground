@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D printing library</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <p class="kicker">Projects / 3d printing</p>
+    <h1>3D printing library</h1>
+    <p class="lead">Customize a part in the browser, download the STL, drop it in your slicer. Each app is its own folder — add another whenever you make a new one.</p>
+  </header>
+
+  <main class="grid">
+    <a class="card" href="./bubble-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html">
+      <div class="thumb beads" aria-hidden="true"></div>
+      <div class="body">
+        <h2>Bubble frame</h2>
+        <p>Hemisphere bead frame around a photo, a matching back plate with hanging holes, and an easel stand.</p>
+        <span class="go">Open designer</span>
+      </div>
+    </a>
+
+    <a class="card" href="./clip/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/postit-wall-clip/index.html">
+      <img class="thumb" src="./clip/postit-wall-clip-iso.png" data-htmlpreview-img="../postit-wall-clip/postit-wall-clip-iso.png" alt="" />
+      <div class="body">
+        <h2>Post-it clip</h2>
+        <p>Wall clip for a Post-it pad. Print on its side. v3 — chamfered putty slot you can slide along the back.</p>
+        <span class="go">Open designer</span>
+      </div>
+    </a>
+  </main>
+
+  <footer>
+    <p>Next print project: make a new folder next to these two, then add a card here.</p>
+  </footer>
+
+  <script>
+    var onPreview = location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:";
+    if (onPreview) {
+      document.querySelectorAll("a[data-htmlpreview]").forEach(function (a) {
+        a.href = a.getAttribute("data-htmlpreview");
+      });
+      document.querySelectorAll("img[data-htmlpreview-img]").forEach(function (img) {
+        img.src = img.getAttribute("data-htmlpreview-img");
+      });
+    }
+  </script>
+</body>
+</html>

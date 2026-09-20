@@ -2,7 +2,7 @@
 """Generate a wall-mounted Post-it clip matching the printed gray S/hairpin holder.
 
 The part is a constant-thickness ribbon extruded from a 2D hairpin profile:
-  - long flat back (double-sided tape to the wall)
+  - long flat back with a chamfered putty slot (sticky putty / tape)
   - 180° rounded hook (pocket for a small pad)
   - wavy return arm that pinches notes
   - flared lip so a pad or loose notes slide in easily
@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent
+APP_VERSION = "3 · Sep 20, 2026"
+APP_VERSION_TAG = "v3"
 
 
 @dataclass
@@ -41,6 +43,13 @@ class ClipParams:
     # toward +y). One smooth comma — no extra hook after the S-wave.
     tip_standoff: float = 7.2
     tip_angle_deg: float = 58.0
+    # Chamfered putty slot on the wall face of the back (sticky putty / Blu-Tack).
+    # along = run of each chamfer along the wall; depth = how far it cuts in.
+    # from_end = how far the cut sits from the free tab end toward the hook.
+    # A 4 mm floor sits between the two chamfers.
+    slot_along: float = 4.0
+    slot_depth: float = 2.0
+    slot_from_end: float = 2.5
     # Samples
     arc_segments: int = 48
     # Tiny rounding on square end caps so they print cleanly
@@ -142,10 +151,14 @@ def centerline(p: ClipParams):
     back_end = (p.back_length - t / 2.0, y_back)
 
     n_back = max(8, int(p.back_length / 0.6))
-    back = [
-        (back_end[0] - (back_end[0] - hook_joint[0]) * i / n_back, y_back)
+    back_xs = [
+        back_end[0] - (back_end[0] - hook_joint[0]) * i / n_back
         for i in range(n_back + 1)
     ]
+    for x in slot_sample_xs(p, hook_joint[0], back_end[0]):
+        back_xs.append(x)
+    back_xs = sorted(set(round(x, 4) for x in back_xs), reverse=True)
+    back = [(x, y_back) for x in back_xs]
 
     # From -90° decreasing through 180° (left) to +90° (= -270°).
     hook_sweep = math.pi + math.radians(12.0)  # slightly past 180° so the arm starts inward
@@ -197,6 +210,71 @@ def centerline(p: ClipParams):
     return resample(pts, spacing=0.28)
 
 
+def slot_layout(p: ClipParams):
+    """Wall-face putty groove: two chamfers (along × depth) with a floor between.
+
+    Returns (x_open_left, x_floor_left, x_floor_right, x_open_right, depth) or None.
+    """
+    along = max(0.0, p.slot_along)
+    depth = min(max(0.0, p.slot_depth), p.thickness - 0.55)
+    if along <= 0.0 or depth <= 0.0:
+        return None
+    t = p.thickness
+    r_c = p.hook_inner_r + t / 2.0
+    x_min = r_c + 1.5
+    x_max = p.back_length - t / 2.0
+    floor = along
+    opening = floor + 2.0 * along
+    # Sit the slot on the back tab; from_end slides it toward the hook.
+    x_open_right = x_max - max(0.5, p.slot_from_end)
+    x_open_left = x_open_right - opening
+    if x_open_left < x_min:
+        x_open_left = x_min
+        x_open_right = min(x_max - 1.0, x_open_left + opening)
+    x_floor_left = x_open_left + along
+    x_floor_right = x_open_right - along
+    if x_floor_right < x_floor_left:
+        mid = 0.5 * (x_open_left + x_open_right)
+        x_floor_left = x_floor_right = mid
+    return (x_open_left, x_floor_left, x_floor_right, x_open_right, depth)
+
+
+def slot_sample_xs(p: ClipParams, x_min: float, x_max: float):
+    lay = slot_layout(p)
+    if not lay:
+        return []
+    a, b, c, d, _ = lay
+    return [x for x in (a, b, c, d) if x_min - 0.05 <= x <= x_max + 0.05]
+
+
+def slot_inset(x: float, p: ClipParams) -> float:
+    lay = slot_layout(p)
+    if not lay:
+        return 0.0
+    x0, f0, f1, x1, depth = lay
+    if x <= x0 or x >= x1:
+        return 0.0
+    if f0 <= x <= f1:
+        return depth
+    if x < f0:
+        span = f0 - x0
+        return 0.0 if span < 1e-9 else depth * (x - x0) / span
+    span = x1 - f1
+    return 0.0 if span < 1e-9 else depth * (x1 - x) / span
+
+
+def apply_putty_slot(left, p: ClipParams):
+    """Push the wall-side (y≈0) outline into the part to form the chamfered slot."""
+    out = []
+    for q in left:
+        inset = slot_inset(q[0], p)
+        if inset > 0 and q[1] < p.thickness * 0.6:
+            out.append((q[0], q[1] + inset))
+        else:
+            out.append(q)
+    return out
+
+
 def _tangents(center):
     n = len(center)
     tangents = []
@@ -213,38 +291,33 @@ def _tangents(center):
     return tangents
 
 
-def offset_closed_from_open(center, dist: float, end_r: float):
+def offset_closed_from_open(center, dist: float, end_r: float, p: ClipParams | None = None):
     """Offset an open centerline to a closed 2D outline of thickness 2*dist.
 
     Ends are square with a small rounded corner so they print cleanly.
     """
-    tangents = _tangents(center)
-    left, right = [], []
-    for q, tng in zip(center, tangents):
-        nrm = _rot90(tng, +1.0)
-        left.append(_add(q, _mul(nrm, dist)))
-        right.append(_add(q, _mul(nrm, -dist)))
-
-    # Square ends print cleanly when the part is laid on its side.
+    left, right = offset_sides(center, dist, p)
     outline = list(left) + list(reversed(right))
     if _len(_sub(outline[0], outline[-1])) > 1e-9:
         outline.append(outline[0])
     return outline
 
 
-def offset_sides(center, dist: float):
+def offset_sides(center, dist: float, p: ClipParams | None = None):
     tangents = _tangents(center)
     left, right = [], []
     for q, tng in zip(center, tangents):
         nrm = _rot90(tng, +1.0)
         left.append(_add(q, _mul(nrm, dist)))
         right.append(_add(q, _mul(nrm, -dist)))
+    if p is not None:
+        left = apply_putty_slot(left, p)
     return left, right
 
 
 def profile_polygon(p: ClipParams):
     cl = centerline(p)
-    return offset_closed_from_open(cl, p.thickness / 2.0, p.end_radius)
+    return offset_closed_from_open(cl, p.thickness / 2.0, p.end_radius, p)
 
 
 def triangulate_polygon(poly):
@@ -316,9 +389,9 @@ def _quad(a, b, c, d):
     return [(a, b, c), (a, c, d)]
 
 
-def extrude_ribbon(center, dist: float, z0: float, z1: float):
+def extrude_ribbon(center, dist: float, z0: float, z1: float, p: ClipParams | None = None):
     """Mesh a constant-thickness ribbon as a strip of prisms. No 2D triangulation."""
-    left, right = offset_sides(center, dist)
+    left, right = offset_sides(center, dist, p)
     faces = []
     n = len(center)
 
@@ -532,9 +605,9 @@ def write_iso_png(path: Path, faces, p: ClipParams, title: str):
 
 def mesh_for(p: ClipParams):
     cl = centerline(p)
-    poly = offset_closed_from_open(cl, p.thickness / 2.0, p.end_radius)
+    poly = offset_closed_from_open(cl, p.thickness / 2.0, p.end_radius, p)
     z0, z1 = -p.width / 2.0, p.width / 2.0
-    faces = extrude_ribbon(cl, p.thickness / 2.0, z0, z1)
+    faces = extrude_ribbon(cl, p.thickness / 2.0, z0, z1, p)
     return poly, cl, faces
 
 
@@ -552,6 +625,7 @@ def main():
         if vol <= 0:
             raise SystemExit(f"non-positive mesh volume for {slug}: {vol}")
         write_stl(OUT / f"{slug}.stl", faces, slug)
+        write_stl(OUT / f"{slug}-{APP_VERSION_TAG}.stl", faces, slug)
         write_scad(OUT / f"{slug}.scad", poly, params, slug)
         write_preview_png(OUT / f"{slug}-profile.png", poly, cl, params, title)
         write_iso_png(OUT / f"{slug}-iso.png", faces, params, title)

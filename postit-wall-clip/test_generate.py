@@ -36,6 +36,25 @@ class ClipGeometryTests(unittest.TestCase):
         # Hook lives at the small-x end; lip at mid-x; back continues further.
         self.assertLess(min(xs), 1.0)
 
+    def test_putty_slot_cuts_volume(self):
+        solid = g.mesh_for(g.ClipParams(slot_along=0.0, slot_depth=0.0))[2]
+        slotted = g.mesh_for(g.ClipParams())[2]
+        self.assertGreater(g.mesh_volume(solid), g.mesh_volume(slotted) + 100)
+        lay = g.slot_layout(g.ClipParams())
+        self.assertIsNotNone(lay)
+        self.assertAlmostEqual(lay[4], 2.0)
+        self.assertAlmostEqual(lay[3] - lay[0], 12.0)  # 4 + 4 + 4 opening
+        self.assertAlmostEqual(g.ClipParams().slot_from_end, 2.5)
+
+    def test_slot_from_end_moves_cut(self):
+        near_tab = g.slot_layout(g.ClipParams(slot_from_end=2.5))
+        toward_hook = g.slot_layout(g.ClipParams(slot_from_end=12.0))
+        self.assertIsNotNone(near_tab)
+        self.assertIsNotNone(toward_hook)
+        self.assertGreater(near_tab[0], toward_hook[0])
+        self.assertGreater(near_tab[3], toward_hook[3])
+        self.assertAlmostEqual(near_tab[3] - near_tab[0], toward_hook[3] - toward_hook[0])
+
     def test_wide_scales_only_width(self):
         a = g.ClipParams()
         b = g.ClipParams(width=76.0)
@@ -44,13 +63,42 @@ class ClipGeometryTests(unittest.TestCase):
         self.assertEqual(len(pa), len(pb))
         self.assertAlmostEqual(g.mesh_volume(fb) / g.mesh_volume(fa), 76.0 / 20.0, places=2)
 
+    def test_js_port_matches_python_defaults(self):
+        import subprocess
+
+        py_faces = g.mesh_for(g.ClipParams())[2]
+        py_vol = g.mesh_volume(py_faces)
+        out = subprocess.check_output(
+            [
+                "node",
+                "--input-type=module",
+                "-e",
+                "import { meshFor } from './clip.js'; const m = meshFor(); "
+                "process.stdout.write(`${m.faces.length} ${m.volume}`)",
+            ],
+            cwd=ROOT,
+            text=True,
+        )
+        n, vol = out.split()
+        self.assertEqual(int(n), len(py_faces))
+        self.assertAlmostEqual(float(vol), py_vol, places=3)
+
     def test_exported_stls_exist(self):
-        for name in ("postit-wall-clip.stl", "postit-wall-clip-wide.stl"):
+        for name in (
+            "postit-wall-clip.stl",
+            "postit-wall-clip-wide.stl",
+            "postit-wall-clip-v2.stl",
+            "postit-wall-clip-wide-v2.stl",
+            "postit-wall-clip-v3.stl",
+            "postit-wall-clip-wide-v3.stl",
+        ):
             path = ROOT / name
             self.assertTrue(path.is_file(), name)
-            n = stl_tri_count(path)
-            self.assertGreater(n, 500)
-            self.assertLess(n, 20_000)
+            count = stl_tri_count(path)
+            self.assertGreater(count, 500)
+            self.assertLess(count, 20_000)
+        self.assertEqual(g.APP_VERSION_TAG, "v3")
+        self.assertIn("Sep 20, 2026", g.APP_VERSION)
 
 
 if __name__ == "__main__":

@@ -6,35 +6,14 @@ Your 3D print library on this Mac should look like:
       postit-wall-clip
       (next print project…)
 
-How to put this project there (Finder):
+Open the website (customize + download STLs) from the library page
+linked in the pull request. Bookmark that.
 
-1. Click Projects in the left sidebar.
-2. If you do not already have a folder named  3d printing  , make one
-   (File → New Folder).
-3. Come back to this public-playground window.
-4. Drag the  bubble-frame  folder into  Projects / 3d printing  .
-   Hold Option while dragging if you want a copy and to leave this one here.
-5. Do the same with  postit-wall-clip  if you want that clip in the same place.
+In Finder, drag bubble-frame and postit-wall-clip into
+Projects / 3d printing so each print stays in its own folder.
 
-After that, you never need this git folder to print. Open:
-
-  Projects / 3d printing / bubble-frame
-
-and drag the .stl files into your slicer:
-
-  bubble-frame-4x6in-frame.stl
-  bubble-frame-4x6in-back.stl
-  bubble-frame-4x6in-stand.stl
-
-To make a different size, click this in Chrome (no Terminal, no Python):
-
-  https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html
-
-Chrome will save new STLs to Downloads. Move those files into
-Projects / 3d printing / bubble-frame  so each project stays in its own folder.
+Chrome saves new STLs to Downloads. Move them into the matching folder.
 
 Do not run python from your home folder. That is why localhost:8080 said 404.
-Close that Terminal window.
-
-If Apple said Start Bubble Frame.command could not be opened: click Done
-(not Move to Trash). Use the Chrome link above instead.
+If Apple blocked Start Bubble Frame.command, click Done (not Move to Trash)
+and use the website instead.

@@ -32,6 +32,15 @@ button, input, select { font: inherit; }
   height: 100dvh;
 }
 
+.library-nav {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f766e;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.library-nav:hover { text-decoration: underline; }
 h1 {
   font-size: 1.45rem;
   letter-spacing: -0.03em;
