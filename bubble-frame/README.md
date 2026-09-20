@@ -4,21 +4,16 @@ A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere
 
 ## Open the app (no typing)
 
-**On a Mac:** in Finder, open the `bubble-frame` folder and double-click **`Start Bubble Frame.command`**. A small terminal window will appear — leave it. Your browser should open the app. When you are done, close that terminal window.
+**Easiest:** in Chrome, open
+https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
 
-The first time, macOS may say the file cannot be opened. Right-click it → **Open** → **Open**.
+**On a Mac, in Finder:** double-click **`Open Bubble Frame.html`**. That is a normal webpage shortcut — Apple will not block it.
 
-**On Windows:** double-click **`Start Bubble Frame.bat`** in the same folder.
+Do **not** run `python3 -m http.server --directory bubble-frame` from your home folder. There is no `bubble-frame` folder there, so the browser gets 404.
 
-The launcher always serves *this* folder, so you will not get a 404 from starting the server in the wrong place.
+If you double-clicked **`Start Bubble Frame.command`** and macOS said it could not verify the file: click **Done** (not Move to Trash). Then either use the HTML file above, or right-click the `.command` → **Open** → **Open**. You can also allow it in Apple menu → System Settings → Privacy & Security → **Open Anyway**.
 
-If you still want the terminal command, run it **from inside `bubble-frame/`**:
-
-```bash
-python3 -m http.server 8080
-```
-
-Then visit http://127.0.0.1:8080/
+**On Windows:** double-click **`Start Bubble Frame.bat`**, or use the same link.
 
 ## How sizes work
 

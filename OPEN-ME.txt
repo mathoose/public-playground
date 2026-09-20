@@ -1,13 +1,21 @@
-Bubble frame is in the bubble-frame folder.
+Do not run python from your home folder. That is why localhost:8080 says 404.
 
-In Finder:
-1. Open bubble-frame
-2. To print the default 4×6: drag the three .stl files into your slicer
-     bubble-frame-4x6in-frame.stl
-     bubble-frame-4x6in-back.stl
-     bubble-frame-4x6in-stand.stl
-3. To customize sizes: double-click "Start Bubble Frame.command"
-   (first time: right-click → Open)
+Close that Terminal window.
 
-If you do not see a bubble-frame folder here, this copy of public-playground is old.
-In GitHub Desktop: Fetch origin, then Pull origin. Then look again.
+To customize the frame, in Chrome paste:
+
+  https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
+
+Or in Finder double-click  Open Bubble Frame.html
+(that file is not blocked by Apple the way the .command file is).
+
+If you already saw “Start Bubble Frame.command Not Opened”:
+  1. Click Done  — not Move to Trash
+  2. Right-click Start Bubble Frame.command → Open → Open
+     or Apple menu → System Settings → Privacy & Security → Open Anyway
+
+To print the default 4×6, skip the app: open the bubble-frame folder and
+drag these into your slicer:
+  bubble-frame-4x6in-frame.stl
+  bubble-frame-4x6in-back.stl
+  bubble-frame-4x6in-stand.stl
