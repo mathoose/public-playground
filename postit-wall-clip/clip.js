@@ -10,6 +10,8 @@ export const DEFAULT_PARAMS = Object.freeze({
   pinch_t: 0.52,
   tip_standoff: 7.2,
   tip_angle_deg: 58.0,
+  slot_along: 4.0,
+  slot_depth: 2.0,
   arc_segments: 48,
   end_radius: 0.35,
 });
@@ -100,10 +102,13 @@ export function centerline(p) {
   const hookJoint = [cx, yBack];
   const backEnd = [p.back_length - t / 2, yBack];
   const nBack = Math.max(8, Math.floor(p.back_length / 0.6));
-  const back = [];
+  const backXs = [];
   for (let i = 0; i <= nBack; i++) {
-    back.push([backEnd[0] - ((backEnd[0] - hookJoint[0]) * i) / nBack, yBack]);
+    backXs.push(backEnd[0] - ((backEnd[0] - hookJoint[0]) * i) / nBack);
   }
+  for (const x of slotSampleXs(p, hookJoint[0], backEnd[0])) backXs.push(x);
+  const uniq = [...new Set(backXs.map((x) => Math.round(x * 10000) / 10000))].sort((a, b) => b - a);
+  const back = uniq.map((x) => [x, yBack]);
 
   const hookSweep = Math.PI + (12 * Math.PI) / 180;
   const hook = arcPoints([cx, cy], rC, -Math.PI / 2, -Math.PI / 2 - hookSweep, p.arc_segments);
@@ -149,6 +154,59 @@ export function centerline(p) {
   return resample(pts, 0.28);
 }
 
+function slotLayout(p) {
+  const along = Math.max(0, p.slot_along);
+  const depth = Math.min(Math.max(0, p.slot_depth), p.thickness - 0.55);
+  if (along <= 0 || depth <= 0) return null;
+  const t = p.thickness;
+  const rC = p.hook_inner_r + t / 2;
+  const xMin = rC + 1.5;
+  const xMax = p.back_length - t / 2;
+  const floor = along;
+  const opening = floor + 2 * along;
+  let xOpenRight = xMax - 2.5;
+  let xOpenLeft = xOpenRight - opening;
+  if (xOpenLeft < xMin) {
+    xOpenLeft = xMin;
+    xOpenRight = Math.min(xMax - 1.0, xOpenLeft + opening);
+  }
+  let xFloorLeft = xOpenLeft + along;
+  let xFloorRight = xOpenRight - along;
+  if (xFloorRight < xFloorLeft) {
+    const mid = 0.5 * (xOpenLeft + xOpenRight);
+    xFloorLeft = xFloorRight = mid;
+  }
+  return [xOpenLeft, xFloorLeft, xFloorRight, xOpenRight, depth];
+}
+
+function slotSampleXs(p, xMin, xMax) {
+  const lay = slotLayout(p);
+  if (!lay) return [];
+  return lay.slice(0, 4).filter((x) => x >= xMin - 0.05 && x <= xMax + 0.05);
+}
+
+function slotInset(x, p) {
+  const lay = slotLayout(p);
+  if (!lay) return 0;
+  const [x0, f0, f1, x1, depth] = lay;
+  if (x <= x0 || x >= x1) return 0;
+  if (x >= f0 && x <= f1) return depth;
+  if (x < f0) {
+    const span = f0 - x0;
+    return span < 1e-9 ? 0 : (depth * (x - x0)) / span;
+  }
+  const span = x1 - f1;
+  return span < 1e-9 ? 0 : (depth * (x1 - x)) / span;
+}
+
+function applyPuttySlot(left, p) {
+  return left.map((q) => {
+    const inset = slotInset(q[0], p);
+    if (inset > 0 && q[1] < p.thickness * 0.6) return [q[0], q[1] + inset];
+    return q;
+  });
+}
+
 function tangents(center) {
   const n = center.length;
   const out = [];
@@ -162,7 +220,7 @@ function tangents(center) {
   return out;
 }
 
-function offsetSides(center, dist) {
+function offsetSides(center, dist, p = null) {
   const tngs = tangents(center);
   const left = [];
   const right = [];
@@ -171,7 +229,7 @@ function offsetSides(center, dist) {
     left.push(add(center[i], mul(nrm, dist)));
     right.push(add(center[i], mul(nrm, -dist)));
   }
-  return [left, right];
+  return [p ? applyPuttySlot(left, p) : left, right];
 }
 
 function vz(q, z) {
@@ -185,8 +243,8 @@ function quad(a, b, c, d) {
   ];
 }
 
-export function extrudeRibbon(center, dist, z0, z1) {
-  const [left, right] = offsetSides(center, dist);
+export function extrudeRibbon(center, dist, z0, z1, p = null) {
+  const [left, right] = offsetSides(center, dist, p);
   const faces = [];
   const n = center.length;
   for (let i = 0; i < n - 1; i++) {
@@ -242,7 +300,7 @@ export function meshFor(overrides = {}) {
   const cl = centerline(p);
   const z0 = -p.width / 2;
   const z1 = p.width / 2;
-  const faces = extrudeRibbon(cl, p.thickness / 2, z0, z1);
+  const faces = extrudeRibbon(cl, p.thickness / 2, z0, z1, p);
   return { params: p, faces, volume: meshVolume(faces), bbox: meshBbox(faces) };
 }
 

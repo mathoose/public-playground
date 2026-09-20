@@ -13,7 +13,7 @@ cd postit-wall-clip
 python3 -m http.server 8000
 ```
 
-Then visit http://127.0.0.1:8000/ — drag **Thickness** (ribbon) and **Width** (print height when the S-profile is on the bed) and download an STL of the current shape.
+Then visit http://127.0.0.1:8000/ — drag **Thickness**, **Width**, and the putty chamfer sliders, then download an STL of the current shape.
 
 ## Ready-made STLs
 
@@ -22,7 +22,7 @@ Then visit http://127.0.0.1:8000/ — drag **Thickness** (ribbon) and **Width** 
 
 ## How it works
 
-1. Put double-sided tape or a small Command strip on the **flat back**.
+1. Press sticky putty (Blu-Tack / Patafix) into the **chamfered slot** on the flat back (default 4 mm along × 2 mm deep), or use tape.
 2. Stick it to the wall with the C-hook on the left or right — the open lip should be reachable.
 3. Slide a Post-it pad or loose notes under the wavy arm. The C-pocket takes a small stack; the wave pinches them so they stay put.
 

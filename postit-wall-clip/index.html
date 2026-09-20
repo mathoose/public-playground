@@ -156,6 +156,16 @@
         <input id="back_length" type="range" min="25" max="60" step="0.5" value="40" />
       </div>
       <div class="row">
+        <label for="slot_along">Putty chamfer along</label>
+        <output id="slot_along-out"></output>
+        <input id="slot_along" type="range" min="0" max="10" step="0.1" value="4" />
+      </div>
+      <div class="row">
+        <label for="slot_depth">Putty chamfer depth</label>
+        <output id="slot_depth-out"></output>
+        <input id="slot_depth" type="range" min="0" max="3.5" step="0.1" value="2" />
+      </div>
+      <div class="row">
         <label for="pinch_gap">Pinch gap</label>
         <output id="pinch_gap-out"></output>
         <input id="pinch_gap" type="range" min="0.15" max="4" step="0.05" value="0.45" />
@@ -181,7 +191,7 @@
         <input id="tip_angle_deg" type="range" min="20" max="90" step="1" value="58" />
       </div>
       <p class="meta" id="stats"></p>
-      <p class="meta">Print on its side (S-profile on the bed). Thickness is the plastic ribbon; width is Z in the slicer.</p>
+      <p class="meta">Print on its side (S-profile on the bed). Thickness is the plastic ribbon; width is Z in the slicer. Press sticky putty into the chamfered slot on the flat back.</p>
     </aside>
   </div>
   <script type="module" src="viewer.js"></script>

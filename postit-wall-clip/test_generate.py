@@ -36,6 +36,15 @@ class ClipGeometryTests(unittest.TestCase):
         # Hook lives at the small-x end; lip at mid-x; back continues further.
         self.assertLess(min(xs), 1.0)
 
+    def test_putty_slot_cuts_volume(self):
+        solid = g.mesh_for(g.ClipParams(slot_along=0.0, slot_depth=0.0))[2]
+        slotted = g.mesh_for(g.ClipParams())[2]
+        self.assertGreater(g.mesh_volume(solid), g.mesh_volume(slotted) + 100)
+        lay = g.slot_layout(g.ClipParams())
+        self.assertIsNotNone(lay)
+        self.assertAlmostEqual(lay[4], 2.0)
+        self.assertAlmostEqual(lay[3] - lay[0], 12.0)  # 4 + 4 + 4 opening
+
     def test_wide_scales_only_width(self):
         a = g.ClipParams()
         b = g.ClipParams(width=76.0)
