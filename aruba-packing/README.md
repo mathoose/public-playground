@@ -7,6 +7,7 @@ Packing list + wardrobe photo grid for Aruba. All data stays on your device (loc
 After deploy, your URL will appear here:
 
 - **Production:** https://aruba-pack-emily.netlify.app
+- **Post-it clip designer:** https://aruba-pack-emily.netlify.app/clip/
 
 ## iPhone checklist
 
