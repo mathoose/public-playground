@@ -1,0 +1,52 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Assemble site
+        run: |
+          mkdir -p _site/bubble-frame
+          cp -R bubble-frame/. _site/bubble-frame/
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>public playground</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 28rem; margin: 3rem auto; padding: 0 1.25rem; line-height: 1.45; }
+              a { font-weight: 600; }
+            </style>
+          </head>
+          <body>
+            <h1>public playground</h1>
+            <p><a href="./bubble-frame/">Bubble Frame</a> — customize and download STLs</p>
+          </body>
+          </html>
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

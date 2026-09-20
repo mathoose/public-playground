@@ -26,9 +26,9 @@ and drag the .stl files into your slicer:
   bubble-frame-4x6in-back.stl
   bubble-frame-4x6in-stand.stl
 
-To make a different size, use Chrome (no Terminal, no Python):
+To make a different size, click this in Chrome (no Terminal, no Python):
 
-  https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
+  https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html
 
 Chrome will save new STLs to Downloads. Move those files into
 Projects / 3d printing / bubble-frame  so each project stays in its own folder.

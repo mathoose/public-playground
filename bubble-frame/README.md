@@ -10,8 +10,7 @@ A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere
 
 ## Open the app (no typing)
 
-**Easiest:** in Chrome, open
-https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
+**Easiest:** [Open Bubble Frame](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html)
 
 **On a Mac, in Finder:** double-click **`Open Bubble Frame.html`**. That is a normal webpage shortcut — Apple will not block it.
 
