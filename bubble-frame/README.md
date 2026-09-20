@@ -60,6 +60,7 @@ STLs are millimeters. Geometry lives in [`geometry.js`](geometry.js); union happ
 
 ```bash
 node test_geometry.mjs
+npm install && node build.mjs   # rebuilds app.bundle.js after JS edits
 ```
 
 To regenerate the 4×6 files in this folder (needs `npm install manifold-3d` once):
