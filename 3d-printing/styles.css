@@ -90,6 +90,25 @@ h1 {
   border-radius: 18px;
   opacity: 0.9;
 }
+.thumb.stripes {
+  background: #d7d2c8;
+  position: relative;
+}
+.thumb.stripes::before {
+  content: "";
+  position: absolute;
+  inset: 28px 34px;
+  border: 16px solid transparent;
+  border-image: repeating-linear-gradient(
+      90deg,
+      #292524 0 10px,
+      #b45309 10px 20px,
+      #0f766e 20px 30px,
+      #d6d3d1 30px 40px
+    )
+    16;
+  opacity: 0.95;
+}
 
 .body { padding: 16px 18px 18px; }
 h2 { margin: 0 0 6px; font-size: 1.2rem; letter-spacing: -0.03em; }

@@ -26,13 +26,15 @@ jobs:
       - name: Assemble 3D printing library
         run: |
           set -e
-          mkdir -p _site/bubble-frame _site/clip
+          mkdir -p _site/bubble-frame _site/clip _site/striped-frame
           cp 3d-printing/index.html 3d-printing/styles.css _site/
           # Apps
           tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
             | tar -C _site/bubble-frame -xf -
           tar -C postit-wall-clip --exclude='*.scad' --exclude=generate.py --exclude=test_generate.py --exclude=OPEN-ME.md -cf - . \
             | tar -C _site/clip -xf -
+          tar -C striped-frame --exclude=node_modules -cf - . \
+            | tar -C _site/striped-frame -xf -
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
