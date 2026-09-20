@@ -1,4 +1,11 @@
-import { clampParams, hangHoleLayout, layoutStripes, standPolygon, standSlotLayout } from "./geometry.js";
+import {
+  clampParams,
+  edgeFinishSizes,
+  hangHoleLayout,
+  layoutStripes,
+  standPolygon,
+  standSlotLayout,
+} from "./geometry.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
 const MANIFOLD_WASM = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.wasm";
@@ -62,6 +69,148 @@ async function unionBoxes(Manifold, boxes, height, temps) {
   return solid;
 }
 
+/** Subtract outer-corner square−quarter-cylinder cutters (radius 0 = no-op). */
+function roundOuterCorners(Manifold, solid, outerW, outerH, radius, height, temps) {
+  const R = radius;
+  if (R < 0.05) return solid;
+  const H = Math.max(height, 0.5) + 2;
+  let out = solid;
+  const corners = [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
+  ];
+  for (const [sx, sy] of corners) {
+    const ox = (sx * outerW) / 2;
+    const oy = (sy * outerH) / 2;
+    const cx = ox - sx * R;
+    const cy = oy - sy * R;
+    const box = Manifold.cube([R, R, H], true).translate(ox - (sx * R) / 2, oy - (sy * R) / 2, H / 2 - 1);
+    temps.push(box);
+    const cyl = Manifold.cylinder(H + 2, R, R, 48, true).translate(cx, cy, H / 2 - 1);
+    temps.push(cyl);
+    const keep = box.intersect(cyl);
+    temps.push(keep);
+    const cutter = box.subtract(keep);
+    temps.push(cutter);
+    out = out.subtract(cutter);
+    temps.push(out);
+  }
+  return out;
+}
+
+function edgeLengthOk(a, b) {
+  return b - a > 0.2;
+}
+
+/**
+ * Chamfer: 45° square prism along the top outer/inner rim.
+ * Round: square−quarter-cylinder fillet cutter along the rim.
+ */
+function finishFrontEdges(Manifold, solid, layout, temps) {
+  const finish = edgeFinishSizes(layout.params);
+  const maxH = layout.maxHeight;
+  let out = solid;
+
+  const applyOutside = (mode, size) => {
+    if (mode === "none" || size < 0.05) return;
+    const ox = layout.outer.w / 2;
+    const oy = layout.outer.h / 2;
+    const trim = Math.max(layout.params.outerCornerRadius, size * 0.5);
+    const runs = [
+      { dir: "x", y: oy, x0: -ox + trim, x1: ox - trim, inward: -1 },
+      { dir: "x", y: -oy, x0: -ox + trim, x1: ox - trim, inward: 1 },
+      { dir: "y", x: ox, y0: -oy + trim, y1: oy - trim, inward: -1 },
+      { dir: "y", x: -ox, y0: -oy + trim, y1: oy - trim, inward: 1 },
+    ];
+    for (const run of runs) {
+      out = applyEdgeCutter(Manifold, out, run, mode, size, maxH, "outside", temps);
+    }
+  };
+
+  const applyInside = (mode, size) => {
+    if (mode === "none" || size < 0.05) return;
+    const ix = layout.opening.w / 2;
+    const iy = layout.opening.h / 2;
+    const runs = [
+      { dir: "x", y: iy, x0: -ix, x1: ix, inward: 1 },
+      { dir: "x", y: -iy, x0: -ix, x1: ix, inward: -1 },
+      { dir: "y", x: ix, y0: -iy, y1: iy, inward: 1 },
+      { dir: "y", x: -ix, y0: -iy, y1: iy, inward: -1 },
+    ];
+    for (const run of runs) {
+      out = applyEdgeCutter(Manifold, out, run, mode, size, maxH, "inside", temps);
+    }
+  };
+
+  applyOutside(finish.outside.mode, finish.outside.size);
+  applyInside(finish.inside.mode, finish.inside.size);
+  return out;
+}
+
+function applyEdgeCutter(Manifold, solid, run, mode, size, height, kind, temps) {
+  const len = run.dir === "x" ? run.x1 - run.x0 : run.y1 - run.y0;
+  if (!edgeLengthOk(0, len)) return solid;
+  const mid =
+    run.dir === "x" ? (run.x0 + run.x1) / 2 : (run.y0 + run.y1) / 2;
+  let cutter;
+  if (mode === "chamfer") {
+    const s = size * Math.SQRT2;
+    cutter = Manifold.cube(
+      run.dir === "x" ? [len, s, s] : [s, len, s],
+      true
+    );
+    if (run.dir === "x") {
+      // Rotate around X so the square cuts into ±Y and −Z from the rim.
+      const ang = kind === "outside" ? (run.inward < 0 ? 45 : -45) : run.inward > 0 ? -45 : 45;
+      cutter = cutter.rotate(ang, 0, 0);
+      cutter = cutter.translate(mid, run.y, height);
+    } else {
+      const ang = kind === "outside" ? (run.inward < 0 ? -45 : 45) : run.inward > 0 ? 45 : -45;
+      cutter = cutter.rotate(0, ang, 0);
+      cutter = cutter.translate(run.x, mid, height);
+    }
+  } else {
+    // Round / fillet: edge box minus aligned cylinder.
+    const F = size;
+    if (run.dir === "x") {
+      const yBox = run.y + run.inward * (F / 2);
+      const box = Manifold.cube([len, F, F], true).translate(mid, yBox, height - F / 2);
+      temps.push(box);
+      const cyl = Manifold.cylinder(len + 4, F, F, 28, true)
+        .rotate(0, 90, 0)
+        .translate(mid, run.y + run.inward * F, height - F);
+      temps.push(cyl);
+      const keep = box.intersect(cyl);
+      temps.push(keep);
+      cutter = box.subtract(keep);
+    } else {
+      const xBox = run.x + run.inward * (F / 2);
+      const box = Manifold.cube([F, len, F], true).translate(xBox, mid, height - F / 2);
+      temps.push(box);
+      const cyl = Manifold.cylinder(len + 4, F, F, 28, true)
+        .rotate(90, 0, 0)
+        .translate(run.x + run.inward * F, mid, height - F);
+      temps.push(cyl);
+      const keep = box.intersect(cyl);
+      temps.push(keep);
+      cutter = box.subtract(keep);
+    }
+  }
+  temps.push(cutter);
+  const next = solid.subtract(cutter);
+  temps.push(next);
+  return next;
+}
+
+function applyFrameFinishes(Manifold, solid, layout, temps) {
+  const R = layout.params.outerCornerRadius;
+  let out = roundOuterCorners(Manifold, solid, layout.outer.w, layout.outer.h, R, layout.maxHeight, temps);
+  out = finishFrontEdges(Manifold, out, layout, temps);
+  return out;
+}
+
 export async function buildFrameMesh(params) {
   const layout = layoutStripes(params);
   if (!layout.segments.length) {
@@ -94,8 +243,10 @@ export async function buildFrameMesh(params) {
     }
 
     if (!parts.length) throw new Error("Empty frame mesh.");
-    const solid = parts.length === 1 ? parts[0] : Manifold.union(parts);
+    let solid = parts.length === 1 ? parts[0] : Manifold.union(parts);
     if (solid !== parts[0]) temps.push(solid);
+
+    solid = applyFrameFinishes(Manifold, solid, layout, temps);
 
     const status = solid.status ? solid.status() : "NoError";
     if (status && status !== "NoError") {
@@ -128,8 +279,15 @@ export async function buildColorMeshes(params) {
         for (const b of seg.boxes) boxes.push(b);
       }
       if (!boxes.length) continue;
-      const solid = await unionBoxes(Manifold, boxes, height, temps);
+      let solid = await unionBoxes(Manifold, boxes, height, temps);
       if (!solid) continue;
+      // Per-color meshes get the same corner/edge cutters so parts still mate.
+      const colorLayout = {
+        ...layout,
+        maxHeight: height,
+        params: { ...layout.params },
+      };
+      solid = applyFrameFinishes(Manifold, solid, colorLayout, temps);
       const status = solid.status ? solid.status() : "NoError";
       if (status && status !== "NoError") throw new Error(`Color ${ci + 1}: ${status}`);
       out.push({

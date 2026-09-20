@@ -1,6 +1,14 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { hangHoleLayout, layoutStripes, standPolygon, standSlotLayout } from "./geometry.js";
+import {
+  edgeFinishSizes,
+  frontEdgeRuns,
+  hangHoleLayout,
+  layoutStripes,
+  outerPerimeterPoly,
+  standPolygon,
+  standSlotLayout,
+} from "./geometry.js";
 
 export class FramePreview {
   constructor({ canvas3d, canvas2d }) {
@@ -65,6 +73,11 @@ export class FramePreview {
       color: 0x78716c,
       roughness: 0.75,
       metalness: 0.04,
+    });
+    this.edgeFinishMat = new THREE.MeshStandardMaterial({
+      color: 0xa8a29e,
+      roughness: 0.55,
+      metalness: 0.08,
     });
 
     this.tempGeoms = [];
@@ -173,24 +186,13 @@ export class FramePreview {
     this._clearTemps();
 
     if (layout.params.bedThickness > 0.05) {
-      const shape = new THREE.Shape();
-      shape.moveTo(-layout.outer.w / 2, -layout.outer.h / 2);
-      shape.lineTo(layout.outer.w / 2, -layout.outer.h / 2);
-      shape.lineTo(layout.outer.w / 2, layout.outer.h / 2);
-      shape.lineTo(-layout.outer.w / 2, layout.outer.h / 2);
-      shape.closePath();
-      const hole = new THREE.Path();
-      hole.moveTo(-layout.opening.w / 2, -layout.opening.h / 2);
-      hole.lineTo(-layout.opening.w / 2, layout.opening.h / 2);
-      hole.lineTo(layout.opening.w / 2, layout.opening.h / 2);
-      hole.lineTo(layout.opening.w / 2, -layout.opening.h / 2);
-      hole.closePath();
-      shape.holes.push(hole);
+      const shape = this._ringShape(layout.outer.w, layout.outer.h, layout.opening.w, layout.opening.h, layout.outerCornerRadius);
       const bed = new THREE.Mesh(
         this._trackGeom(
           new THREE.ExtrudeGeometry(shape, {
             depth: layout.params.bedThickness,
             bevelEnabled: false,
+            curveSegments: 12,
           })
         ),
         this.bedMat
@@ -209,6 +211,8 @@ export class FramePreview {
         this.group.add(mesh);
       }
     }
+
+    this._addEdgeFinishPreview(layout);
 
     const plateZ = -layout.params.plateThickness - 1.2;
     this.plateMesh = new THREE.Mesh(this._plateGeom(layout), this.plateMat);
@@ -237,6 +241,73 @@ export class FramePreview {
       ring.position.set(hole.x, hole.y, 0.12);
       this.group.add(ring);
     }
+  }
+
+  _ringShape(outerW, outerH, innerW, innerH, cornerR) {
+    const shape = new THREE.Shape();
+    const poly = outerPerimeterPoly(outerW, outerH, cornerR, 12);
+    shape.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
+    shape.closePath();
+    const hole = new THREE.Path();
+    hole.moveTo(-innerW / 2, -innerH / 2);
+    hole.lineTo(-innerW / 2, innerH / 2);
+    hole.lineTo(innerW / 2, innerH / 2);
+    hole.lineTo(innerW / 2, -innerH / 2);
+    hole.closePath();
+    shape.holes.push(hole);
+    return shape;
+  }
+
+  _addEdgeFinishPreview(layout) {
+    const finish = edgeFinishSizes(layout.params);
+    const z = layout.maxHeight;
+    const mat = this.edgeFinishMat;
+    const addWedge = (run, size, mode, kind) => {
+      if (mode === "none" || size < 0.05) return;
+      const len = run.axis === "x" ? run.x1 - run.x0 : run.y1 - run.y0;
+      if (len < 0.3) return;
+      if (mode === "chamfer") {
+        // 45° square prism along the rim — same cue Manifold uses for the STL cut.
+        const s = size * Math.SQRT2;
+        const mesh = new THREE.Mesh(
+          this._trackGeom(
+            new THREE.BoxGeometry(run.axis === "x" ? len : s, run.axis === "x" ? s : len, s)
+          ),
+          mat
+        );
+        if (run.axis === "x") {
+          mesh.rotation.x = Math.PI / 4;
+          mesh.position.set((run.x0 + run.x1) / 2, run.y, z);
+        } else {
+          mesh.rotation.y = Math.PI / 4;
+          mesh.position.set(run.x, (run.y0 + run.y1) / 2, z);
+        }
+        this.group.add(mesh);
+      } else {
+        // Quarter-pipe along the rim (preview cue; STL uses a proper fillet cutter).
+        const mesh = new THREE.Mesh(
+          this._trackGeom(new THREE.CylinderGeometry(size, size, len, 16, 1, false, 0, Math.PI / 2)),
+          mat
+        );
+        if (run.axis === "x") {
+          mesh.rotation.z = Math.PI / 2;
+          const into = kind === "outside" ? (run.y > 0 ? -1 : 1) : run.y > 0 ? 1 : -1;
+          mesh.rotation.y = into < 0 ? 0 : Math.PI;
+          mesh.position.set((run.x0 + run.x1) / 2, run.y + into * size, z - size);
+        } else {
+          mesh.rotation.x = Math.PI / 2;
+          const into = kind === "outside" ? (run.x > 0 ? -1 : 1) : run.x > 0 ? 1 : -1;
+          mesh.rotation.z = into < 0 ? 0 : Math.PI;
+          mesh.position.set(run.x + into * size, (run.y0 + run.y1) / 2, z - size);
+        }
+        this.group.add(mesh);
+      }
+    };
+
+    const runs = frontEdgeRuns(layout);
+    for (const run of runs.outside) addWedge(run, finish.outside.size, finish.outside.mode, "outside");
+    for (const run of runs.inside) addWedge(run, finish.inside.size, finish.inside.mode, "inside");
   }
 
   _addStandPocket(layout, slot, plateZ) {
@@ -411,6 +482,27 @@ export class FramePreview {
       ctx.fillText("photo", toX(0), toY(0));
     }
 
+    ctx.save();
+    const outerPoly = outerPerimeterPoly(
+      this.layout.outer.w,
+      this.layout.outer.h,
+      this.layout.outerCornerRadius || 0,
+      14
+    );
+    ctx.beginPath();
+    ctx.moveTo(toX(outerPoly[0][0]), toY(outerPoly[0][1]));
+    for (let i = 1; i < outerPoly.length; i++) {
+      ctx.lineTo(toX(outerPoly[i][0]), toY(outerPoly[i][1]));
+    }
+    ctx.closePath();
+    // Cut opening so stripes only fill the moulding ring
+    ctx.moveTo(toX(-opening.w / 2), toY(-opening.h / 2));
+    ctx.lineTo(toX(opening.w / 2), toY(-opening.h / 2));
+    ctx.lineTo(toX(opening.w / 2), toY(opening.h / 2));
+    ctx.lineTo(toX(-opening.w / 2), toY(opening.h / 2));
+    ctx.closePath();
+    ctx.clip("evenodd");
+
     for (const seg of segments) {
       const hover = this.hoverSeg && this.hoverSeg.id === seg.id;
       ctx.fillStyle = `#${seg.hex.toString(16).padStart(6, "0")}`;
@@ -420,6 +512,7 @@ export class FramePreview {
       }
       ctx.globalAlpha = 1;
     }
+    ctx.restore();
 
     ctx.beginPath();
     ctx.rect(toX(-opening.w / 2), toY(opening.h / 2), opening.w * map.scale, opening.h * map.scale);
@@ -429,6 +522,39 @@ export class FramePreview {
     ctx.stroke();
     ctx.setLineDash([]);
 
+    // Outer silhouette (shows corner radius)
+    ctx.beginPath();
+    ctx.moveTo(toX(outerPoly[0][0]), toY(outerPoly[0][1]));
+    for (let i = 1; i < outerPoly.length; i++) {
+      ctx.lineTo(toX(outerPoly[i][0]), toY(outerPoly[i][1]));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(28, 25, 23, 0.35)";
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+
+    const finish = edgeFinishSizes(params);
+    if (finish.outside.size > 0.05 || finish.inside.size > 0.05) {
+      ctx.strokeStyle = "rgba(15, 118, 110, 0.4)";
+      ctx.lineWidth = 2;
+      if (finish.outside.size > 0.05) {
+        ctx.beginPath();
+        ctx.moveTo(toX(outerPoly[0][0]), toY(outerPoly[0][1]));
+        for (let i = 1; i < outerPoly.length; i++) {
+          ctx.lineTo(toX(outerPoly[i][0]), toY(outerPoly[i][1]));
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      if (finish.inside.size > 0.05) {
+        ctx.strokeRect(
+          toX(-opening.w / 2),
+          toY(opening.h / 2),
+          opening.w * map.scale,
+          opening.h * map.scale
+        );
+      }
+    }
     for (const hole of hangHoleLayout(params)) {
       const rr = Math.max(hole.r * map.scale, 5);
       ctx.beginPath();
