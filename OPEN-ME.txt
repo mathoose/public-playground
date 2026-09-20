@@ -1,21 +1,40 @@
-Do not run python from your home folder. That is why localhost:8080 says 404.
+Your 3D print library on this Mac should look like:
 
-Close that Terminal window.
+  Projects
+    3d printing
+      bubble-frame
+      postit-wall-clip
+      (next print project…)
 
-To customize the frame, in Chrome paste:
+How to put this project there (Finder):
 
-  https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
+1. Click Projects in the left sidebar.
+2. If you do not already have a folder named  3d printing  , make one
+   (File → New Folder).
+3. Come back to this public-playground window.
+4. Drag the  bubble-frame  folder into  Projects / 3d printing  .
+   Hold Option while dragging if you want a copy and to leave this one here.
+5. Do the same with  postit-wall-clip  if you want that clip in the same place.
 
-Or in Finder double-click  Open Bubble Frame.html
-(that file is not blocked by Apple the way the .command file is).
+After that, you never need this git folder to print. Open:
 
-If you already saw “Start Bubble Frame.command Not Opened”:
-  1. Click Done  — not Move to Trash
-  2. Right-click Start Bubble Frame.command → Open → Open
-     or Apple menu → System Settings → Privacy & Security → Open Anyway
+  Projects / 3d printing / bubble-frame
 
-To print the default 4×6, skip the app: open the bubble-frame folder and
-drag these into your slicer:
+and drag the .stl files into your slicer:
+
   bubble-frame-4x6in-frame.stl
   bubble-frame-4x6in-back.stl
   bubble-frame-4x6in-stand.stl
+
+To make a different size, use Chrome (no Terminal, no Python):
+
+  https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/bubble-frame-finder-7f53/bubble-frame/index.html
+
+Chrome will save new STLs to Downloads. Move those files into
+Projects / 3d printing / bubble-frame  so each project stays in its own folder.
+
+Do not run python from your home folder. That is why localhost:8080 said 404.
+Close that Terminal window.
+
+If Apple said Start Bubble Frame.command could not be opened: click Done
+(not Move to Trash). Use the Chrome link above instead.

@@ -1,5 +1,11 @@
 # Bubble frame
 
+This **whole folder** is the project. In Finder, put it here:
+
+`Projects / 3d printing / bubble-frame`
+
+Keep other prints as sibling folders (`postit-wall-clip`, the next thing you make, …).
+
 A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** the same size as the photo (optional hanging holes), and an **easel stand** that props the frame at an angle.
 
 ## Open the app (no typing)
