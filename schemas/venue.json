@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Venue",
+  "type": "object",
+  "required": ["name", "category", "source_url", "scraped_at"],
+  "properties": {
+    "name": { "type": "string" },
+    "category": { "type": "string", "enum": ["restaurant", "happy_hour", "coffee", "other"] },
+    "address": { "type": "string" },
+    "neighborhood": { "type": "string" },
+    "lat": { "type": "number" },
+    "lon": { "type": "number" },
+    "happy_hour_text": { "type": "string" },
+    "source_url": { "type": "string", "format": "uri" },
+    "scraped_at": { "type": "string", "format": "date-time" }
+  }
+}

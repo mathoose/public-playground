@@ -1,0 +1,23 @@
+[project]
+name = "philly-venue-map"
+version = "0.1.0"
+description = "Philadelphia venue scraping and map data pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "scrapling[fetchers]>=0.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+philly-venue-map = "philly_venue_map.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
