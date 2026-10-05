@@ -8,9 +8,11 @@ Not the travel case (wrap / six organizer slots / USB cap). Those stay on hold i
 
 ## Open the designer
 
-After this branch is on GitHub, use the jsDelivr **commit** link from the pull request (branch names with `/` do not work on jsDelivr). After merge:
+After this branch is on GitHub, use the jsDelivr **commit** link (branch names with `/` do not work on jsDelivr):
 
-[designer @ main](https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/photive-snap-box/)
+[Open designer](https://cdn.jsdelivr.net/gh/mathoose/public-playground@0ba8fd926c1d0b3ce9a68031b2c9f07061aa4421/photive-snap-box/)
+
+After merge: [designer @ main](https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/photive-snap-box/)
 
 Phone-first: orbit the tray on top, sliders below. **Download base STL** and **Download lid STL** separately.
 
