@@ -63,6 +63,7 @@ export class CasePreview {
 
     this.grid = new THREE.GridHelper(280, 28, 0xb0a89c, 0xc9c2b6);
     this.grid.rotation.x = Math.PI / 2;
+    this.grid.position.z = -28;
     this.scene.add(this.grid);
 
     this.caseMat = new THREE.MeshStandardMaterial({
@@ -175,7 +176,7 @@ export class CasePreview {
       cordR
     );
 
-    this.grid.position.set(d.p.sleeveLen / 2, d.cy, -0.2);
+    this.grid.position.set(d.p.sleeveLen / 2, d.cy, -28);
     this.d = d;
     if (!this.fitted) this.fit();
   }
@@ -194,21 +195,22 @@ export class CasePreview {
     const d = this.d;
     if (!d) return;
     this.camera.up.set(0, 0, 1);
+    this.camera.up.set(0, 0, 1);
     this.showCord(name !== "clips");
     if (name === "path") {
       this.camera.position.set(d.bankX0 - 55, d.cy - 95, d.cz + 58);
       this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.cz);
     } else if (name === "clips") {
-      this.camera.position.set(d.clipX + 6, d.cy - 38, -36);
-      this.controls.target.set(d.clipX, d.cy, d.p.wrapStick - 1);
+      this.camera.position.set(d.clipX + 8, d.cy - 40, -34);
+      this.controls.target.set(d.clipX, d.cy, d.p.wrapStick);
     } else if (name === "side") {
       this.camera.position.set(d.p.sleeveLen * 0.2, -d.bboxW * 1.8, d.cz);
       this.controls.target.set(d.p.sleeveLen * 0.4, d.cy, d.cz);
     } else {
       const span = Math.max(d.p.bankL, d.bboxW, 110);
       const dist = span * 1.02;
-      this.camera.position.set(-dist * 0.58, -dist * 0.72, -dist * 0.16);
-      this.controls.target.set(d.p.sleeveLen * 0.42, d.cy, d.p.wrapStick + 2);
+      this.camera.position.set(-dist * 0.7, -dist * 0.58, dist * 0.4);
+      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.42, d.cy, d.cz * 0.7);
     }
     this.controls.update();
   }
