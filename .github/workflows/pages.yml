@@ -35,7 +35,7 @@ jobs:
             | tar -C _site/clip -xf -
           tar -C striped-frame --exclude=node_modules -cf - . \
             | tar -C _site/striped-frame -xf -
-          tar -C photive-snap-box -cf - . \
+          tar -C photive-snap-box --exclude=node_modules -cf - . \
             | tar -C _site/photive-snap-box -xf -
       - uses: actions/upload-pages-artifact@v3
         with:

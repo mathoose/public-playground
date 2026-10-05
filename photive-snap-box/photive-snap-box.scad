@@ -1,5 +1,6 @@
 // Photive 6-port USB charger — simple snap box
-// Open tray on the 100×70 face + snap-fit lid. STL-first (no travel wrap / organizer).
+// Open tray on the 100×70 face + snap-fit lid (no travel wrap / organizer).
+// Live designer: index.html (v2). This file is the v1 STL source.
 // Brick: 100 × 70 × 26 mm, ~4 mm corner R.
 // USB 1×6 on one 70×26 end; figure-8 C8 on the opposite 70×26 end.
 
