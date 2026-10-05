@@ -4,7 +4,8 @@ Live parametric designer for the **Photive** brick nest (**100 × 70 × 26 mm**)
 
 ## Open
 
-- **This branch (CDN):** [usb-charger-travel-case/](https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/usb-charger-travel-case-designer-8213/usb-charger-travel-case/)
+- **This branch (CDN):** [usb-charger-travel-case/](https://cdn.jsdelivr.net/gh/mathoose/public-playground@20421f5/usb-charger-travel-case/)
+- **htmlpreview:** [open designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/usb-charger-travel-case-designer-8213/usb-charger-travel-case/index.html)
 - After merge: `https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/usb-charger-travel-case/`
 
 ## Files
