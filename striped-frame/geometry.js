@@ -1,7 +1,14 @@
 /** Path-stripe picture frame: alternating bands along the moulding loop. Units mm. */
 
-export const APP_VERSION = "2 · Sep 20, 2026";
-export const APP_VERSION_TAG = "v2";
+export const APP_VERSION = "3 · Sep 20, 2026";
+export const APP_VERSION_TAG = "v3";
+
+/** Front-face edge finish modes. */
+export const EDGE_MODES = [
+  { id: "none", label: "None" },
+  { id: "round", label: "Round" },
+  { id: "chamfer", label: "Chamfer" },
+];
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -61,6 +68,11 @@ export function defaultParams() {
     standEnabled: true,
     standAngleDeg: 18,
     standThickness: 4,
+    outerCornerRadius: 0,
+    insideEdgeMode: "none",
+    insideEdgeSize: 1.5,
+    outsideEdgeMode: "none",
+    outsideEdgeSize: 1.5,
   };
 }
 
@@ -124,7 +136,52 @@ export function clampParams(p) {
     next.sharedHeight = colors[0]?.height ?? next.sharedHeight;
   }
   next.colors = colors;
+
+  const maxHeight = Math.max(next.sharedHeight, ...next.colors.map((c) => c.height));
+  const maxCorner = Math.min(next.mouldingWidth, Math.min(next.photoW, next.photoH) / 2);
+  next.outerCornerRadius = Math.min(maxCorner, Math.max(0, Number(p.outerCornerRadius) || 0));
+  next.insideEdgeMode = normalizeEdgeMode(p.insideEdgeMode);
+  next.outsideEdgeMode = normalizeEdgeMode(p.outsideEdgeMode);
+  const maxEdge = Math.min(next.mouldingWidth * 0.45, maxHeight * 0.45, 12);
+  next.insideEdgeSize =
+    next.insideEdgeMode === "none"
+      ? Math.min(maxEdge, Math.max(0, Number(p.insideEdgeSize) || 0))
+      : Math.min(maxEdge, Math.max(0.4, Number(p.insideEdgeSize) || 1.5));
+  next.outsideEdgeSize =
+    next.outsideEdgeMode === "none"
+      ? Math.min(maxEdge, Math.max(0, Number(p.outsideEdgeSize) || 0))
+      : Math.min(maxEdge, Math.max(0.4, Number(p.outsideEdgeSize) || 1.5));
+  if (next.insideEdgeMode !== "none" && next.outsideEdgeMode !== "none") {
+    const sum = next.insideEdgeSize + next.outsideEdgeSize;
+    if (sum > next.mouldingWidth - 1) {
+      const scale = (next.mouldingWidth - 1) / sum;
+      next.insideEdgeSize *= scale;
+      next.outsideEdgeSize *= scale;
+    }
+  }
   return next;
+}
+
+function normalizeEdgeMode(mode) {
+  const id = String(mode || "none").toLowerCase();
+  if (id === "round" || id === "chamfer") return id;
+  return "none";
+}
+
+/** Effective finish sizes (0 when mode is none). */
+export function edgeFinishSizes(p) {
+  const params = clampParams(p);
+  return {
+    outerCornerRadius: params.outerCornerRadius,
+    inside:
+      params.insideEdgeMode === "none"
+        ? { mode: "none", size: 0 }
+        : { mode: params.insideEdgeMode, size: params.insideEdgeSize },
+    outside:
+      params.outsideEdgeMode === "none"
+        ? { mode: "none", size: 0 }
+        : { mode: params.outsideEdgeMode, size: params.outsideEdgeSize },
+  };
 }
 
 export function setSharedHeight(p, height) {
@@ -170,72 +227,173 @@ export function setColorSwatch(p, index, swatchId) {
 /**
  * Path around the frame: top (full outer width, includes corners) → right (inner height) →
  * bottom (full) → left (inner height). Matches a rectangular ring without double-counting corners.
+ * When outerCornerR > 0, horizontal ends are shortened by R and corner arcs are inserted so the
+ * outer perimeter follows a rounded rectangle (inner opening stays sharp).
  */
-export function pathSides(opening, mouldingWidth) {
+export function pathSides(opening, mouldingWidth, outerCornerR = 0) {
   const mw = mouldingWidth;
   const innerW = opening.w;
   const innerH = opening.h;
   const outerW = innerW + 2 * mw;
   const outerH = innerH + 2 * mw;
+  const R = Math.min(Math.max(0, outerCornerR), mw);
+
+  if (R < 1e-6) {
+    return [
+      {
+        id: "top",
+        len: outerW,
+        kind: "box",
+        box(u0, u1) {
+          return {
+            minX: -outerW / 2 + u0,
+            maxX: -outerW / 2 + u1,
+            minY: innerH / 2,
+            maxY: outerH / 2,
+          };
+        },
+      },
+      {
+        id: "right",
+        len: innerH,
+        kind: "box",
+        box(u0, u1) {
+          return {
+            minX: innerW / 2,
+            maxX: outerW / 2,
+            minY: innerH / 2 - u1,
+            maxY: innerH / 2 - u0,
+          };
+        },
+      },
+      {
+        id: "bottom",
+        len: outerW,
+        kind: "box",
+        box(u0, u1) {
+          return {
+            minX: outerW / 2 - u1,
+            maxX: outerW / 2 - u0,
+            minY: -outerH / 2,
+            maxY: -innerH / 2,
+          };
+        },
+      },
+      {
+        id: "left",
+        len: innerH,
+        kind: "box",
+        box(u0, u1) {
+          return {
+            minX: -outerW / 2,
+            maxX: -innerW / 2,
+            minY: -innerH / 2 + u0,
+            maxY: -innerH / 2 + u1,
+          };
+        },
+      },
+    ];
+  }
+
+  const arcLen = (Math.PI / 2) * R;
+  const makeArc = (id, cx, cy, a0, a1) => ({
+    id,
+    len: arcLen,
+    kind: "arc",
+    cx,
+    cy,
+    rOuter: R,
+    a0,
+    a1,
+    /** Approximate the arc sector with wedge AABBs for preview; export uses finish cutters. */
+    box(u0, u1) {
+      const t0 = u0 / arcLen;
+      const t1 = u1 / arcLen;
+      const mid = (t0 + t1) / 2;
+      const a = a0 + (a1 - a0) * mid;
+      const span = Math.abs(a1 - a0) * Math.max(t1 - t0, 0.02);
+      const rMid = R * 0.55;
+      const px = cx + rMid * Math.cos(a);
+      const py = cy + rMid * Math.sin(a);
+      const w = Math.max(mw * 0.85, R * span * 1.1);
+      const h = Math.max(mw * 0.85, R * span * 1.1);
+      return {
+        minX: px - w / 2,
+        maxX: px + w / 2,
+        minY: py - h / 2,
+        maxY: py + h / 2,
+      };
+    },
+  });
+
   return [
     {
       id: "top",
-      len: outerW,
+      len: outerW - 2 * R,
+      kind: "box",
       box(u0, u1) {
         return {
-          minX: -outerW / 2 + u0,
-          maxX: -outerW / 2 + u1,
+          minX: -outerW / 2 + R + u0,
+          maxX: -outerW / 2 + R + u1,
           minY: innerH / 2,
           maxY: outerH / 2,
         };
       },
     },
+    // Clockwise: top→right turns through TR outer arc (π/2 → 0)
+    makeArc("tr", outerW / 2 - R, outerH / 2 - R, Math.PI / 2, 0),
     {
       id: "right",
-      len: innerH,
+      len: outerH - 2 * R,
+      kind: "box",
       box(u0, u1) {
         return {
           minX: innerW / 2,
           maxX: outerW / 2,
-          minY: innerH / 2 - u1,
-          maxY: innerH / 2 - u0,
+          minY: outerH / 2 - R - u1,
+          maxY: outerH / 2 - R - u0,
         };
       },
     },
+    makeArc("br", outerW / 2 - R, -outerH / 2 + R, 0, -Math.PI / 2),
     {
       id: "bottom",
-      len: outerW,
+      len: outerW - 2 * R,
+      kind: "box",
       box(u0, u1) {
         return {
-          minX: outerW / 2 - u1,
-          maxX: outerW / 2 - u0,
+          minX: outerW / 2 - R - u1,
+          maxX: outerW / 2 - R - u0,
           minY: -outerH / 2,
           maxY: -innerH / 2,
         };
       },
     },
+    makeArc("bl", -outerW / 2 + R, -outerH / 2 + R, -Math.PI / 2, -Math.PI),
     {
       id: "left",
-      len: innerH,
+      len: outerH - 2 * R,
+      kind: "box",
       box(u0, u1) {
         return {
           minX: -outerW / 2,
           maxX: -innerW / 2,
-          minY: -innerH / 2 + u0,
-          maxY: -innerH / 2 + u1,
+          minY: -outerH / 2 + R + u0,
+          maxY: -outerH / 2 + R + u1,
         };
       },
     },
+    makeArc("tl", -outerW / 2 + R, outerH / 2 - R, Math.PI, Math.PI / 2),
   ];
 }
 
-export function pathLength(opening, mouldingWidth) {
-  return pathSides(opening, mouldingWidth).reduce((a, s) => a + s.len, 0);
+export function pathLength(opening, mouldingWidth, outerCornerR = 0) {
+  return pathSides(opening, mouldingWidth, outerCornerR).reduce((a, s) => a + s.len, 0);
 }
 
 /** Axis-aligned boxes covering moulding for arc range [s0, s1) along the path. */
-export function boxesForArc(s0, s1, opening, mouldingWidth) {
-  const sides = pathSides(opening, mouldingWidth);
+export function boxesForArc(s0, s1, opening, mouldingWidth, outerCornerR = 0) {
+  const sides = pathSides(opening, mouldingWidth, outerCornerR);
   const boxes = [];
   let cursor = 0;
   for (const side of sides) {
@@ -252,6 +410,7 @@ export function boxesForArc(s0, s1, opening, mouldingWidth) {
       if (w > 1e-6 && h > 1e-6) {
         boxes.push({
           side: side.id,
+          kind: side.kind || "box",
           minX: r.minX,
           maxX: r.maxX,
           minY: r.minY,
@@ -280,7 +439,8 @@ export function layoutStripes(p) {
   };
   const mw = params.mouldingWidth;
   const outer = { w: opening.w + 2 * mw, h: opening.h + 2 * mw };
-  const L = pathLength(opening, mw);
+  const cornerR = params.outerCornerRadius;
+  const L = pathLength(opening, mw, cornerR);
   const patternLen = params.colors.reduce((a, c) => a + c.thickness, 0);
   const repeats = Math.max(1, Math.round(L / Math.max(patternLen, 1e-6)));
   const scale = L / (repeats * patternLen);
@@ -293,7 +453,7 @@ export function layoutStripes(p) {
       const len = c.thickness * scale;
       const s0 = s;
       const s1 = s + len;
-      const boxes = boxesForArc(s0, s1, opening, mw).map((b) => ({
+      const boxes = boxesForArc(s0, s1, opening, mw, cornerR).map((b) => ({
         ...b,
         height: c.height,
         colorIndex: ci,
@@ -326,12 +486,22 @@ export function layoutStripes(p) {
   if (params.colors.some((c) => c.thickness < 4)) {
     warnings.push("Very thin color bands may be hard to print cleanly.");
   }
+  if (cornerR > mw * 0.85) {
+    warnings.push("Large outer corner radius nearly fills the moulding width.");
+  }
+  const edgeSum =
+    (params.insideEdgeMode === "none" ? 0 : params.insideEdgeSize) +
+    (params.outsideEdgeMode === "none" ? 0 : params.outsideEdgeSize);
+  if (edgeSum > mw * 0.7) {
+    warnings.push("Inside + outside edge finishes are large relative to moulding width.");
+  }
 
   return {
     params,
     opening,
     outer,
     mouldingWidth: mw,
+    outerCornerRadius: cornerR,
     pathLength: L,
     patternLen: patternLen * scale,
     repeats,
@@ -461,5 +631,63 @@ export function standBounds(poly) {
     maxY: Math.max(...ys),
     w: Math.max(...xs) - Math.min(...xs),
     h: Math.max(...ys) - Math.min(...ys),
+  };
+}
+
+/**
+ * Outer perimeter as a closed polygon (CCW), with optional rounded corners.
+ * `segmentsPerCorner` controls arc tessellation when radius > 0.
+ */
+export function outerPerimeterPoly(outerW, outerH, cornerRadius, segmentsPerCorner = 10) {
+  const hw = outerW / 2;
+  const hh = outerH / 2;
+  const R = Math.min(Math.max(0, cornerRadius), hw, hh);
+  if (R < 1e-6) {
+    return ensureCcw([
+      [-hw, -hh],
+      [hw, -hh],
+      [hw, hh],
+      [-hw, hh],
+    ]);
+  }
+  const pts = [];
+  const corners = [
+    { cx: hw - R, cy: hh - R, a0: 0, a1: Math.PI / 2 },
+    { cx: -hw + R, cy: hh - R, a0: Math.PI / 2, a1: Math.PI },
+    { cx: -hw + R, cy: -hh + R, a0: Math.PI, a1: (3 * Math.PI) / 2 },
+    { cx: hw - R, cy: -hh + R, a0: (3 * Math.PI) / 2, a1: 2 * Math.PI },
+  ];
+  for (const c of corners) {
+    for (let i = 0; i <= segmentsPerCorner; i++) {
+      const t = i / segmentsPerCorner;
+      const a = c.a0 + (c.a1 - c.a0) * t;
+      pts.push([c.cx + R * Math.cos(a), c.cy + R * Math.sin(a)]);
+    }
+  }
+  return ensureCcw(pts);
+}
+
+/** Straight edge runs used for front-face finish cutters / preview wedges. */
+export function frontEdgeRuns(layout) {
+  const { outer, opening, params } = layout;
+  const R = params.outerCornerRadius;
+  const ox = outer.w / 2;
+  const oy = outer.h / 2;
+  const ix = opening.w / 2;
+  const iy = opening.h / 2;
+  const trim = Math.max(R, 0);
+  return {
+    outside: [
+      { id: "out-top", axis: "x", y: oy, x0: -ox + trim, x1: ox - trim },
+      { id: "out-bottom", axis: "x", y: -oy, x0: -ox + trim, x1: ox - trim },
+      { id: "out-right", axis: "y", x: ox, y0: -oy + trim, y1: oy - trim },
+      { id: "out-left", axis: "y", x: -ox, y0: -oy + trim, y1: oy - trim },
+    ],
+    inside: [
+      { id: "in-top", axis: "x", y: iy, x0: -ix, x1: ix },
+      { id: "in-bottom", axis: "x", y: -iy, x0: -ix, x1: ix },
+      { id: "in-right", axis: "y", x: ix, y0: -iy, y1: iy },
+      { id: "in-left", axis: "y", x: -ix, y0: -iy, y1: iy },
+    ],
   };
 }
