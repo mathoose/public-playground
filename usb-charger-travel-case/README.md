@@ -1,33 +1,44 @@
-# Photive 6-port — travel case (Part B)
+# Photive 6-port — travel case designer
 
-Custom nest for **Photive** brick **100 × 70 × 26 mm** (~4 mm corners), **six cable slots** with label recesses, **friction-fit lid** with **cord-wrap posts** for the detachable figure-8 AC lead.
+Live parametric designer for the **Photive** brick nest (**100 × 70 × 26 mm**), **six cable slots** with label recesses, and a **friction-fit lid** with **cord-wrap posts**.
 
-Part A (snap-on cap) is **not** included in this folder.
+## Open
+
+- **This branch (CDN):** [usb-charger-travel-case/](https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/usb-charger-travel-case-designer-8213/usb-charger-travel-case/)
+- After merge: `https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/usb-charger-travel-case/`
 
 ## Files
 
 | File | Description |
 | --- | --- |
-| `photive-travel-case.scad` | Parametric source (`part` = `base` \| `lid`) |
-| `photive-travel-case-base.stl` | Case body |
-| `photive-travel-case-lid.stl` | Lid + cord wrap |
-| `build-stl.sh` | Re-export STLs after editing `.scad` |
+| `index.html` | Phone-first UI + collapsible settings |
+| `app.bundle.js` | Committed viewer bundle (Three.js) |
+| `geometry.js` / `stl.js` | Params + Manifold CSG (loaded from CDN at runtime) |
+| `photive-travel-case.scad` | OpenSCAD source of truth for v0 STLs |
+| `photive-travel-case-base.stl` / `-lid.stl` | Default ready-to-slice exports |
+
+## Adjustable params (designer)
+
+- **Brick nest:** nest XY/Z clearances, brick L×W×H + corner R, wall, floor, AC pocket, finger notch
+- **Cable slots:** throat, depth, partition height, divider; **USB 1×6 row** — pitch, side margins, Z center, opening W×H; align slots to USB pitch
+- **Lid & wrap:** lip clearance/depth, lid thickness, cord-wrap post Ø/height/gap, edge fillet
+- **Download:** base, lid, or both STLs
+
+**USB face (confirmed):** six USB-A in a **single horizontal row** on the **70×26 mm** end (ports tall). Not a 2×3 grid.
 
 ## Print
 
-- **Material:** PETG recommended (durability, slight flex on lid skirt).
-- **Orientation:** Each part **flat on the build plate** (base bottom down, lid top down so cord posts print vertically).
-- **Walls:** ~2.4 mm; no supports expected for base; lid skirt may need **0.2 mm brim** if corner lift.
-- **Tuning:** If lid is loose/tight, adjust `lip_clear` in `.scad` (±0.1 mm).
+- **Material:** PETG recommended
+- **Orientation:** Base bottom down; lid top down (posts vertical)
+- **Tune lid:** `lip_clear` ±0.1 mm if loose/tight
+- **USB layout:** 1×6 row on 70×26 end — tune `usb_pitch` / side margins from the face caliper photo
 
-## Layout
+## Build
 
-- **AC end** (−X): pocket for figure-8 plug body.
-- **USB end** (+X toward slots): six parallel slots open toward the brick face (charging-station or coiled travel).
-- **Finger notch** on the USB end of the nest for lift-out.
+```bash
+npm install
+npm run build   # refreshes app.bundle.js
+npm test
+```
 
-## Verify on your brick
-
-OpenSCAD parameters `usb_row_spacing`, `usb_col_spacing`, `usb_face_margin_x/y` are **guesses** for a 2×3 USB-A grid. Uncomment `usb_port_markers()` in the `.scad` and preview to check alignment; caliper-measure and adjust before assuming port-to-slot alignment.
-
-Brick envelope was confirmed from photos/caliper; **port positions were not photographed**.
+Part A (snap-on cap) is **not** included.

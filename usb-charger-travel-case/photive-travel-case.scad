@@ -1,6 +1,6 @@
 // Photive 6-port USB charger — travel case (Part B only)
 // Brick envelope: 100 × 70 × 26 mm, ~4 mm corner radius; figure-8 AC on 100×26 end.
-// USB face spacing below is ESTIMATED — verify against your brick before relying on port alignment.
+// USB face: SIX ports in ONE horizontal row on the 70×26 mm end (ports tall) — not 2×3.
 
 /* [Part] */
 part = "base"; // [base, lid, both]
@@ -13,14 +13,13 @@ brick_r = 4;        // mm corner radius (outer)
 nest_clear_xy = 0.4; // mm per side
 nest_clear_z = 0.6;  // mm above brick (floor to cavity)
 
-/* [USB face — verify] */
+/* [USB face — 1×6 row on 70×26 end; from usb-face-caliper.jpg] */
 usb_port_count = 6;
-usb_row_spacing = 16.5;   // mm center-to-center along 100 mm face (guess)
-usb_col_spacing = 14.0;   // mm center-to-center along 70 mm face (guess)
-usb_face_margin_x = 18;   // mm from AC/USB end to first row center (guess)
-usb_face_margin_y = 11;   // mm from side to port column (guess)
-usb_rows = 2;
-usb_cols = 3;
+usb_pitch = 10.0;         // mm center-to-center along 70 mm face
+usb_side_margin = 10.0;   // mm from side to first/last port center
+usb_z_center = 13.0;      // mm from brick bottom to port center
+usb_opening_w = 5.0;      // mm along row (narrow)
+usb_opening_h = 12.2;     // mm tall (USB-A vertical)
 
 /* [Case] */
 wall = 2.4;
@@ -193,15 +192,14 @@ module lid_touch_fillet() {
   }
 }
 
-// Ghost markers for USB verification (not exported in STL — comment out difference in preview)
+// Ghost markers for USB verification (1×6 row on USB end face)
 module usb_port_markers() {
-  %for (row = [0 : usb_rows - 1]) {
-    for (col = [0 : usb_cols - 1]) {
-      px = wall + ac_pocket_depth + nest_clear_xy + usb_face_margin_x + row * usb_row_spacing;
-      py = wall + nest_clear_xy + usb_face_margin_y + col * usb_col_spacing;
-      translate([px, py, floor + brick_h - 2])
-        cube([12, 12, 4], center = true);
-    }
+  y0 = wall + nest_clear_xy + usb_side_margin;
+  px = wall + ac_pocket_depth + nest_clear_xy + brick_l + 1;
+  %for (i = [0 : usb_port_count - 1]) {
+    py = y0 + i * usb_pitch;
+    translate([px, py, floor + usb_z_center])
+      cube([3, usb_opening_w, usb_opening_h], center = true);
   }
 }
 
