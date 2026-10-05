@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: power-bank-wrap-v3 -->
+<!-- build: power-bank-wrap-v4 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,16 +14,15 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
         <h1>Power bank wrap</h1>
       </div>
-      <p>v3 · Oct 5, 2026</p>
+      <p>v4 · Oct 5, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
       <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
       <div class="view-bar">
         <button type="button" class="chip" data-view="iso">Iso</button>
-        <button type="button" class="chip" data-view="side">Taper</button>
-        <button type="button" class="chip" data-view="wrap">Wrap</button>
-        <button type="button" class="chip" data-view="ref">vs Anker</button>
+        <button type="button" class="chip" data-view="path">Cord path</button>
+        <button type="button" class="chip" data-view="clips">Clips</button>
       </div>
       <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
@@ -31,7 +30,7 @@
       <details class="settings-group" open>
         <summary>Preset</summary>
         <div class="group-body">
-          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Same idea as the Anker 733 wrap: two cord pockets on the outside, tapered hole so it grips.</p>
+          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two side clips hold the cord ends.</p>
           <div class="seg">
             <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
             <button class="chip" type="button" data-preset="j159">HOCO J159</button>
@@ -43,7 +42,7 @@
       <details class="settings-group" open>
         <summary>Inner hole</summary>
         <div class="group-body">
-          <p class="group-note">Width and length of the sleeve, plus how thick the bank is. Entry is looser; the other end shrinks by the taper on each side.</p>
+          <p class="group-note">Width and length of the sleeve. Entry is looser; the far end shrinks by the taper on each side.</p>
           <div class="row">
             <label for="bankW">Inner width (bank)</label>
             <output id="bankW-out"></output>
@@ -75,7 +74,7 @@
       <details class="settings-group" open>
         <summary>Fit</summary>
         <div class="group-body">
-          <p class="group-note">Clearance at the open (entry) end. Taper is how much smaller the far end is, per side — about 0.3–0.5 mm so it slides on tight and stays put.</p>
+          <p class="group-note">Clearance at the open (entry) end. Taper is how much smaller the far end is, per side.</p>
           <div class="row">
             <label for="clearXY">Fit clearance (width)</label>
             <output id="clearXY-out"></output>
@@ -100,33 +99,55 @@
       </details>
 
       <details class="settings-group" open>
-        <summary>Wrap pockets</summary>
+        <summary>Wrap around band</summary>
         <div class="group-body">
-          <p class="group-note">Two C-channel cord sections on the long sides, like the Anker wrap. Figure-8 the cable around both.</p>
+          <p class="group-note">Two C-channels go around the 68×16 cross-section (rotated 90° from v3). Wind the cord around the sleeve itself — it cannot reach the USB end.</p>
           <div class="row">
-            <label for="wrapStick">Pocket depth</label>
+            <label for="wrapStick">Channel depth</label>
             <output id="wrapStick-out"></output>
-            <input id="wrapStick" type="range" min="4" max="16" step="0.1" value="9" />
+            <input id="wrapStick" type="range" min="4" max="14" step="0.1" value="7" />
           </div>
           <div class="row">
-            <label for="wrapLen">Pocket length</label>
-            <output id="wrapLen-out"></output>
-            <input id="wrapLen" type="range" min="18" max="130" step="0.5" value="64" />
+            <label for="wrapLane">Channel width</label>
+            <output id="wrapLane-out"></output>
+            <input id="wrapLane" type="range" min="8" max="22" step="0.1" value="11" />
+          </div>
+          <div class="row">
+            <label for="wrapGap">Gap between channels</label>
+            <output id="wrapGap-out"></output>
+            <input id="wrapGap" type="range" min="6" max="40" step="0.5" value="12" />
           </div>
           <div class="row">
             <label for="wrapFlange">Flange thickness</label>
             <output id="wrapFlange-out"></output>
-            <input id="wrapFlange" type="range" min="1.4" max="4.5" step="0.1" value="2.4" />
+            <input id="wrapFlange" type="range" min="1.4" max="4.5" step="0.1" value="2.2" />
           </div>
           <div class="row">
-            <label for="wrapInset">End inset (spacing)</label>
+            <label for="wrapInset">End inset</label>
             <output id="wrapInset-out"></output>
-            <input id="wrapInset" type="range" min="1" max="20" step="0.5" value="4" />
+            <input id="wrapInset" type="range" min="2" max="24" step="0.5" value="6" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Cord clips</summary>
+        <div class="group-body">
+          <p class="group-note">Two press-fit clips on one long side, one per cord end. Mouth is 0.4 mm undersized so a USB cable snaps in.</p>
+          <div class="row">
+            <label for="cordD">Cord diameter</label>
+            <output id="cordD-out"></output>
+            <input id="cordD" type="range" min="2.4" max="6" step="0.1" value="3.6" />
+          </div>
+          <div class="row">
+            <label for="clipOn">Side clips</label>
+            <output id="clipOn-out"></output>
+            <input id="clipOn" type="range" min="0" max="1" step="1" value="1" />
           </div>
           <div class="row">
             <label for="slotOn">Side slots (button / micro)</label>
             <output id="slotOn-out"></output>
-            <input id="slotOn" type="range" min="0" max="1" step="1" value="1" />
+            <input id="slotOn" type="range" min="0" max="1" step="1" value="0" />
           </div>
           <div class="row">
             <label for="slotH">Slot height</label>
@@ -144,18 +165,18 @@
             <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
           </div>
           <div class="ready">
-            <a href="power-bank-wrap-v3.stl" download>Print v3 default</a>
+            <a href="power-bank-wrap-v4.stl" download>Print v4 default</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>standing on the tight end</b> (hole pointing up).
-            No supports. Slide the 10+ end in first so USB / LEDs stay out.
+            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap both ends into the side clips.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Power bank wrap v3 · Oct 5, 2026</p>
+      <p class="foot" id="app-version">Power bank wrap v4 · Oct 5, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

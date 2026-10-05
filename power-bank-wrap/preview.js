@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { manifoldMeshToPositions, parseBinaryStl } from "./stl.js";
+import { manifoldMeshToPositions } from "./stl.js";
 
 function geomFrom(mesh) {
   const geo = new THREE.BufferGeometry();
@@ -9,12 +9,32 @@ function geomFrom(mesh) {
   return geo;
 }
 
-function geomFromStl(buffer) {
-  const pos = parseBinaryStl(buffer);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geo.computeVertexNormals();
-  return geo;
+function roundedRectLoop(cx, cy, cz, w, h, r, x) {
+  const rr = Math.max(0.8, Math.min(r, w / 2 - 0.4, h / 2 - 0.4));
+  const pts = [];
+  const segs = 10;
+  const corners = [
+    [1, 1, 0],
+    [-1, 1, Math.PI / 2],
+    [-1, -1, Math.PI],
+    [1, -1, (3 * Math.PI) / 2],
+  ];
+  for (const [sx, sz, a0] of corners) {
+    const ox = cx;
+    const oy = cy + sx * (w / 2 - rr);
+    const oz = cz + sz * (h / 2 - rr);
+    for (let i = 0; i <= segs; i++) {
+      const a = a0 + (i / segs) * (Math.PI / 2);
+      pts.push(new THREE.Vector3(ox, oy + Math.cos(a) * rr, oz + Math.sin(a) * rr));
+    }
+  }
+  pts.push(pts[0].clone());
+  return pts;
+}
+
+function tubeFromPoints(points, radius) {
+  const curve = new THREE.CatmullRomCurve3(points, true, "catmullrom", 0.02);
+  return new THREE.TubeGeometry(curve, 96, radius, 8, true);
 }
 
 export class CasePreview {
@@ -66,26 +86,24 @@ export class CasePreview {
       roughness: 0.4,
       metalness: 0.1,
     });
-    this.refMat = new THREE.MeshStandardMaterial({
-      color: 0x5b7c99,
-      roughness: 0.48,
+    this.cordMat = new THREE.MeshStandardMaterial({
+      color: 0x292524,
+      roughness: 0.55,
       metalness: 0.08,
-      transparent: true,
-      opacity: 0.55,
-      side: THREE.DoubleSide,
     });
 
     this.caseMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.caseMat);
     this.bankMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.bankMat);
     this.glassMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.glassMat);
     this.portGroup = new THREE.Group();
-    this.refMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.refMat);
-    this.refMesh.visible = false;
+    this.cordA = new THREE.Mesh(new THREE.BufferGeometry(), this.cordMat);
+    this.cordB = new THREE.Mesh(new THREE.BufferGeometry(), this.cordMat);
     this.scene.add(this.caseMesh);
     this.scene.add(this.bankMesh);
     this.scene.add(this.glassMesh);
     this.scene.add(this.portGroup);
-    this.scene.add(this.refMesh);
+    this.scene.add(this.cordA);
+    this.scene.add(this.cordB);
 
     this.fitted = false;
     this.running = true;
@@ -142,46 +160,29 @@ export class CasePreview {
       this.portGroup.add(m);
     }
 
+    const loopW = d.outerW - d.p.wrapStick;
+    const loopH = d.outerH - d.p.wrapStick;
+    const loopR = Math.min(d.outerR + d.p.wrapStick * 0.35, loopW / 2 - 1, loopH / 2 - 1);
+    const cordR = Math.max(0.7, d.p.cordD / 2 - 0.15);
+    this.cordA.geometry.dispose();
+    this.cordB.geometry.dispose();
+    this.cordA.geometry = tubeFromPoints(
+      roundedRectLoop(d.beltMidA, d.cy, d.cz, loopW, loopH, loopR),
+      cordR
+    );
+    this.cordB.geometry = tubeFromPoints(
+      roundedRectLoop(d.beltMidB, d.cy, d.cz, loopW, loopH, loopR),
+      cordR
+    );
+
     this.grid.position.set(d.p.sleeveLen / 2, d.cy, -0.2);
     this.d = d;
-    this._placeReference();
     if (!this.fitted) this.fit();
   }
 
-  async loadReference(url) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return false;
-      const buf = await res.arrayBuffer();
-      this.refMesh.geometry.dispose();
-      this.refMesh.geometry = geomFromStl(buf);
-      this.refMesh.geometry.computeBoundingBox();
-      this.refReady = true;
-      this._placeReference();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  _placeReference() {
-    if (!this.refReady || !this.d) return;
-    const box = this.refMesh.geometry.boundingBox;
-    if (!box) return;
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-    // Sit the Anker wrap beside our sleeve, both on Z=0, aligned along X.
-    this.refMesh.position.set(
-      this.d.p.sleeveLen / 2 - center.x,
-      this.d.outerW + 18 - box.min.y,
-      -box.min.z
-    );
-  }
-
-  showReference(on) {
-    this.refMesh.visible = !!on && this.refReady;
+  showCord(on) {
+    this.cordA.visible = !!on;
+    this.cordB.visible = !!on;
   }
 
   fit() {
@@ -193,23 +194,21 @@ export class CasePreview {
     const d = this.d;
     if (!d) return;
     this.camera.up.set(0, 0, 1);
-    this.showReference(name === "ref");
-    if (name === "side") {
-      this.camera.position.set(d.p.sleeveLen * 0.15, -d.outerW * 2.1, d.outerH * 0.7);
-      this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.outerH * 0.5);
-    } else if (name === "wrap") {
-      this.camera.position.set(d.p.sleeveLen + 25, -70, d.outerH + 28);
-      this.controls.target.set(d.p.sleeveLen * 0.72, 2, d.outerH * 0.5);
-    } else if (name === "ref") {
-      const span = Math.max(d.p.sleeveLen, d.outerW + 80, 90);
-      const dist = span * 1.2;
-      this.camera.position.set(-dist * 0.35, -dist * 0.55, dist * 0.55);
-      this.controls.target.set(d.p.sleeveLen / 2, d.outerW * 0.7, d.outerH * 0.3);
+    this.showCord(name !== "clips");
+    if (name === "path") {
+      this.camera.position.set(d.bankX0 - 55, d.cy - 95, d.cz + 58);
+      this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.cz);
+    } else if (name === "clips") {
+      this.camera.position.set(d.beltMidB + 18, d.bboxW + 48, d.zMid + 22);
+      this.controls.target.set((d.beltMidA + d.beltMidB) / 2, d.outerW + 2, d.zMid);
+    } else if (name === "side") {
+      this.camera.position.set(d.p.sleeveLen * 0.2, -d.bboxW * 1.8, d.cz);
+      this.controls.target.set(d.p.sleeveLen * 0.4, d.cy, d.cz);
     } else {
-      const span = Math.max(d.p.bankL, d.outerW, 110);
-      const dist = span * 1.05;
-      this.camera.position.set(-dist * 0.72, -dist * 0.62, dist * 0.38);
-      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.45, d.cy, d.outerH * 0.4);
+      const span = Math.max(d.p.bankL, d.bboxW, 110);
+      const dist = span * 1.02;
+      this.camera.position.set(-dist * 0.7, -dist * 0.58, dist * 0.4);
+      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.42, d.cy, d.cz * 0.7);
     }
     this.controls.update();
   }

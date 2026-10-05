@@ -25,7 +25,7 @@ let rebuildTimer = 0;
 let rebuildGen = 0;
 
 function fmtValue(key, n) {
-  if (key === "slotOn") return n >= 0.5 ? "on" : "off";
+  if (key === "slotOn" || key === "clipOn") return n >= 0.5 ? "on" : "off";
   const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
   const unit = UNITS[key] ? ` ${UNITS[key]}` : "";
@@ -61,15 +61,14 @@ function renderReadout(result) {
   const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
   const tris = result ? result.tris.toFixed(0) : "—";
   el.innerHTML = `
-    Outer <b>${d.p.sleeveLen.toFixed(1)} × ${d.outerW.toFixed(1)} × ${d.outerH.toFixed(1)} mm</b><br />
+    Outer <b>${d.p.sleeveLen.toFixed(1)} × ${d.bboxW.toFixed(1)} × ${d.bboxH.toFixed(1)} mm</b><br />
     Hole (entry → tight)
     <b>${d.innerW0.toFixed(1)} × ${d.innerH0.toFixed(1)}</b>
     → <b>${d.innerW1.toFixed(1)} × ${d.innerH1.toFixed(1)} mm</b>
     · taper <b>${formatMm(d.p.taper)}</b> / side<br />
-    For a <b>${formatMm(d.p.bankW)} × ${formatMm(d.p.bankH)}</b> bank,
-    sleeve <b>${formatMm(d.p.sleeveLen)}</b> of <b>${formatMm(d.p.bankL)}</b><br />
-    Two wrap pockets <b>${formatMm(d.p.wrapLen)} × ${formatMm(d.p.wrapStick)}</b>,
-    spacing <b>${d.wrapSpacing.toFixed(1)} mm</b><br />
+    Wrap around the <b>68×16 band</b> (not toward USB) in two C-channels
+    <b>${formatMm(d.p.wrapLane)}</b> wide, gap <b>${formatMm(d.p.wrapGap)}</b><br />
+    Cord clips <b>${formatMm(d.p.cordD)}</b> (grip ${formatMm(d.grip)})<br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
 }
@@ -160,8 +159,7 @@ const shot = new URLSearchParams(location.search).get("shot");
 if (shot) document.body.classList.add("capture");
 
 rebuild()
-  .then(async () => {
-    await preview.loadReference("./reference-anker.stl");
+  .then(() => {
     if (shot) preview.setNamedView(shot);
     window.__wrapReady = true;
   })

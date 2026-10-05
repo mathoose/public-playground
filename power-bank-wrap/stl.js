@@ -91,64 +91,113 @@ function unionAll(Manifold, parts, temps) {
   return u;
 }
 
-function wrapPockets(Manifold, d, temps) {
+function roundedFrameX(CrossSection, Manifold, outerW, outerH, innerW, innerH, rOut, rIn, x0, len, cy, cz, temps) {
+  const outer = extrudedRounded(CrossSection, outerH, outerW, len, rOut, temps);
+  const outerX = alongX(outer, temps).translate(x0, cy, cz);
+  temps.push(outerX);
+  const inner = extrudedRounded(CrossSection, innerH, innerW, len + 2.4, rIn, temps);
+  const innerX = alongX(inner, temps).translate(x0 - 1.2, cy, cz);
+  temps.push(innerX);
+  const frame = outerX.subtract(innerX);
+  temps.push(frame);
+  return frame;
+}
+
+function wrapBelts(Manifold, CrossSection, d, temps) {
   const p = d.p;
-  const len = p.wrapLen;
-  const x = d.wrapX0;
   const stick = p.wrapStick;
   const fl = p.wrapFlange;
-  const web = Math.min(1.8, stick * 0.28);
-  const overlap = 1.6;
-  const h = d.outerH;
-  const parts = [];
+  const web = Math.min(1.8, stick * 0.32);
+  const rOut = Math.max(d.outerR, stick * 0.45);
+  const rIn = Math.max(0.6, d.outerR - 0.6);
+  const belts = [];
+  for (const x0 of [d.wrapX0, d.wrapX2]) {
+    const frame = roundedFrameX(
+      CrossSection,
+      Manifold,
+      d.outerW,
+      d.outerH,
+      d.bodyW - 1.2,
+      d.bodyH - 1.2,
+      rOut,
+      rIn,
+      x0,
+      p.wrapLane,
+      d.cy,
+      d.cz,
+      temps
+    );
+    const gLen = Math.max(2.4, p.wrapLane - 2 * fl);
+    const cutter = roundedFrameX(
+      CrossSection,
+      Manifold,
+      d.outerW + 10,
+      d.outerH + 10,
+      d.bodyW + 2 * web,
+      d.bodyH + 2 * web,
+      rOut + 4,
+      Math.max(0.5, rIn - 0.2),
+      x0 + fl,
+      gLen,
+      d.cy,
+      d.cz,
+      temps
+    );
+    const belt = frame.subtract(cutter);
+    temps.push(belt);
+    belts.push(belt);
+  }
+  return unionAll(Manifold, belts, temps);
+}
 
-  const leftBody = Manifold.cube([len, stick + overlap, h], false).translate(
-    x,
-    -0.02,
-    0
+function cordClip(Manifold, d, x, segs, temps) {
+  const p = d.p;
+  const cordD = p.cordD;
+  const holeR = cordD / 2;
+  const grip = d.grip;
+  const wall = 1.5;
+  const depth = cordD + 3.4;
+  const len = cordD + 5.2;
+  const h = cordD + 3.8;
+  const y0 = d.outerW - 0.6;
+  const z0 = d.zMid - h / 2;
+  const body = Manifold.cube([len, depth, h], false).translate(x - len / 2, y0, z0);
+  temps.push(body);
+  const hole = Manifold.cylinder(len + 3, holeR, holeR, segs, false)
+    .rotate(0, 90, 0)
+    .translate(x - len / 2 - 1.5, y0 + depth - holeR - wall, d.zMid);
+  temps.push(hole);
+  const mouth = Manifold.cube([len + 3, depth, grip], false).translate(
+    x - len / 2 - 1.5,
+    y0 + depth - holeR - wall - grip / 2,
+    d.zMid - grip / 2
   );
-  temps.push(leftBody);
-  const leftCh = Manifold.cube([len + 2, stick - web + 1.2, h - 2 * fl], false).translate(
-    x - 1,
-    -1.1,
-    fl
-  );
-  temps.push(leftCh);
-  const left = leftBody.subtract(leftCh);
-  temps.push(left);
-  parts.push(left);
+  temps.push(mouth);
+  let clip = body.subtract(hole);
+  temps.push(clip);
+  clip = clip.subtract(mouth);
+  temps.push(clip);
+  return clip;
+}
 
-  const rightY = d.outerW - stick;
-  const rightBody = Manifold.cube([len, stick + overlap, h], false).translate(
-    x,
-    rightY - overlap,
-    0
-  );
-  temps.push(rightBody);
-  const rightCh = Manifold.cube([len + 2, stick - web + 1.2, h - 2 * fl], false).translate(
-    x - 1,
-    rightY + web - 0.1,
-    fl
-  );
-  temps.push(rightCh);
-  const right = rightBody.subtract(rightCh);
-  temps.push(right);
-  parts.push(right);
-
-  return unionAll(Manifold, parts, temps);
+function cordClips(Manifold, d, segs, temps) {
+  if (!d.p.clipOn) return null;
+  const a = cordClip(Manifold, d, d.beltMidA, segs, temps);
+  const b = cordClip(Manifold, d, d.beltMidB, segs, temps);
+  return unionAll(Manifold, [a, b], temps);
 }
 
 function sideSlots(Manifold, d, temps) {
   const p = d.p;
   if (!p.slotOn) return null;
-  const slotLen = Math.min(22, Math.max(10, p.sleeveLen * 0.28));
-  const x = (p.sleeveLen - slotLen) / 2;
+  const slotLen = Math.min(18, Math.max(10, p.wrapGap - 2));
+  const x = d.wrapX1 + (p.wrapGap - slotLen) / 2;
   const h = p.slotH;
   const z = d.zMid - h / 2;
-  const thick = p.wall + 2.4;
+  const thick = p.wall + 2.2;
   const left = Manifold.cube([slotLen, thick, h], false).translate(
     x,
-    p.wrapStick - 0.6,
+    p.wrapStick - 0.4,
     z
   );
   temps.push(left);
@@ -167,8 +216,8 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
   const d = derive(raw);
   const p = d.p;
 
-  const outer = extrudedRounded(CrossSection, d.outerH, d.bodyW, p.sleeveLen, d.outerR, temps);
-  const outerX = alongX(outer, temps).translate(0, d.cy, d.outerH / 2);
+  const outer = extrudedRounded(CrossSection, d.bodyH, d.bodyW, p.sleeveLen, d.outerR, temps);
+  const outerX = alongX(outer, temps).translate(0, d.cy, d.cz);
   temps.push(outerX);
 
   const inner = taperedRoundedX(
@@ -182,15 +231,21 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
     d.innerR1,
     p.sleeveLen + 2.4,
     temps
-  ).translate(-1.2, d.cy, d.outerH / 2);
+  ).translate(-1.2, d.cy, d.cz);
   temps.push(inner);
 
   let solid = outerX.subtract(inner);
   temps.push(solid);
 
-  const pockets = wrapPockets(Manifold, d, temps);
-  if (pockets) {
-    solid = solid.add(pockets);
+  const belts = wrapBelts(Manifold, CrossSection, d, temps);
+  if (belts) {
+    solid = solid.add(belts);
+    temps.push(solid);
+  }
+
+  const clips = cordClips(Manifold, d, segs, temps);
+  if (clips) {
+    solid = solid.add(clips);
     temps.push(solid);
   }
 
