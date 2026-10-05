@@ -43,14 +43,14 @@
     .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
     .brand h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
     .brand small { color: var(--muted); font-size: 12px; }
-    nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0 8px; scrollbar-width: none; }
+    nav.tabs { display: flex; gap: 2px; overflow-x: auto; padding: 10px 0 8px; scrollbar-width: none; }
     nav.tabs::-webkit-scrollbar { display: none; }
     nav.tabs button {
       flex: 1 0 auto; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; font-size: 14px;
-      padding: 7px 9px; border-radius: 999px; cursor: pointer;
+      padding: 7px 6px; border-radius: 999px; cursor: pointer;
     }
     nav.tabs button.on { background: var(--accent); color: var(--accent-ink); }
-    nav.tabs .count { font-weight: 500; opacity: .8; margin-left: 4px; font-size: 12px; }
+    nav.tabs .count { font-weight: 500; opacity: .8; margin-left: 3px; font-size: 11px; }
     main { max-width: 760px; margin: 0 auto; padding: 12px 12px 40px; }
     section.view { display: none; }
     section.view.on { display: block; }
@@ -131,9 +131,9 @@
       <small id="syncLabel">—</small>
     </div>
     <nav class="tabs" id="tabs">
-      <button data-view="feed" class="on">Feed<span class="count" id="cFeed"></span></button>
+      <button data-view="feed" class="on">Feed</button>
       <button data-view="projects">Projects<span class="count" id="cProj"></span></button>
-      <button data-view="compare">Compare<span class="count" id="cCmp"></span></button>
+      <button data-view="compare">Compare</button>
       <button data-view="borrow">Borrow<span class="count" id="cReq"></span></button>
       <button data-view="data">Data</button>
     </nav>
@@ -604,7 +604,6 @@
     function renderFeed() {
       const items = allItems();
       const shown = items.filter(passes);
-      $("cFeed").textContent = items.length ? String(shown.length) : "";
       $("feedCount").textContent = "Showing " + shown.length + " of " + items.length;
       const sync = state.repos.map((r) => feedCache[r] && feedCache[r].at).filter(Boolean);
       $("syncLabel").textContent = feedStatus.loading ? "Syncing…" : sync.length ? "GitHub synced " + relTime(Math.min.apply(null, sync)) : "Not synced";
@@ -703,7 +702,6 @@
         .map((p) => '<span class="chip' + (cmpSel.indexOf(p.id) >= 0 ? " on" : "") + '" data-pick="' + esc(p.id) + '">' + esc(p.name) + "</span>").join("");
       $("cmpTitle").textContent = cmpEditing ? "Edit comparison" : "Align projects";
       $("cmpCancel").hidden = !cmpEditing;
-      $("cCmp").textContent = state.comparisons.length ? String(state.comparisons.length) : "";
       const list = state.comparisons.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
       $("cmpList").innerHTML = list.length ? list.map((c) =>
         '<div class="card"><div class="meta small muted">' + esc(c.date || "") + "</div><b>" + esc(c.title || c.projects.map(projName).join(" vs ")) + "</b>" +
@@ -794,7 +792,11 @@
     }
 
     // ---------- events ----------
-    $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-view]"); if (b) setView(b.dataset.view); });
+    $("tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-view]"); if (!b) return;
+      if (b.dataset.view === "projects" && ui.view !== "projects") renderProjects();
+      setView(b.dataset.view);
+    });
 
     $("fText").addEventListener("input", (e) => { filters.text = e.target.value.trim(); renderFeed(); });
     $("fProject").addEventListener("change", (e) => { filters.project = e.target.value; renderFeed(); });
