@@ -46,8 +46,8 @@
     nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0 8px; scrollbar-width: none; }
     nav.tabs::-webkit-scrollbar { display: none; }
     nav.tabs button {
-      flex: 0 0 auto; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600;
-      padding: 7px 12px; border-radius: 999px; cursor: pointer;
+      flex: 1 0 auto; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; font-size: 14px;
+      padding: 7px 9px; border-radius: 999px; cursor: pointer;
     }
     nav.tabs button.on { background: var(--accent); color: var(--accent-ink); }
     nav.tabs .count { font-weight: 500; opacity: .8; margin-left: 4px; font-size: 12px; }
@@ -478,7 +478,7 @@
     // ---------- GitHub feed ----------
     function firstLine(body) {
       if (!body) return "";
-      const lines = String(body).split(/\r?\n/).map((l) => l.replace(/<!--.*?-->/g, "").replace(/^[#>*\-\s|]+/, "").replace(/[*_`]/g, "").trim()).filter((l) => l && !/^(summary|overview|changes|what changed)\s*:?$/i.test(l));
+      const lines = String(body).split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).map((l) => l.replace(/<!--.*?-->/g, "").replace(/^[#>*\-\s|]+/, "").replace(/[*_`]/g, "").trim()).filter((l) => l && !/^(summary|overview|changes|what changed)\s*:?$/i.test(l));
       const l = lines[0] || "";
       return l.length > 180 ? l.slice(0, 177) + "…" : l;
     }
@@ -676,7 +676,7 @@
           const live = projLive(p);
           const code = p.repo ? treeUrl(p.repo, p.path, p.branch) : "";
           html += '<details class="box" data-proj="' + esc(p.id) + '"><summary><div class="proj-sum"><div class="name">' + esc(p.name) +
-            ' <span class="pill s-' + esc(p.status) + '">' + esc(p.status) + "</span>" + (counts[p.id] ? '<span class="muted small">' + counts[p.id] + " updates</span>" : "") +
+            ' <span class="pill s-' + esc(p.status) + '">' + esc(p.status) + "</span>" + (counts[p.id] ? '<span class="muted small">' + counts[p.id] + (counts[p.id] === 1 ? " update" : " updates") + "</span>" : "") +
             '</div><div class="sub">' + esc(p.notes || (p.repo ? shortRepo(p.repo) + "/" + p.path : "")) + "</div></div></summary><div class=\"inner\">" +
             '<div class="row small">' + (live ? '<a href="' + esc(live) + '" target="_blank" rel="noopener">Open live ↗</a>' : '<span class="muted">No live link</span>') +
             (code ? '<a href="' + esc(code) + '" target="_blank" rel="noopener">Code ↗</a>' : "") +
@@ -782,6 +782,8 @@
     function setView(v) {
       ui.view = v; writeJSON(UI_KEY, ui);
       document.querySelectorAll("nav.tabs button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+      const tabs = $("tabs"), on = tabs.querySelector(".on");
+      if (on) tabs.scrollLeft = Math.max(0, on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2);
       document.querySelectorAll("section.view").forEach((s) => s.classList.toggle("on", s.id === "v-" + v));
       window.scrollTo(0, 0);
     }
