@@ -1,101 +1,73 @@
 # Photive snap box
 
-Live **open tray + snap lid** designer for Mattheus’s **Photive 6-port** USB brick.
+Live **open tray + snap-over lid + USB spacer comb** designer for Mattheus’s **Photive 6-port** USB brick.
 
-**Photive snap box v2 · Oct 5, 2026**
+**Photive snap box v3 · Oct 5, 2026**
 
 Not the travel case (wrap / six organizer slots / USB cap). Those stay on hold in [PR #13](https://github.com/mathoose/public-playground/pull/13).
 
 ## Open the designer
 
-After this branch is on GitHub, use the jsDelivr **commit** link (branch names with `/` do not work on jsDelivr):
+[Designer @ main](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/photive-snap-box/index.html) · [jsDelivr @ main](https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/photive-snap-box/)
 
-[Open designer](https://cdn.jsdelivr.net/gh/mathoose/public-playground@0ba8fd926c1d0b3ce9a68031b2c9f07061aa4421/photive-snap-box/)
+Phone-first: orbit the tray on top, sliders below. View chips: **Open**, **Closed**, **Tray**, **Lid**, **Spacer**, plus **Section** (cuts through the snap nubs so you can see the lid fit).
 
-After merge: [designer @ main](https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/photive-snap-box/)
+## Print these (v3 defaults)
 
-Phone-first: orbit the tray on top, sliders below. **Download base STL** and **Download lid STL** separately.
+| Part | File | Orientation |
+| --- | --- | --- |
+| Tray | [`photive-snap-box-base.stl`](photive-snap-box-base.stl) | floor on the bed |
+| Lid | [`photive-snap-box-lid.stl`](photive-snap-box-lid.stl) | flat face on the bed, skirt up |
+| USB spacer | [`photive-snap-box-usb-spacer.stl`](photive-snap-box-usb-spacer.stl) | flat bottom on the bed, slots up |
 
-## Print these (v1 defaults)
+The default spacer assumes every plug sticks out **11 mm** from the brick. Measure yours and set the six **Port N plug length** sliders before printing the spacer.
 
-| Part | File |
+## v3 changes (lid fit + spacers)
+
+**Why the v2 lid didn’t fit:** its snap skirt hung **inside** the tray. The skirt was 70.16 mm across outside (0.32 mm/side under the 70.8 mm opening, fine), but with 1.7 mm walls its **inside was only 66.76 mm** — and the 70 mm brick fills the tray wall-to-wall with only 0.6 mm headroom. The 5 mm deep skirt landed on the brick’s top edges (1.6 mm overlap per side) and stopped the lid **4.4 mm proud**, so the nubs never reached their pockets.
+
+**Fix:** the lid is now a **cap** whose skirt goes **over the outside** of the walls. Nothing on the lid enters the cavity.
+
+| Fit (defaults) | Value |
 | --- | --- |
-| Tray | [`photive-snap-box-base.stl`](photive-snap-box-base.stl) |
-| Lid | [`photive-snap-box-lid.stl`](photive-snap-box-lid.stl) |
+| Tray outside | 142.6 × 75.6 mm |
+| Skirt inside | 143.16 × 76.16 mm (**0.28 mm/side**, slider 0.15–0.6) |
+| Lid outside | 146.36 × 79.36 mm (1.6 mm skirt, 5 mm deep) |
+| Snap nubs | 4 × 10 mm, r 0.55, bite **0.27 mm** into 0.52 mm grooves on the outer long walls |
+| Rim | 1.0 mm lead-in chamfer + 0.6 mm chamfer in the skirt mouth |
 
-Or generate a custom pair from the live sliders.
+**USB spacer comb:** USB plug bodies are different lengths, so they stop at different distances from the front wall and can back out of the ports. The comb drops in against the front wall, **over the cables** (slots open at the top), and each tooth fills the gap behind one plug:
 
-## What it is
-
-Brick **100 × 70 × 26 mm**, ~4 mm corners. Sits in an open tray (open on the large 100×70 face).
-
-| End | Geometry |
-| --- | --- |
-| USB (70×26) | **+15 mm** inside for USB-A plug bodies; **six cable-only holes** (~5 × 7.6 mm stadiums) on 10 mm pitch |
-| C8 (opposite 70×26) | **+22 mm** inside for the figure-8 plug body; **8.5 mm** centered hole + **U-slot from the open top** so the cord drops in; lid closes the slot and a small tab captures the cord |
-
-Lid **snaps** (inner skirt + four nubs on the long sides). No wrap posts, no cable-organizer slots, no separate USB cap.
+- tooth depth = USB pocket (15 mm) − plug length − fit gap (0.25 mm)
+- a low **brick stop bar** (4 mm tall, under the plugs) sets where the brick sits, so the tooth depths are exact
+- the lid holds the comb down; port 1 is the **rightmost** hole seen from outside (corner notch on the spacer)
 
 ## Sliders
 
 Grouped, collapsible. Photive defaults in **Reset Photive**.
 
-**Fit** (open)
-
-- Snap-fit clearance
-- Rear cord gap / slot width
-- USB cable hole width
-- USB cable hole height
-- USB hole pitch
-
-**Inside** (open)
-
-- Inner width
-- Inner length
-- USB plug extra (+15 mm pocket; grows inner length)
-- Rear extra (C8 plug body)
-- Inner / box height
-
-**Box**
-
-- Wall thickness
-- Floor thickness
-- Corner radius
-- Edge fillet
-- USB hole count
-
-**Lid**
-
-- Lid thickness
-- Lid snap overlap
-- Skirt thickness
-- Snap bead radius
+- **Fit** (open) — lid clearance, rear cord slot, USB hole size / pitch
+- **Inside** (open) — inner width / length, USB plug extra, rear extra, height
+- **USB spacers** (open) — spacer fit gap, brick stop height, Port 1–6 plug length (0 = empty port)
+- **Box** — wall, floor, corner radius, rim lead-in chamfer, USB hole count
+- **Lid** — thickness, snap overlap, skirt thickness, snap bead radius
+- **Download** — tray / lid / spacer STLs
 
 ## Snapmaker Luban (PETG)
 
-1. Luban → **3D Printing** → open each STL (one at a time is easiest).
-2. **Orientation (as exported — do not flip):**
-   - **Base:** floor on the bed, open top up. USB holes are in a vertical wall; rear U-slot is open at the top. **No supports.**
-   - **Lid:** pretty outer face on the bed, snap skirt pointing up. **No supports.**
-3. **Material:** **PETG** (snaps need a little flex; PLA will creep).
-4. **Suggested profile (0.4 mm nozzle):**
-   - Layer **0.2 mm**
-   - **4 walls** (1.6 mm) — box wall is 2.4 mm so 4–5 walls fill the sides
-   - Infill **20–25%** gyroid or grid
-   - Bed **70–80 °C**, nozzle **240–250 °C**
-   - Brim optional on the lid if the first layer is fussy
-5. Print the **base first**. Drop the brick in, thread USB cables through the front, drop the figure-8 cord into the rear slot, then print the lid.
+1. Open each STL; print as exported (no supports).
+2. **PETG**, 0.2 mm layers, 4 walls, 20–25% infill, bed 70–80 °C, nozzle 240–250 °C.
+3. Brick in, cables through the front holes, plug in, drop the spacer over the cables, cord into the rear slot, snap the lid.
 
-If the lid is tight: sand the four nubs or raise **Snap-fit clearance** toward **0.40**. If loose: drop it toward **0.24**.
+If the lid is tight: raise **Lid clearance** toward **0.35** or sand the nubs. If loose: drop toward **0.22** or raise **Snap bead radius**.
 
 ## Rebuild
 
 ```bash
 npm install
-npm test
-npm run build
+npm test            # geometry + seated-assembly collision checks
+npm run build       # app.bundle.js
+./build-stl.sh      # default STLs
 ```
 
-`app.bundle.js` is committed so CDN / Pages work without `npm install` on the phone.
-
-OpenSCAD v1 source is still [`photive-snap-box.scad`](photive-snap-box.scad) (`./build-stl.sh`). The live designer uses the same defaults in JS (manifold-3d).
+`app.bundle.js` is committed so CDN / Pages work without `npm install` on the phone. [`photive-snap-box.scad`](photive-snap-box.scad) is the superseded v1 source — don’t print its lid.
