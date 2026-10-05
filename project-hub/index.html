@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<!-- build: project-hub-v1 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Project Hub" />
+  <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+  <title>Project Hub</title>
+  <style>
+    :root {
+      --bg: #f6f7fb; --card: #ffffff; --ink: #161a22; --muted: #667085; --line: #e3e6ee;
+      --accent: #4f46e5; --accent-ink: #ffffff; --soft: #eef0ff; --chip: #f1f3f8;
+      --ok: #12805c; --warn: #b54708; --bad: #c0392b; --info: #2563eb; --note: #7c3aed;
+      --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1115; --card: #181b22; --ink: #e8eaf0; --muted: #98a2b3; --line: #2a2f3a;
+        --accent: #8b85ff; --accent-ink: #0f1115; --soft: #23253a; --chip: #232733;
+        --ok: #3ccf91; --warn: #f5a524; --bad: #ff6b6b; --info: #6ea8ff; --note: #b794ff;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header.top {
+      position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px);
+      border-bottom: 1px solid var(--line); padding: calc(env(safe-area-inset-top) + 10px) 14px 0;
+    }
+    .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .brand h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+    .brand small { color: var(--muted); font-size: 12px; }
+    nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0 8px; scrollbar-width: none; }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    nav.tabs button {
+      flex: 0 0 auto; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600;
+      padding: 7px 12px; border-radius: 999px; cursor: pointer;
+    }
+    nav.tabs button.on { background: var(--accent); color: var(--accent-ink); }
+    nav.tabs .count { font-weight: 500; opacity: .8; margin-left: 4px; font-size: 12px; }
+    main { max-width: 760px; margin: 0 auto; padding: 12px 12px 40px; }
+    section.view { display: none; }
+    section.view.on { display: block; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; margin-bottom: 10px; }
+    details.box { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; }
+    details.box > summary { list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+    details.box > summary::-webkit-details-marker { display: none; }
+    details.box > summary::after { content: "›"; margin-left: auto; color: var(--muted); transform: rotate(90deg); transition: transform .15s; font-size: 18px; }
+    details.box:not([open]) > summary::after { transform: rotate(0deg); }
+    details.box > .inner { padding: 0 14px 14px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 380px) { .grid2 { grid-template-columns: 1fr; } }
+    label.f { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 8px 0 4px; }
+    input, select, textarea {
+      width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 0; border-color: var(--accent); }
+    button.btn {
+      font: inherit; font-weight: 600; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+      border-radius: 10px; padding: 8px 12px; cursor: pointer;
+    }
+    button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    button.btn.ghost { background: transparent; }
+    button.btn.danger { color: var(--bad); }
+    button.btn.sm { padding: 5px 9px; font-size: 13px; }
+    button.btn:disabled { opacity: .5; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--chip);
+      color: var(--ink); border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; user-select: none;
+    }
+    .chip input { display: none; }
+    .chip.on { background: var(--soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .chip:has(input:checked) { background: var(--soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+    .t-pr-merged { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .t-pr-open { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
+    .t-pr-closed { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+    .t-commit { color: var(--muted); }
+    .t-note { color: var(--note); background: color-mix(in srgb, var(--note) 14%, transparent); }
+    .t-request { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+    .s-live { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .s-in-pr, .s-active { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
+    .s-blocked { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+    .s-research, .s-idea { color: var(--note); background: color-mix(in srgb, var(--note) 14%, transparent); }
+    .s-sent { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
+    .s-done { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 16px 4px 6px; }
+    .item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow); }
+    .item .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+    .item .title { font-weight: 650; margin: 5px 0 2px; overflow-wrap: anywhere; }
+    .item .desc { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+    .item .links { margin-top: 6px; font-size: 13px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .projchip { border: 0; background: var(--soft); color: var(--accent); font: inherit; font-size: 12px; font-weight: 650; border-radius: 999px; padding: 2px 8px; cursor: pointer; }
+    .banner { border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; background: var(--chip); color: var(--muted); }
+    .banner.warn { background: color-mix(in srgb, var(--warn) 14%, var(--card)); color: var(--warn); }
+    .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+    .proj-sum { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .proj-sum .name { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .proj-sum .sub { font-size: 12px; color: var(--muted); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    pre.prompt { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 340px; overflow: auto; margin: 8px 0; }
+    .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; }
+    .toast.show { opacity: 1; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 0 30px; }
+    .sp { height: 8px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Project Hub</h1>
+      <small id="syncLabel">—</small>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="feed" class="on">Feed<span class="count" id="cFeed"></span></button>
+      <button data-view="projects">Projects<span class="count" id="cProj"></span></button>
+      <button data-view="compare">Compare<span class="count" id="cCmp"></span></button>
+      <button data-view="borrow">Borrow<span class="count" id="cReq"></span></button>
+      <button data-view="data">Data</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- FEED -->
+    <section class="view on" id="v-feed">
+      <div id="feedBanner"></div>
+
+      <details class="box" id="addNoteBox">
+        <summary>＋ Log an update / note</summary>
+        <div class="inner">
+          <div class="grid2">
+            <div><label class="f" for="nProject">Project</label><select id="nProject"></select></div>
+            <div><label class="f" for="nDate">Date</label><input id="nDate" type="date" /></div>
+          </div>
+          <label class="f" for="nText">What changed (short)</label>
+          <textarea id="nText" placeholder="e.g. Agent started lid v4 — tighter snap, test print tonight"></textarea>
+          <label class="f" for="nLink">Link (agent, PR, file) — optional</label>
+          <input id="nLink" type="url" inputmode="url" placeholder="https://cursor.com/agents/bc-…" />
+          <div class="sp"></div>
+          <div class="row"><button class="btn primary" id="nSave">Add to feed</button></div>
+        </div>
+      </details>
+
+      <details class="box" id="filterBox" open>
+        <summary>Filters <span class="muted small" id="filterSummary"></span></summary>
+        <div class="inner">
+          <input id="fText" type="search" placeholder="Search titles, notes, branches…" />
+          <div class="grid2">
+            <div><label class="f" for="fProject">Project</label><select id="fProject"></select></div>
+            <div><label class="f" for="fRepo">Repo</label><select id="fRepo"></select></div>
+          </div>
+          <label class="f">Type</label>
+          <div class="chips" id="fTypes"></div>
+          <div class="grid2">
+            <div><label class="f" for="fFrom">From</label><input id="fFrom" type="date" /></div>
+            <div><label class="f" for="fTo">To</label><input id="fTo" type="date" /></div>
+          </div>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn sm" data-range="7">Last 7 days</button>
+            <button class="btn sm" data-range="30">Last 30 days</button>
+            <button class="btn sm ghost" id="fClear">Clear filters</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="row" style="justify-content:space-between;margin:4px 4px 0">
+        <span class="muted small" id="feedCount"></span>
+        <button class="btn sm" id="refreshBtn">↻ Refresh GitHub</button>
+      </div>
+      <div id="feedList"></div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="view" id="v-projects">
+      <input id="pSearch" type="search" placeholder="Find a project…" style="margin-bottom:10px" />
+      <div id="projList"></div>
+      <details class="box">
+        <summary>＋ Add a project</summary>
+        <div class="inner">
+          <div class="grid2">
+            <div><label class="f" for="apName">Name</label><input id="apName" placeholder="Outlet covers" /></div>
+            <div><label class="f" for="apStatus">Status</label><select id="apStatus"></select></div>
+          </div>
+          <div class="grid2">
+            <div><label class="f" for="apRepo">Repo (owner/name)</label><input id="apRepo" placeholder="mathoose/public-playground" /></div>
+            <div><label class="f" for="apPath">Folder</label><input id="apPath" placeholder="outlet-covers" /></div>
+          </div>
+          <label class="f" for="apLive">Live link</label><input id="apLive" type="url" placeholder="https://…" />
+          <label class="f" for="apAliases">Feed keywords (comma separated)</label><input id="apAliases" placeholder="outlet, faceplate" />
+          <div class="hint">Feed items whose PR title / branch / commit message contain the folder, name, or a keyword get tagged with this project.</div>
+          <div class="sp"></div>
+          <button class="btn primary" id="apSave">Add project</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- COMPARE -->
+    <section class="view" id="v-compare">
+      <details class="box" open id="cmpBox">
+        <summary id="cmpTitle">Align projects</summary>
+        <div class="inner">
+          <label class="f">Pick 2 or more projects</label>
+          <input id="cmpFilter" type="search" placeholder="Filter list…" />
+          <div class="sp"></div>
+          <div class="chips" id="cmpPick"></div>
+          <label class="f" for="cmpTitleIn">Topic (optional)</label>
+          <input id="cmpTitleIn" placeholder="e.g. Frame designers — settings UI" />
+          <label class="f" for="cmpSame">Similarities</label>
+          <textarea id="cmpSame" placeholder="Shared code, shared UI patterns, same printer settings…"></textarea>
+          <label class="f" for="cmpDiff">Differences</label>
+          <textarea id="cmpDiff" placeholder="What one does better, what's missing where…"></textarea>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn primary" id="cmpSave">Save comparison</button>
+            <button class="btn ghost" id="cmpCancel" hidden>Cancel edit</button>
+          </div>
+        </div>
+      </details>
+      <div id="cmpList"></div>
+    </section>
+
+    <!-- BORROW -->
+    <section class="view" id="v-borrow">
+      <details class="box" open id="reqBox">
+        <summary>Borrow a feature</summary>
+        <div class="inner">
+          <div class="muted small">“Use <b>this feature</b> from <b>project A</b> in <b>project B</b>, but change <b>X</b>.” Generates a self-contained prompt to paste into a new Cursor agent.</div>
+          <label class="f" for="rFeature">Feature</label>
+          <input id="rFeature" placeholder="collapsible settings groups" />
+          <div class="grid2">
+            <div><label class="f" for="rFrom">From project</label><select id="rFrom"></select></div>
+            <div><label class="f" for="rTo">Into project</label><select id="rTo"></select></div>
+          </div>
+          <label class="f" for="rChange">But change…</label>
+          <textarea id="rChange" placeholder="keep Bubble's export links at the bottom; default all groups closed except Photo size"></textarea>
+          <label class="f" for="rExtra">Extra context (optional)</label>
+          <textarea id="rExtra" style="min-height:60px" placeholder="Test print notes, screenshots to match, agent link that built the original…"></textarea>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn primary" id="rGen">Generate prompt</button>
+            <button class="btn" id="rSave">Save to queue</button>
+          </div>
+          <div id="rOut" hidden>
+            <pre class="prompt" id="rPrompt"></pre>
+            <div class="row"><button class="btn primary" id="rCopy">Copy prompt</button><span class="muted small">Paste into a new Cursor agent.</span></div>
+          </div>
+        </div>
+      </details>
+      <div class="row" style="justify-content:space-between;margin:12px 4px 6px">
+        <b>Request queue</b>
+        <select id="rQueueFilter" style="width:auto">
+          <option value="">All</option><option value="idea">Idea</option><option value="sent">Sent to agent</option><option value="done">Done</option>
+        </select>
+      </div>
+      <div id="reqList"></div>
+    </section>
+
+    <!-- DATA -->
+    <section class="view" id="v-data">
+      <details class="box" open>
+        <summary>Backup (export / import)</summary>
+        <div class="inner">
+          <div class="muted small">Notes, projects, comparisons and requests live in this browser only (per device). Export to move them between iPhone and Mac, or keep a backup.</div>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn primary" id="exDownload">Download JSON</button>
+            <button class="btn" id="exCopy">Copy JSON</button>
+          </div>
+          <label class="f" for="imText">Import — pick a file or paste JSON</label>
+          <input id="imFile" type="file" accept="application/json,.json,text/plain" />
+          <div class="sp"></div>
+          <textarea id="imText" placeholder='{"format":"project-hub-backup", …}'></textarea>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn primary" id="imMerge">Import (merge)</button>
+            <button class="btn danger" id="imReplace">Import (replace all)</button>
+          </div>
+        </div>
+      </details>
+      <details class="box">
+        <summary>GitHub feed sources</summary>
+        <div class="inner">
+          <label class="f" for="repoList">Repos (one per line, owner/name)</label>
+          <textarea id="repoList" style="min-height:70px"></textarea>
+          <label class="f" for="ghToken">GitHub token (optional)</label>
+          <input id="ghToken" type="password" autocomplete="off" placeholder="Only if you hit the 60 req/hour limit" />
+          <div class="hint">Without a token GitHub allows 60 requests/hour per network. Cached responses use ETags so refreshes rarely count. A token stays on this device and is never exported.</div>
+          <div class="sp"></div>
+          <div class="row"><button class="btn primary" id="repoSave">Save &amp; refresh</button></div>
+        </div>
+      </details>
+      <details class="box">
+        <summary>Reset</summary>
+        <div class="inner">
+          <div class="row">
+            <button class="btn" id="reseed">Re-add starter notes</button>
+            <button class="btn" id="clearCache">Clear GitHub cache</button>
+            <button class="btn danger" id="wipe">Erase everything</button>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer id="footer"></footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function () {
+    "use strict";
+    const APP_VERSION = "1 · Oct 5, 2026";
+    const LS_KEY = "project-hub-v1";
+    const FEED_KEY = "project-hub-feed-v1";
+    const APPS_KEY = "project-hub-apps-v1";
+    const TOKEN_KEY = "project-hub-token-v1";
+    const UI_KEY = "project-hub-ui-v1";
+    const PP = "mathoose/public-playground";
+    const CA = "mathoose/cursor-apps";
+    const FEED_TTL_MS = 10 * 60 * 1000;
+    const STATUSES = ["live", "in-pr", "active", "research", "blocked", "idea", "done", "hidden"];
+    const TYPES = [
+      ["pr-merged", "Merged PR"], ["pr-open", "Open PR"], ["pr-closed", "Closed PR"],
+      ["commit", "Commit"], ["note", "Note"], ["request", "Request"]
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const todayISO = () => localISO(new Date());
+    function localISO(d) { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); }
+    function readJSON(k, fb) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? fb : v; } catch (e) { return fb; } }
+    function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { toast("Storage full — export a backup"); } }
+    const shortRepo = (r) => (r || "").split("/").pop();
+    const ppPreview = (path, branch) => "https://htmlpreview.github.io/?https://github.com/" + PP + "/blob/" + (branch || "main") + "/" + path + "/index.html";
+    const treeUrl = (repo, path, branch) => repo ? "https://github.com/" + repo + "/tree/" + (branch || "main") + (path ? "/" + path : "") : "";
+
+    // ---------- seed data ----------
+    function seedProjects() {
+      const pp = (id, name, status, extra) => Object.assign({ id: id, name: name, repo: PP, path: id, status: status, live: "", branch: "", aliases: [], notes: "", seed: true }, extra || {});
+      return [
+        pp("bubble-frame", "Bubble frame", "live", { aliases: ["bubble"], notes: "Hemisphere bead frame + back plate + hidden stand (#9). Retrofit collapsible settings groups from Striped frame when convenient." }),
+        pp("postit-wall-clip", "Post-it clip", "live", { aliases: ["post-it", "postit", "wall clip"], notes: "Best phone model viewer (OrbitControls + live param rebuild) — reference shell for new STL apps." }),
+        pp("striped-frame", "Striped frame", "live", { aliases: ["striped", "stripe"], notes: "Alternating color bands along the moulding path (2–4 colors). Reference implementation for collapsible <details> settings groups. Corner radius + front-face round/chamfer (#11)." }),
+        pp("photive-snap-box", "Photive snap box", "in-pr", { aliases: ["snap box", "snap-box", "photive snap", "usb spacer", "spacer comb"], branch: "cursor/photive-lid-fit-usb-spacers-95fb", notes: "v3 on branch cursor/photive-lid-fit-usb-spacers-95fb: outside-cap lid that clears the brick + per-port USB spacer comb; Closed/Spacer/Section views." }),
+        pp("usb-charger-travel-case", "Photive travel case", "live", { aliases: ["travel case", "travel-case", "usb-charger"], notes: "1×6 USB row travel case designer (#13). Not the same as the snap box." }),
+        pp("henson-razor-tool", "Henson razor tool", "in-pr", { aliases: ["henson", "razor"], branch: "cursor/henson-razor-tool-67bf", notes: "Blade-change cradle + handle grip designer (open PR #17)." }),
+        pp("power-bank-wrap", "Power bank wrap", "in-pr", { aliases: ["power bank", "power-bank"], branch: "cursor/power-bank-wrap-9c5d", notes: "v4 — wraps around the band, side clips (open PR #16)." }),
+        pp("3d-printing", "3D printing library", "live", { aliases: ["library", "3d printing"], notes: "Thin hub of cards linking each STL app folder. Add a card for every new print app." }),
+        pp("aruba-packing", "Aruba packing", "live", { aliases: ["aruba", "packing", "outfit", "wardrobe"], branch: "", notes: "Packing list + wardrobe grid. Outfit-counter PR #2 still open." }),
+        pp("project-hub", "Project Hub", "in-pr", { aliases: ["project hub", "project-hub"], branch: "cursor/project-hub-95fb", notes: "This app — feed, compare, borrow-feature prompts." }),
+        { id: "cabinet-shelf", name: "Cabinet shelf", repo: "", path: "", status: "research", live: "", branch: "", aliases: ["cabinet", "shelf"], seed: true,
+          notes: "~18 in cabinet, opening 43 × 38 cm, pin heights 10.5 cm and 35 cm, Printables shelf holders. Shelf 3/4 in (~19 mm) thick, rounded edges (1–3 mm). Route: online parametric models; custom cabinet-shelf/ STLs only as fallback." },
+        { id: "outlet-covers", name: "Outlet covers", repo: "", path: "", status: "blocked", live: "", branch: "", aliases: ["outlet", "faceplate", "wall plate"], seed: true,
+          notes: "Blocked: needs CURSOR_PROJECT_CONTEXT.md (prior-chat instructions). Must have live parametric controls during generation." }
+      ];
+    }
+    function seedEntries() {
+      return [
+        { id: "seed-photive-v3", type: "note", project: "photive-snap-box", date: "2026-10-05", text: "Snap box v3: lid is now an outside cap that clears the brick, plus a per-port USB spacer comb. New Closed / Spacer / Section views and v3 STLs.", link: treeUrl(PP, "photive-snap-box", "cursor/photive-lid-fit-usb-spacers-95fb"), seed: true },
+        { id: "seed-striped", type: "note", project: "striped-frame", date: "2026-10-01", text: "Striped frame shipped with corner radius + inside/outside front-face round or chamfer. Its collapsible settings groups are the pattern to copy.", link: treeUrl(PP, "striped-frame"), seed: true },
+        { id: "seed-bubble", type: "note", project: "bubble-frame", date: "2026-09-26", text: "Bubble frame stand now hides behind a back-plate insert. Still on flat (non-collapsible) settings.", link: treeUrl(PP, "bubble-frame"), seed: true },
+        { id: "seed-postit", type: "note", project: "postit-wall-clip", date: "2026-09-25", text: "Post-it clip v3 — chamfered putty slot slides along the back. Its phone 3D viewer is the one to preserve in new apps.", link: treeUrl(PP, "postit-wall-clip"), seed: true },
+        { id: "seed-cabinet", type: "note", project: "cabinet-shelf", date: "2026-09-28", text: "Cabinet shelf research: going with online parametric shelf models + Printables holders instead of a custom generator (3/4 in thick, rounded edges).", link: "", seed: true }
+      ];
+    }
+    function seedComparisons() {
+      return [
+        { id: "seed-cmp-frames", projects: ["bubble-frame", "striped-frame", "postit-wall-clip"], title: "STL designers — shared shell", date: "2026-10-05", seed: true,
+          same: "All three: live sliders → 3D preview → STL download, in their own public-playground folder. Bubble + Striped both ship a back plate with hang holes and a stand.",
+          diff: "Striped frame groups params in collapsible sections; Bubble frame doesn't yet. Post-it has the best phone viewer (OrbitControls + live rebuild). Bubble keeps clickable STL links in #exportLinks." }
+      ];
+    }
+    function seedRequests() {
+      return [
+        { id: "seed-req-1", feature: "collapsible settings groups (<details class=\"settings-group\">)", from: "striped-frame", to: "bubble-frame",
+          change: "keep Bubble's #exportLinks STL download links working and visible at the bottom; open the Photo size group by default", extra: "", status: "idea", date: "2026-10-05", link: "", seed: true }
+      ];
+    }
+    function defaultState() {
+      return { version: 1, seedVersion: 1, repos: [PP, CA], projects: seedProjects(), entries: seedEntries(), comparisons: seedComparisons(), requests: seedRequests() };
+    }
+
+    let state = readJSON(LS_KEY, null);
+    if (!state || typeof state !== "object" || !Array.isArray(state.projects)) state = defaultState();
+    ["entries", "comparisons", "requests", "repos"].forEach((k) => { if (!Array.isArray(state[k])) state[k] = k === "repos" ? [PP, CA] : []; });
+    const save = () => writeJSON(LS_KEY, state);
+    save();
+
+    let feedCache = readJSON(FEED_KEY, {});
+    let ui = readJSON(UI_KEY, { view: "feed" });
+    let token = localStorage.getItem(TOKEN_KEY) || "";
+    let filters = { text: "", project: "", repo: "", types: TYPES.map((t) => t[0]), from: "", to: "" };
+    let feedStatus = { msg: "", warn: false, loading: false };
+
+    // ---------- toast / clipboard ----------
+    let toastTimer = 0;
+    function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800); }
+    function copyText(text) {
+      const fallback = () => {
+        const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+        let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta); toast(ok ? "Copied" : "Select and copy manually");
+      };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("Copied"), fallback);
+      else fallback();
+    }
+
+    // ---------- projects helpers ----------
+    const projById = (id) => state.projects.find((p) => p.id === id);
+    const projName = (id) => { const p = projById(id); return p ? p.name : (id ? id : "Unsorted"); };
+    function projLive(p) {
+      if (!p) return "";
+      if (p.live) return p.live;
+      if (p.repo === PP && p.path) return ppPreview(p.path, p.branch || "main");
+      if (p.repo === CA && p.path) return "https://mathoose.github.io/cursor-apps/" + p.path + "/";
+      return "";
+    }
+    function sortedProjects() {
+      const rank = (p) => (p.repo === PP ? 0 : p.repo === CA ? 2 : 1);
+      return state.projects.slice().sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+    }
+    function projectOptions(sel, includeAll, allLabel) {
+      const groups = {};
+      sortedProjects().forEach((p) => { const g = p.repo ? shortRepo(p.repo) : "research / other"; (groups[g] = groups[g] || []).push(p); });
+      let html = includeAll ? '<option value="">' + esc(allLabel || "All projects") + "</option>" : "";
+      if (includeAll) html += '<option value="__none">Unsorted</option>';
+      Object.keys(groups).forEach((g) => {
+        html += '<optgroup label="' + esc(g) + '">' + groups[g].map((p) => '<option value="' + esc(p.id) + '">' + esc(p.name) + "</option>").join("") + "</optgroup>";
+      });
+      const prev = sel.value; sel.innerHTML = html; if (prev && [].some.call(sel.options, (o) => o.value === prev)) sel.value = prev;
+    }
+
+    // keyword → project tagging for GitHub items
+    function keysFor(p) {
+      const k = [p.id, p.name, p.path].concat(p.aliases || []).filter(Boolean).map((s) => String(s).toLowerCase().trim());
+      if (p.id.indexOf("cursor-apps/") === 0) k.push(p.id.slice(12));
+      return k.filter((s, i, a) => s.length >= 3 && a.indexOf(s) === i);
+    }
+    const reCache = {};
+    function hasKey(text, key) {
+      const re = reCache[key] || (reCache[key] = new RegExp("(^|[^a-z0-9])" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s_/-]*") + "([^a-z0-9]|$)"));
+      return re.test(text);
+    }
+    function matchProject(repo, text) {
+      text = (text || "").toLowerCase();
+      let best = "", score = 0;
+      state.projects.forEach((p) => {
+        keysFor(p).forEach((key) => {
+          if (!hasKey(text, key)) return;
+          const s = key.length + (p.repo === repo ? 100 : 0);
+          if (s > score) { score = s; best = p.id; }
+        });
+      });
+      return best;
+    }
+
+    // ---------- GitHub feed ----------
+    function firstLine(body) {
+      if (!body) return "";
+      const lines = String(body).split(/\r?\n/).map((l) => l.replace(/<!--.*?-->/g, "").replace(/^[#>*\-\s|]+/, "").replace(/[*_`]/g, "").trim()).filter((l) => l && !/^(summary|overview|changes|what changed)\s*:?$/i.test(l));
+      const l = lines[0] || "";
+      return l.length > 180 ? l.slice(0, 177) + "…" : l;
+    }
+    async function ghGet(url) {
+      const cache = feedCache.__etag || (feedCache.__etag = {});
+      const headers = { Accept: "application/vnd.github+json" };
+      if (cache[url] && cache[url].etag) headers["If-None-Match"] = cache[url].etag;
+      if (token) headers.Authorization = "Bearer " + token;
+      const res = await fetch(url, { headers: headers });
+      if (res.status === 304 && cache[url]) return cache[url].data;
+      if (res.status === 403 || res.status === 429) {
+        const reset = Number(res.headers.get("x-ratelimit-reset")) * 1000;
+        const err = new Error("rate"); err.reset = reset; err.remaining = res.headers.get("x-ratelimit-remaining"); throw err;
+      }
+      if (!res.ok) { const err = new Error("HTTP " + res.status); err.status = res.status; throw err; }
+      const data = await res.json();
+      const etag = res.headers.get("etag");
+      if (etag) cache[url] = { etag: etag, data: data };
+      return data;
+    }
+    async function fetchRepo(repo) {
+      const base = "https://api.github.com/repos/" + repo;
+      const [pulls, commits] = await Promise.all([
+        ghGet(base + "/pulls?state=all&sort=updated&direction=desc&per_page=50"),
+        ghGet(base + "/commits?per_page=40")
+      ]);
+      const items = [];
+      const prNums = {};
+      (pulls || []).forEach((pr) => {
+        const type = pr.merged_at ? "pr-merged" : pr.state === "open" ? "pr-open" : "pr-closed";
+        const date = pr.merged_at || (pr.state === "open" ? pr.created_at : pr.closed_at) || pr.updated_at;
+        prNums[pr.number] = 1;
+        items.push({ id: repo + "#pr" + pr.number, type: type, repo: repo, date: date, title: pr.title + (pr.draft ? " (draft)" : ""), desc: firstLine(pr.body),
+          url: pr.html_url, num: pr.number, branch: pr.head && pr.head.ref, tagText: [pr.title, pr.head && pr.head.ref, firstLine(pr.body)].join(" ") });
+      });
+      (commits || []).forEach((c) => {
+        if (c.parents && c.parents.length > 1) return;
+        const msg = (c.commit && c.commit.message) || "";
+        const lines = msg.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        const title = lines[0] || "(no message)";
+        const m = title.match(/\(#(\d+)\)\s*$/);
+        if (m && prNums[m[1]]) return;
+        const date = (c.commit.committer && c.commit.committer.date) || (c.commit.author && c.commit.author.date);
+        items.push({ id: repo + "@" + c.sha, type: "commit", repo: repo, date: date, title: title, desc: (lines[1] || "").slice(0, 180), url: c.html_url, sha: c.sha.slice(0, 7), branch: "main", tagText: msg });
+      });
+      return items;
+    }
+    async function refreshFeed(force) {
+      if (feedStatus.loading) return;
+      const stale = state.repos.filter((r) => force || !feedCache[r] || Date.now() - (feedCache[r].at || 0) > FEED_TTL_MS);
+      if (!stale.length) { renderFeed(); return; }
+      feedStatus = { msg: "Fetching GitHub activity…", warn: false, loading: true }; renderFeed();
+      const problems = [];
+      for (const repo of stale) {
+        try {
+          const items = await fetchRepo(repo);
+          feedCache[repo] = { at: Date.now(), items: items };
+        } catch (e) {
+          if (e.message === "rate") problems.push("GitHub rate limit hit" + (e.reset ? " — resets at " + new Date(e.reset).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "") + ". Showing cached items.");
+          else if (e.status === 404) problems.push(repo + " not found (private or misspelled).");
+          else problems.push("Couldn't reach GitHub for " + repo + " (offline?). Showing cached items.");
+        }
+      }
+      writeJSON(FEED_KEY, feedCache);
+      feedStatus = { msg: problems.filter((p, i, a) => a.indexOf(p) === i).join(" "), warn: problems.length > 0, loading: false };
+      renderFeed();
+    }
+
+    async function loadCursorApps() {
+      const cached = readJSON(APPS_KEY, null);
+      let data = cached && cached.data;
+      if (!cached || Date.now() - cached.at > 6 * 3600 * 1000) {
+        try {
+          const res = await fetch("https://raw.githubusercontent.com/" + CA + "/main/apps.json", { cache: "no-store" });
+          if (res.ok) { data = await res.json(); writeJSON(APPS_KEY, { at: Date.now(), data: data }); }
+        } catch (e) {}
+      }
+      if (!data || !Array.isArray(data.apps)) return;
+      const hidden = data.launcherHidden || [];
+      let added = 0;
+      data.apps.forEach((a) => {
+        if (!a || !a.id) return;
+        const id = "cursor-apps/" + a.id;
+        const existing = projById(id);
+        if (existing) { if (existing.seed !== false && a.name) existing.name = a.name; return; }
+        state.projects.push({ id: id, name: a.name || a.id, repo: CA, path: a.id, status: hidden.indexOf(a.id) >= 0 ? "hidden" : "live", live: "", branch: "",
+          aliases: [], notes: a.subtitle || "", seed: true });
+        added++;
+      });
+      if (added) { save(); renderAll(); }
+    }
+
+    // ---------- feed render ----------
+    function allItems() {
+      const items = [];
+      state.repos.forEach((r) => { const c = feedCache[r]; if (c && Array.isArray(c.items)) c.items.forEach((it) => items.push(Object.assign({}, it, { project: matchProject(r, it.tagText) }))); });
+      state.entries.forEach((e) => items.push({ id: "n:" + e.id, type: "note", repo: (projById(e.project) || {}).repo || "", date: e.date + "T12:00:00", title: e.text, desc: "", url: e.link, project: e.project, entryId: e.id }));
+      state.requests.forEach((r) => items.push({ id: "r:" + r.id, type: "request", repo: (projById(r.to) || {}).repo || "", date: (r.date || todayISO()) + "T12:00:01",
+        title: "Borrow “" + r.feature + "” from " + projName(r.from) + " → " + projName(r.to), desc: r.change ? "Change: " + r.change : "", url: r.link, project: r.to, reqId: r.id, status: r.status }));
+      return items.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    }
+    function itemLocalDate(it) { const d = new Date(it.date); return isNaN(d) ? String(it.date).slice(0, 10) : localISO(d); }
+    function passes(it) {
+      if (filters.types.indexOf(it.type) < 0) return false;
+      if (filters.project === "__none" ? !!it.project : filters.project && it.project !== filters.project) return false;
+      if (filters.repo && it.repo !== filters.repo) return false;
+      const d = itemLocalDate(it);
+      if (filters.from && d < filters.from) return false;
+      if (filters.to && d > filters.to) return false;
+      if (filters.text) {
+        const hay = [it.title, it.desc, it.branch, it.repo, projName(it.project)].join(" ").toLowerCase();
+        if (!filters.text.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.indexOf(w) >= 0)) return false;
+      }
+      return true;
+    }
+    function dayLabel(iso) {
+      const t = todayISO(); const y = localISO(new Date(Date.now() - 86400000));
+      if (iso === t) return "Today"; if (iso === y) return "Yesterday";
+      const d = new Date(iso + "T12:00:00");
+      return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+    }
+    function renderFeed() {
+      const items = allItems();
+      const shown = items.filter(passes);
+      $("cFeed").textContent = items.length ? String(shown.length) : "";
+      $("feedCount").textContent = "Showing " + shown.length + " of " + items.length;
+      const sync = state.repos.map((r) => feedCache[r] && feedCache[r].at).filter(Boolean);
+      $("syncLabel").textContent = feedStatus.loading ? "Syncing…" : sync.length ? "GitHub synced " + relTime(Math.min.apply(null, sync)) : "Not synced";
+      $("refreshBtn").disabled = feedStatus.loading;
+      $("feedBanner").innerHTML = feedStatus.msg ? '<div class="banner' + (feedStatus.warn ? " warn" : "") + '">' + esc(feedStatus.msg) + "</div>" : "";
+      const active = [];
+      if (filters.project) active.push(projName(filters.project === "__none" ? "" : filters.project));
+      if (filters.repo) active.push(shortRepo(filters.repo));
+      if (filters.types.length !== TYPES.length) active.push(filters.types.length + " types");
+      if (filters.from || filters.to) active.push("dates");
+      if (filters.text) active.push("“" + filters.text + "”");
+      $("filterSummary").textContent = active.length ? "· " + active.join(" · ") : "";
+      if (!shown.length) { $("feedList").innerHTML = '<div class="empty">' + (items.length ? "Nothing matches these filters." : feedStatus.loading ? "Loading…" : "No activity yet.") + "</div>"; return; }
+      let html = "", last = "";
+      shown.slice(0, 300).forEach((it) => {
+        const d = itemLocalDate(it);
+        if (d !== last) { html += '<div class="day">' + esc(dayLabel(d)) + "</div>"; last = d; }
+        const typeLabel = (TYPES.find((t) => t[0] === it.type) || [, it.type])[1];
+        const links = [];
+        if (it.url) links.push('<a href="' + esc(it.url) + '" target="_blank" rel="noopener">' + (it.num ? "PR #" + it.num : it.sha ? "Commit " + esc(it.sha) : /cursor\.com\/agents/.test(it.url) ? "Agent" : "Open link") + " ↗</a>");
+        const p = projById(it.project); const live = projLive(p);
+        if (live) links.push('<a href="' + esc(live) + '" target="_blank" rel="noopener">Live app ↗</a>');
+        if (it.type === "pr-open" && it.repo === PP && p && p.path) links.push('<a href="' + esc(ppPreview(p.path, it.branch)) + '" target="_blank" rel="noopener">Branch preview ↗</a>');
+        if (it.entryId) links.push('<a href="#" data-del-entry="' + esc(it.entryId) + '">Delete</a>');
+        if (it.reqId) links.push('<a href="#" data-goto-req="' + esc(it.reqId) + '">Open request</a>');
+        html += '<div class="item"><div class="meta"><span class="pill t-' + it.type + '">' + esc(typeLabel) + "</span>" +
+          '<button class="projchip" data-filter-project="' + esc(it.project || "__none") + '">' + esc(projName(it.project)) + "</button>" +
+          (it.repo ? "<span>" + esc(shortRepo(it.repo)) + "</span>" : "") +
+          (it.status ? '<span class="pill s-' + esc(it.status) + '">' + esc(it.status) + "</span>" : "") +
+          "<span>" + esc(timeOf(it)) + "</span></div>" +
+          '<div class="title">' + esc(it.title) + "</div>" + (it.desc ? '<div class="desc">' + esc(it.desc) + "</div>" : "") +
+          (it.branch && it.type !== "commit" ? '<div class="desc small">⎇ ' + esc(it.branch) + "</div>" : "") +
+          (links.length ? '<div class="links">' + links.join("") + "</div>" : "") + "</div>";
+      });
+      $("feedList").innerHTML = html;
+    }
+    function timeOf(it) {
+      if (it.type === "note" || it.type === "request") return "";
+      const d = new Date(it.date); return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+    function relTime(ms) {
+      const s = Math.round((Date.now() - ms) / 1000);
+      if (s < 60) return "just now"; if (s < 3600) return Math.round(s / 60) + "m ago"; if (s < 86400) return Math.round(s / 3600) + "h ago";
+      return Math.round(s / 86400) + "d ago";
+    }
+    function renderFilterControls() {
+      projectOptions($("fProject"), true); $("fProject").value = filters.project;
+      projectOptions($("nProject"), false);
+      $("fRepo").innerHTML = '<option value="">All repos</option>' + state.repos.map((r) => '<option value="' + esc(r) + '">' + esc(shortRepo(r)) + "</option>").join("");
+      $("fRepo").value = filters.repo;
+      $("fTypes").innerHTML = TYPES.map((t) => '<label class="chip"><input type="checkbox" value="' + t[0] + '"' + (filters.types.indexOf(t[0]) >= 0 ? " checked" : "") + " />" + esc(t[1]) + "</label>").join("");
+      if (!$("nDate").value) $("nDate").value = todayISO();
+    }
+
+    // ---------- projects render ----------
+    function activityCounts() {
+      const c = {}; allItems().forEach((it) => { if (it.project) c[it.project] = (c[it.project] || 0) + 1; }); return c;
+    }
+    function renderProjects() {
+      const q = ($("pSearch").value || "").toLowerCase();
+      const counts = activityCounts();
+      const groups = [["public-playground", (p) => p.repo === PP], ["research / other", (p) => !p.repo || (p.repo !== PP && p.repo !== CA)], ["cursor-apps", (p) => p.repo === CA]];
+      $("cProj").textContent = String(state.projects.filter((p) => p.status !== "hidden").length);
+      let html = "";
+      groups.forEach((g) => {
+        const list = sortedProjects().filter(g[1]).filter((p) => !q || (p.name + " " + p.id + " " + (p.notes || "")).toLowerCase().indexOf(q) >= 0);
+        if (!list.length) return;
+        html += '<div class="day">' + esc(g[0]) + " · " + list.length + "</div>";
+        list.forEach((p) => {
+          const live = projLive(p);
+          const code = p.repo ? treeUrl(p.repo, p.path, p.branch) : "";
+          html += '<details class="box" data-proj="' + esc(p.id) + '"><summary><div class="proj-sum"><div class="name">' + esc(p.name) +
+            ' <span class="pill s-' + esc(p.status) + '">' + esc(p.status) + "</span>" + (counts[p.id] ? '<span class="muted small">' + counts[p.id] + " updates</span>" : "") +
+            '</div><div class="sub">' + esc(p.notes || (p.repo ? shortRepo(p.repo) + "/" + p.path : "")) + "</div></div></summary><div class=\"inner\">" +
+            '<div class="row small">' + (live ? '<a href="' + esc(live) + '" target="_blank" rel="noopener">Open live ↗</a>' : '<span class="muted">No live link</span>') +
+            (code ? '<a href="' + esc(code) + '" target="_blank" rel="noopener">Code ↗</a>' : "") +
+            '<a href="#" data-show-feed="' + esc(p.id) + '">Show in feed</a></div>' +
+            '<div class="grid2"><div><label class="f">Status</label><select data-field="status">' + STATUSES.map((s) => "<option" + (s === p.status ? " selected" : "") + ">" + s + "</option>").join("") + "</select></div>" +
+            '<div><label class="f">Branch (optional)</label><input data-field="branch" value="' + esc(p.branch || "") + '" placeholder="cursor/…" /></div></div>' +
+            '<label class="f">Live link override</label><input data-field="live" type="url" value="' + esc(p.live || "") + '" placeholder="' + esc(live || "https://…") + '" />' +
+            '<label class="f">Feed keywords</label><input data-field="aliases" value="' + esc((p.aliases || []).join(", ")) + '" />' +
+            '<label class="f">Notes</label><textarea data-field="notes">' + esc(p.notes || "") + "</textarea>" +
+            '<div class="sp"></div><div class="row"><button class="btn sm" data-borrow-from="' + esc(p.id) + '">Borrow from this</button><button class="btn sm" data-compare="' + esc(p.id) + '">Compare</button>' +
+            '<button class="btn sm ghost danger" data-del-proj="' + esc(p.id) + '">Remove</button></div></div></details>';
+        });
+      });
+      $("projList").innerHTML = html || '<div class="empty">No projects match.</div>';
+    }
+
+    // ---------- compare ----------
+    let cmpSel = [], cmpEditing = "";
+    function renderCompare() {
+      const q = ($("cmpFilter").value || "").toLowerCase();
+      $("cmpPick").innerHTML = sortedProjects().filter((p) => p.status !== "hidden" || cmpSel.indexOf(p.id) >= 0)
+        .filter((p) => !q || cmpSel.indexOf(p.id) >= 0 || p.name.toLowerCase().indexOf(q) >= 0)
+        .map((p) => '<span class="chip' + (cmpSel.indexOf(p.id) >= 0 ? " on" : "") + '" data-pick="' + esc(p.id) + '">' + esc(p.name) + "</span>").join("");
+      $("cmpTitle").textContent = cmpEditing ? "Edit comparison" : "Align projects";
+      $("cmpCancel").hidden = !cmpEditing;
+      $("cCmp").textContent = state.comparisons.length ? String(state.comparisons.length) : "";
+      const list = state.comparisons.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      $("cmpList").innerHTML = list.length ? list.map((c) =>
+        '<div class="card"><div class="meta small muted">' + esc(c.date || "") + "</div><b>" + esc(c.title || c.projects.map(projName).join(" vs ")) + "</b>" +
+        '<div class="chips" style="margin:6px 0">' + c.projects.map((id) => '<span class="pill">' + esc(projName(id)) + "</span>").join("") + "</div>" +
+        (c.same ? '<div class="small"><b>Same:</b> ' + esc(c.same) + "</div>" : "") + (c.diff ? '<div class="small" style="margin-top:4px"><b>Different:</b> ' + esc(c.diff) + "</div>" : "") +
+        '<div class="sp"></div><div class="row"><button class="btn sm" data-edit-cmp="' + esc(c.id) + '">Edit</button>' +
+        (c.projects.length >= 2 ? '<button class="btn sm" data-cmp-borrow="' + esc(c.id) + '">Borrow between these</button>' : "") +
+        '<button class="btn sm ghost danger" data-del-cmp="' + esc(c.id) + '">Delete</button></div></div>').join("") : '<div class="empty">No comparisons yet.</div>';
+    }
+    function resetCompareForm() { cmpSel = []; cmpEditing = ""; $("cmpTitleIn").value = ""; $("cmpSame").value = ""; $("cmpDiff").value = ""; renderCompare(); }
+
+    // ---------- borrow / prompt ----------
+    function describeProject(p) {
+      if (!p) return "(unknown project)";
+      const lines = ["- Name: " + p.name];
+      if (p.repo) lines.push("- Repo: https://github.com/" + p.repo + (p.path ? "  (folder `" + p.path + "/`)" : ""));
+      if (p.repo) lines.push("- Code: " + treeUrl(p.repo, p.path, p.branch || "main") + (p.branch ? "  (work in progress on branch `" + p.branch + "` — check whether it's merged)" : ""));
+      const live = projLive(p); if (live) lines.push("- Live: " + live);
+      if (p.notes) lines.push("- Notes: " + p.notes.replace(/\s*\n\s*/g, " "));
+      return lines.join("\n");
+    }
+    function buildPrompt(r) {
+      const from = projById(r.from), to = projById(r.to);
+      const cmps = state.comparisons.filter((c) => c.projects.indexOf(r.from) >= 0 && c.projects.indexOf(r.to) >= 0);
+      const recent = state.entries.filter((e) => e.project === r.from || e.project === r.to).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+      const out = [];
+      out.push("Use the \"" + r.feature + "\" feature from " + (from ? from.name : r.from) + " in " + (to ? to.name : r.to) + (r.change ? ", but change: " + r.change : "") + ".");
+      out.push("", "SOURCE project (copy the feature from here):", describeProject(from));
+      out.push("", "TARGET project (make the change here):", describeProject(to));
+      if (cmps.length) {
+        out.push("", "How these projects compare (my notes):");
+        cmps.forEach((c) => { if (c.same) out.push("- Similar: " + c.same); if (c.diff) out.push("- Different: " + c.diff); });
+      }
+      if (recent.length) { out.push("", "Recent log:"); recent.forEach((e) => out.push("- " + e.date + " · " + projName(e.project) + ": " + e.text + (e.link ? " (" + e.link + ")" : ""))); }
+      if (r.extra) out.push("", "Extra context:", r.extra);
+      out.push("", "Steps:");
+      out.push("1. Read how the source project implements \"" + r.feature + "\" (find the relevant HTML/CSS/JS; note any shared helpers it depends on).");
+      out.push("2. Port it into the target project, adapting to the target's existing structure, naming, and styles. Don't regress existing target features.");
+      out.push("3. Apply the requested change" + (r.change ? " (" + r.change + ")" : "") + ".");
+      out.push("4. Test at an iPhone-sized viewport (I use iPhone Safari / Home Screen) and include a screenshot.");
+      out.push("", "Rules:");
+      out.push("- Branch from latest main (`git fetch origin main`) as `cursor/<short-name>`; never push to main, never merge. Open a DRAFT PR.");
+      if (to && to.repo === CA) out.push("- cursor-apps: bump `apps." + to.path + "` in versions.json (\"N · Mon D, YYYY\") and the in-app version. Live after merge: https://mathoose.github.io/cursor-apps/" + to.path + "/");
+      else if (to && to.repo === PP) out.push("- public-playground has no versions.json — bump the in-app version string if the app has one. Give me a working htmlpreview link for the branch: " + ppPreview(to.path || "<folder>", "<branch>"));
+      else out.push("- Bump whatever version marker the target repo uses and give me a clickable live link.");
+      out.push("- End with a short summary + the PR link + the live link.");
+      return out.join("\n");
+    }
+    function readReqForm() {
+      return { feature: $("rFeature").value.trim(), from: $("rFrom").value, to: $("rTo").value, change: $("rChange").value.trim(), extra: $("rExtra").value.trim() };
+    }
+    function validReq(r) {
+      if (!r.feature) { toast("Name the feature"); $("rFeature").focus(); return false; }
+      if (!r.from || !r.to) { toast("Pick both projects"); return false; }
+      if (r.from === r.to) { toast("Pick two different projects"); return false; }
+      return true;
+    }
+    function renderRequests() {
+      projectOptions($("rFrom"), false); projectOptions($("rTo"), false);
+      const f = $("rQueueFilter").value;
+      const list = state.requests.filter((r) => !f || r.status === f).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      $("cReq").textContent = String(state.requests.filter((r) => r.status !== "done").length || "");
+      $("reqList").innerHTML = list.length ? list.map((r) =>
+        '<details class="box" id="req-' + esc(r.id) + '"><summary><div class="proj-sum"><div class="name">' + esc(r.feature) + ' <span class="pill s-' + esc(r.status) + '">' + esc(r.status) + "</span></div>" +
+        '<div class="sub">' + esc(projName(r.from)) + " → " + esc(projName(r.to)) + (r.change ? " · " + esc(r.change) : "") + "</div></div></summary><div class=\"inner\">" +
+        '<pre class="prompt">' + esc(buildPrompt(r)) + "</pre>" +
+        '<div class="grid2"><div><label class="f">Status</label><select data-req-field="status" data-req="' + esc(r.id) + '">' +
+        ["idea", "sent", "done"].map((s) => "<option" + (s === r.status ? " selected" : "") + ">" + s + "</option>").join("") + "</select></div>" +
+        '<div><label class="f">Agent / PR link</label><input data-req-field="link" data-req="' + esc(r.id) + '" type="url" value="' + esc(r.link || "") + '" placeholder="https://cursor.com/agents/…" /></div></div>' +
+        '<div class="sp"></div><div class="row"><button class="btn sm primary" data-copy-req="' + esc(r.id) + '">Copy prompt</button>' +
+        '<button class="btn sm" data-load-req="' + esc(r.id) + '">Edit in form</button>' +
+        (r.link ? '<a class="small" href="' + esc(r.link) + '" target="_blank" rel="noopener">Open link ↗</a>' : "") +
+        '<button class="btn sm ghost danger" data-del-req="' + esc(r.id) + '">Delete</button></div></div></details>').join("") : '<div class="empty">No requests' + (f ? " with this status" : " yet") + ".</div>";
+    }
+
+    // ---------- views ----------
+    function setView(v) {
+      ui.view = v; writeJSON(UI_KEY, ui);
+      document.querySelectorAll("nav.tabs button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+      document.querySelectorAll("section.view").forEach((s) => s.classList.toggle("on", s.id === "v-" + v));
+      window.scrollTo(0, 0);
+    }
+    function renderAll() {
+      renderFilterControls(); renderFeed(); renderProjects(); renderCompare(); renderRequests();
+      $("repoList").value = state.repos.join("\n"); $("ghToken").value = token;
+    }
+
+    // ---------- events ----------
+    $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-view]"); if (b) setView(b.dataset.view); });
+
+    $("fText").addEventListener("input", (e) => { filters.text = e.target.value.trim(); renderFeed(); });
+    $("fProject").addEventListener("change", (e) => { filters.project = e.target.value; renderFeed(); });
+    $("fRepo").addEventListener("change", (e) => { filters.repo = e.target.value; renderFeed(); });
+    $("fFrom").addEventListener("change", (e) => { filters.from = e.target.value; renderFeed(); });
+    $("fTo").addEventListener("change", (e) => { filters.to = e.target.value; renderFeed(); });
+    $("fTypes").addEventListener("change", () => { filters.types = [].map.call($("fTypes").querySelectorAll("input:checked"), (i) => i.value); renderFeed(); });
+    document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
+      filters.from = localISO(new Date(Date.now() - Number(b.dataset.range) * 86400000)); filters.to = "";
+      $("fFrom").value = filters.from; $("fTo").value = ""; renderFeed();
+    }));
+    $("fClear").addEventListener("click", () => {
+      filters = { text: "", project: "", repo: "", types: TYPES.map((t) => t[0]), from: "", to: "" };
+      $("fText").value = ""; $("fFrom").value = ""; $("fTo").value = ""; renderFilterControls(); renderFeed();
+    });
+    $("refreshBtn").addEventListener("click", () => refreshFeed(true));
+
+    $("nSave").addEventListener("click", () => {
+      const text = $("nText").value.trim(); if (!text) { toast("Write a short description"); return; }
+      state.entries.push({ id: uid(), type: "note", project: $("nProject").value, date: $("nDate").value || todayISO(), text: text, link: $("nLink").value.trim() });
+      save(); $("nText").value = ""; $("nLink").value = ""; $("addNoteBox").open = false; toast("Logged"); renderFeed(); renderProjects();
+    });
+
+    $("feedList").addEventListener("click", (e) => {
+      const pc = e.target.closest("[data-filter-project]");
+      if (pc) { filters.project = pc.dataset.filterProject; $("fProject").value = filters.project; $("filterBox").open = true; renderFeed(); window.scrollTo(0, 0); return; }
+      const de = e.target.closest("[data-del-entry]");
+      if (de) { e.preventDefault(); if (confirm("Delete this note?")) { state.entries = state.entries.filter((x) => x.id !== de.dataset.delEntry); save(); renderFeed(); } return; }
+      const gr = e.target.closest("[data-goto-req]");
+      if (gr) { e.preventDefault(); setView("borrow"); $("rQueueFilter").value = ""; renderRequests(); const el = $("req-" + gr.dataset.gotoReq); if (el) { el.open = true; el.scrollIntoView({ block: "center" }); } }
+    });
+
+    // projects
+    $("pSearch").addEventListener("input", renderProjects);
+    let projSaveTimer = 0;
+    $("projList").addEventListener("input", (e) => {
+      const f = e.target.dataset.field; if (!f) return;
+      const p = projById(e.target.closest("[data-proj]").dataset.proj); if (!p) return;
+      p[f] = f === "aliases" ? e.target.value.split(",").map((s) => s.trim()).filter(Boolean) : e.target.value;
+      p.seed = false;
+      clearTimeout(projSaveTimer); projSaveTimer = setTimeout(() => { save(); renderFeed(); }, 400);
+    });
+    $("projList").addEventListener("change", (e) => { if (e.target.dataset.field === "status") { save(); const open = e.target.closest("details").dataset.proj; renderProjects(); const d = document.querySelector('[data-proj="' + CSS.escape(open) + '"]'); if (d) d.open = true; } });
+    $("projList").addEventListener("click", (e) => {
+      const sf = e.target.closest("[data-show-feed]");
+      if (sf) { e.preventDefault(); filters.project = sf.dataset.showFeed; setView("feed"); renderFilterControls(); renderFeed(); return; }
+      const bf = e.target.closest("[data-borrow-from]");
+      if (bf) { setView("borrow"); $("rFrom").value = bf.dataset.borrowFrom; $("rFeature").focus(); return; }
+      const cp = e.target.closest("[data-compare]");
+      if (cp) { if (cmpSel.indexOf(cp.dataset.compare) < 0) cmpSel.push(cp.dataset.compare); setView("compare"); renderCompare(); return; }
+      const dp = e.target.closest("[data-del-proj]");
+      if (dp && confirm("Remove this project? Its notes stay in the feed as Unsorted.")) { state.projects = state.projects.filter((p) => p.id !== dp.dataset.delProj); save(); renderAll(); }
+    });
+    $("apStatus").innerHTML = STATUSES.map((s) => "<option>" + s + "</option>").join(""); $("apStatus").value = "active";
+    $("apSave").addEventListener("click", () => {
+      const name = $("apName").value.trim(); if (!name) { toast("Give it a name"); return; }
+      let id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || uid();
+      while (projById(id)) id += "-2";
+      state.projects.push({ id: id, name: name, repo: $("apRepo").value.trim(), path: $("apPath").value.trim().replace(/^\/|\/$/g, ""), status: $("apStatus").value,
+        live: $("apLive").value.trim(), branch: "", aliases: $("apAliases").value.split(",").map((s) => s.trim()).filter(Boolean), notes: "", seed: false });
+      save(); ["apName", "apRepo", "apPath", "apLive", "apAliases"].forEach((k) => ($(k).value = "")); toast("Project added"); renderAll();
+    });
+
+    // compare
+    $("cmpFilter").addEventListener("input", renderCompare);
+    $("cmpPick").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-pick]"); if (!c) return;
+      const id = c.dataset.pick, i = cmpSel.indexOf(id); if (i >= 0) cmpSel.splice(i, 1); else cmpSel.push(id); renderCompare();
+    });
+    $("cmpSave").addEventListener("click", () => {
+      if (cmpSel.length < 2) { toast("Pick at least 2 projects"); return; }
+      const rec = { projects: cmpSel.slice(), title: $("cmpTitleIn").value.trim(), same: $("cmpSame").value.trim(), diff: $("cmpDiff").value.trim(), date: todayISO() };
+      if (cmpEditing) Object.assign(state.comparisons.find((c) => c.id === cmpEditing) || {}, rec, { seed: false });
+      else state.comparisons.push(Object.assign({ id: uid() }, rec));
+      save(); toast("Saved"); resetCompareForm();
+    });
+    $("cmpCancel").addEventListener("click", resetCompareForm);
+    $("cmpList").addEventListener("click", (e) => {
+      const ed = e.target.closest("[data-edit-cmp]");
+      if (ed) { const c = state.comparisons.find((x) => x.id === ed.dataset.editCmp); if (!c) return; cmpEditing = c.id; cmpSel = c.projects.slice();
+        $("cmpTitleIn").value = c.title || ""; $("cmpSame").value = c.same || ""; $("cmpDiff").value = c.diff || ""; $("cmpBox").open = true; renderCompare(); window.scrollTo(0, 0); return; }
+      const cb = e.target.closest("[data-cmp-borrow]");
+      if (cb) { const c = state.comparisons.find((x) => x.id === cb.dataset.cmpBorrow); setView("borrow"); $("rFrom").value = c.projects[0]; $("rTo").value = c.projects[1]; $("rFeature").focus(); return; }
+      const dl = e.target.closest("[data-del-cmp]");
+      if (dl && confirm("Delete this comparison?")) { state.comparisons = state.comparisons.filter((x) => x.id !== dl.dataset.delCmp); save(); renderCompare(); }
+    });
+
+    // borrow
+    let editingReq = "";
+    $("rGen").addEventListener("click", () => {
+      const r = readReqForm(); if (!validReq(r)) return;
+      $("rPrompt").textContent = buildPrompt(r); $("rOut").hidden = false;
+    });
+    $("rCopy").addEventListener("click", () => copyText($("rPrompt").textContent));
+    $("rSave").addEventListener("click", () => {
+      const r = readReqForm(); if (!validReq(r)) return;
+      const existing = editingReq && state.requests.find((x) => x.id === editingReq);
+      if (existing) Object.assign(existing, r, { seed: false });
+      else state.requests.push(Object.assign({ id: uid(), status: "idea", date: todayISO(), link: "" }, r));
+      save(); editingReq = ""; $("rPrompt").textContent = buildPrompt(r); $("rOut").hidden = false;
+      ["rFeature", "rChange", "rExtra"].forEach((k) => ($(k).value = "")); toast("Saved to queue"); renderRequests(); renderFeed();
+    });
+    $("rQueueFilter").addEventListener("change", renderRequests);
+    $("reqList").addEventListener("click", (e) => {
+      const cp = e.target.closest("[data-copy-req]");
+      if (cp) { const r = state.requests.find((x) => x.id === cp.dataset.copyReq); copyText(buildPrompt(r)); if (r.status === "idea") { r.status = "sent"; save(); renderRequests(); renderFeed(); const d = $("req-" + r.id); if (d) d.open = true; } return; }
+      const ld = e.target.closest("[data-load-req]");
+      if (ld) { const r = state.requests.find((x) => x.id === ld.dataset.loadReq); editingReq = r.id;
+        $("rFeature").value = r.feature; $("rFrom").value = r.from; $("rTo").value = r.to; $("rChange").value = r.change || ""; $("rExtra").value = r.extra || ""; $("reqBox").open = true; window.scrollTo(0, 0); return; }
+      const dl = e.target.closest("[data-del-req]");
+      if (dl && confirm("Delete this request?")) { state.requests = state.requests.filter((x) => x.id !== dl.dataset.delReq); save(); renderRequests(); renderFeed(); }
+    });
+    $("reqList").addEventListener("change", (e) => {
+      const id = e.target.dataset.req, f = e.target.dataset.reqField; if (!id || !f) return;
+      const r = state.requests.find((x) => x.id === id); r[f] = e.target.value.trim(); save(); renderRequests(); renderFeed(); const d = $("req-" + id); if (d) d.open = true;
+    });
+
+    // data
+    function exportPayload() { return JSON.stringify({ format: "project-hub-backup", version: 1, app: "Project Hub v" + APP_VERSION, exportedAt: new Date().toISOString(), data: state }, null, 2); }
+    $("exDownload").addEventListener("click", () => {
+      const blob = new Blob([exportPayload()], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "project-hub-backup-" + todayISO() + ".json";
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+    $("exCopy").addEventListener("click", () => copyText(exportPayload()));
+    $("imFile").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $("imText").value = rd.result; toast("File loaded — choose merge or replace"); }; rd.readAsText(f); });
+    function parseImport() {
+      try {
+        const j = JSON.parse($("imText").value); const d = j && j.format === "project-hub-backup" ? j.data : j;
+        if (!d || !Array.isArray(d.projects)) throw new Error("bad");
+        return d;
+      } catch (e) { toast("That isn't a Project Hub backup"); return null; }
+    }
+    function mergeById(cur, inc) { const map = {}; cur.forEach((x) => (map[x.id] = x)); (inc || []).forEach((x) => { if (x && x.id) map[x.id] = x; }); return Object.keys(map).map((k) => map[k]); }
+    $("imMerge").addEventListener("click", () => {
+      const d = parseImport(); if (!d) return;
+      ["projects", "entries", "comparisons", "requests"].forEach((k) => (state[k] = mergeById(state[k], d[k])));
+      if (Array.isArray(d.repos)) state.repos = state.repos.concat(d.repos.filter((r) => state.repos.indexOf(r) < 0));
+      save(); $("imText").value = ""; toast("Merged"); renderAll(); refreshFeed(false);
+    });
+    $("imReplace").addEventListener("click", () => {
+      const d = parseImport(); if (!d || !confirm("Replace ALL data on this device with the backup?")) return;
+      state = Object.assign(defaultState(), d); save(); $("imText").value = ""; toast("Replaced"); renderAll(); refreshFeed(false);
+    });
+    $("repoSave").addEventListener("click", () => {
+      state.repos = $("repoList").value.split(/\s+/).map((s) => s.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "")).filter((s) => /^[\w.-]+\/[\w.-]+$/.test(s));
+      token = $("ghToken").value.trim(); if (token) localStorage.setItem(TOKEN_KEY, token); else localStorage.removeItem(TOKEN_KEY);
+      save(); renderAll(); refreshFeed(true); toast("Saved");
+    });
+    $("reseed").addEventListener("click", () => {
+      const d = defaultState();
+      ["projects", "entries", "comparisons", "requests"].forEach((k) => { const ids = state[k].map((x) => x.id); d[k].forEach((x) => { if (ids.indexOf(x.id) < 0) state[k].push(x); }); });
+      save(); renderAll(); toast("Starter notes re-added");
+    });
+    $("clearCache").addEventListener("click", () => { feedCache = {}; localStorage.removeItem(FEED_KEY); refreshFeed(true); });
+    $("wipe").addEventListener("click", () => {
+      if (!confirm("Erase all notes, projects, comparisons and requests on this device?")) return;
+      [LS_KEY, FEED_KEY, APPS_KEY, UI_KEY].forEach((k) => localStorage.removeItem(k));
+      state = defaultState(); feedCache = {}; save(); renderAll(); refreshFeed(true);
+    });
+
+    // ---------- boot ----------
+    $("footer").textContent = "Project Hub v" + APP_VERSION;
+    renderAll();
+    setView(ui.view || "feed");
+    refreshFeed(false);
+    loadCursorApps();
+    setInterval(() => { if (document.visibilityState === "visible") refreshFeed(false); }, 60 * 1000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refreshFeed(false); });
+  })();
+  </script>
+</body>
+</html>
