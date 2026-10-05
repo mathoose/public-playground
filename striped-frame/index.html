@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: striped-frame-v2 -->
+<!-- build: striped-frame-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
 <body>
   <div class="app">
     <aside class="panel">
-      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/striped-frame-e1e5/3d-printing/index.html">← 3D printing library</a>
+      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/3d-printing/index.html">← 3D printing library</a>
       <h1>Striped frame</h1>
       <p class="lead">Alternating color bands along the frame path — like an inlay pattern that follows the moulding. Live preview → download STL.</p>
 
@@ -79,6 +79,48 @@
 
           <p class="group-note">Thickness = how wide each color band is along the path. Edit a color’s height to unlock per-color heights.</p>
           <div id="colorRows"></div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Corners &amp; edges</summary>
+        <div class="group-body">
+          <div class="field">
+            <label>Outer corner radius <span class="val">mm</span></label>
+            <input id="outerCornerRadiusRange" type="range" min="0" max="20" step="0.5" />
+            <input id="outerCornerRadius" type="number" min="0" max="40" step="0.5" />
+            <div class="hint">Rounds the outer perimeter corners of the moulding. 0 = sharp.</div>
+          </div>
+
+          <p class="group-note">Front-face edges (top of the moulding). Inside faces the photo opening; outside is the outer rim.</p>
+
+          <div class="field">
+            <label>Inside edge</label>
+            <div class="seg" id="insideEdgeModeSeg">
+              <button class="chip" type="button" data-inside-edge="none">None</button>
+              <button class="chip" type="button" data-inside-edge="round">Round</button>
+              <button class="chip" type="button" data-inside-edge="chamfer">Chamfer</button>
+            </div>
+          </div>
+          <div class="field" id="insideEdgeSizeBlock">
+            <label>Inside size <span class="val">mm</span></label>
+            <input id="insideEdgeSizeRange" type="range" min="0.5" max="8" step="0.1" />
+            <input id="insideEdgeSize" type="number" min="0.4" max="12" step="0.1" />
+          </div>
+
+          <div class="field">
+            <label>Outside edge</label>
+            <div class="seg" id="outsideEdgeModeSeg">
+              <button class="chip" type="button" data-outside-edge="none">None</button>
+              <button class="chip" type="button" data-outside-edge="round">Round</button>
+              <button class="chip" type="button" data-outside-edge="chamfer">Chamfer</button>
+            </div>
+          </div>
+          <div class="field" id="outsideEdgeSizeBlock">
+            <label>Outside size <span class="val">mm</span></label>
+            <input id="outsideEdgeSizeRange" type="range" min="0.5" max="8" step="0.1" />
+            <input id="outsideEdgeSize" type="number" min="0.4" max="12" step="0.1" />
+          </div>
         </div>
       </details>
 
@@ -166,7 +208,7 @@
         Use <b>Download by color</b> for multi-material / filament-change prints.
         Sandwich <b>frame → photo → back plate</b>. STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Striped frame v2 · Sep 20, 2026</p>
+      <p class="foot" id="app-version">Striped frame v3 · Sep 20, 2026</p>
     </aside>
 
     <main class="stage">

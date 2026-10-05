@@ -147,6 +147,10 @@ function renderForm(opts = {}) {
   const skipLip = active === $("lipRange") || active === $("lip");
   const skipMw = active === $("mouldingWidthRange") || active === $("mouldingWidth");
   const skipShared = active === $("sharedHeightRange") || active === $("sharedHeight");
+  const skipCorner =
+    active === $("outerCornerRadiusRange") || active === $("outerCornerRadius");
+  const skipInEdge = active === $("insideEdgeSizeRange") || active === $("insideEdgeSize");
+  const skipOutEdge = active === $("outsideEdgeSizeRange") || active === $("outsideEdgeSize");
 
   $("units").value = params.units;
   $("photoW").value = roundForInput(params.photoW, params.units);
@@ -169,6 +173,28 @@ function renderForm(opts = {}) {
     $("sharedHeightRange").value = params.sharedHeight;
   }
   $("sharedHeightBlock").hidden = !params.equalHeights;
+  if (!skipCorner) {
+    $("outerCornerRadius").value = params.outerCornerRadius.toFixed(1);
+    $("outerCornerRadiusRange").value = params.outerCornerRadius;
+  }
+  const maxCorner = Math.min(params.mouldingWidth, Math.min(params.photoW, params.photoH) / 2);
+  $("outerCornerRadiusRange").max = String(Math.max(0, maxCorner).toFixed(1));
+  for (const btn of document.querySelectorAll("[data-inside-edge]")) {
+    btn.classList.toggle("active", btn.dataset.insideEdge === params.insideEdgeMode);
+  }
+  for (const btn of document.querySelectorAll("[data-outside-edge]")) {
+    btn.classList.toggle("active", btn.dataset.outsideEdge === params.outsideEdgeMode);
+  }
+  $("insideEdgeSizeBlock").hidden = params.insideEdgeMode === "none";
+  $("outsideEdgeSizeBlock").hidden = params.outsideEdgeMode === "none";
+  if (!skipInEdge) {
+    $("insideEdgeSize").value = params.insideEdgeSize.toFixed(1);
+    $("insideEdgeSizeRange").value = params.insideEdgeSize;
+  }
+  if (!skipOutEdge) {
+    $("outsideEdgeSize").value = params.outsideEdgeSize.toFixed(1);
+    $("outsideEdgeSizeRange").value = params.outsideEdgeSize;
+  }
   $("bedThickness").value = params.bedThickness.toFixed(1);
   $("plateThickness").value = params.plateThickness.toFixed(1);
   $("hangHoles").checked = params.hangHoles;
@@ -281,6 +307,43 @@ function bind() {
   $("mouldingWidth").addEventListener("change", () => {
     params.mouldingWidth = num("mouldingWidth");
     refresh({ fit: true });
+  });
+
+  $("outerCornerRadiusRange").addEventListener("input", () => {
+    params.outerCornerRadius = Number($("outerCornerRadiusRange").value);
+    refresh({ skipColorRebuild: true });
+  });
+  $("outerCornerRadius").addEventListener("change", () => {
+    params.outerCornerRadius = num("outerCornerRadius");
+    refresh();
+  });
+  for (const btn of document.querySelectorAll("[data-inside-edge]")) {
+    btn.addEventListener("click", () => {
+      params.insideEdgeMode = btn.dataset.insideEdge;
+      refresh();
+    });
+  }
+  for (const btn of document.querySelectorAll("[data-outside-edge]")) {
+    btn.addEventListener("click", () => {
+      params.outsideEdgeMode = btn.dataset.outsideEdge;
+      refresh();
+    });
+  }
+  $("insideEdgeSizeRange").addEventListener("input", () => {
+    params.insideEdgeSize = Number($("insideEdgeSizeRange").value);
+    refresh({ skipColorRebuild: true });
+  });
+  $("insideEdgeSize").addEventListener("change", () => {
+    params.insideEdgeSize = num("insideEdgeSize");
+    refresh();
+  });
+  $("outsideEdgeSizeRange").addEventListener("input", () => {
+    params.outsideEdgeSize = Number($("outsideEdgeSizeRange").value);
+    refresh({ skipColorRebuild: true });
+  });
+  $("outsideEdgeSize").addEventListener("change", () => {
+    params.outsideEdgeSize = num("outsideEdgeSize");
+    refresh();
   });
 
   for (const btn of document.querySelectorAll("[data-colors]")) {
