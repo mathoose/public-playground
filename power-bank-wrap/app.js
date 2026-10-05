@@ -61,12 +61,12 @@ function renderReadout(result) {
   const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
   const tris = result ? result.tris.toFixed(0) : "—";
   el.innerHTML = `
-    Overall <b>${d.totalL.toFixed(1)} × ${d.nestOuterW.toFixed(1)} × ${Math.max(d.baseZ, d.postTop).toFixed(1)} mm</b><br />
+    Overall <b>${d.totalL.toFixed(1)} × ${d.nestOuterW.toFixed(1)} × ${d.outerH.toFixed(1)} mm</b><br />
     Nest <b>${d.innerL.toFixed(1)} × ${d.innerW.toFixed(1)} × ${d.cavityZ.toFixed(1)} mm</b>
     for a <b>${formatMm(d.p.bankL)} × ${formatMm(d.p.bankW)} × ${formatMm(d.p.bankH)}</b> bank<br />
-    USB window <b>${formatMm(d.p.usbWindowW)} × ${formatMm(d.p.usbWindowH)}</b>
-    · posts <b>${formatMm(d.p.postSpacing)}</b> apart
-    · porch <b>${formatMm(d.p.wrapDeck)}</b><br />
+    Storage <b>${formatMm(d.p.storeL)} × ${formatMm(d.p.storeW)} × ${formatMm(d.p.storeH)}</b>
+    · USB window <b>${formatMm(d.p.usbWindowW)} × ${formatMm(d.p.usbWindowH)}</b> R${formatMm(d.p.usbWindowR)}<br />
+    Posts on the opposite short end · porch <b>${formatMm(d.p.wrapDeck)}</b><br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
 }
@@ -139,6 +139,9 @@ function bind() {
     scheduleRebuild();
   });
   $("resetView")?.addEventListener("click", () => preview.fit());
+  document.querySelectorAll("[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
+  });
   $("download")?.addEventListener("click", () => downloadStl());
 }
 
@@ -146,8 +149,18 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new CasePreview({ canvas: $("view") });
+window.__wrapPreview = preview;
 bind();
 setStatus("Loading CAD…");
-rebuild().catch((err) => {
-  setStatus(String(err.message || err), "err");
-});
+
+const shot = new URLSearchParams(location.search).get("shot");
+if (shot) document.body.classList.add("capture");
+
+rebuild()
+  .then(() => {
+    if (shot) preview.setNamedView(shot);
+    window.__wrapReady = true;
+  })
+  .catch((err) => {
+    setStatus(String(err.message || err), "err");
+  });

@@ -90,6 +90,30 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   padding: 6px 10px;
   cursor: pointer;
 }
+.view-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.view-bar .chip { margin: 0; font-size: 0.78rem; padding: 6px 10px; }
+
+body.capture header,
+body.capture .panel,
+body.capture .hint,
+body.capture .view-btn,
+body.capture .view-bar {
+  display: none !important;
+}
+body.capture .app {
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+}
+body.capture .stage {
+  height: 100dvh;
+}
 
 .panel {
   background: var(--panel);

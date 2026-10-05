@@ -33,7 +33,7 @@ export class CasePreview {
     fill.position.set(80, 40, -20);
     this.scene.add(fill);
 
-    this.grid = new THREE.GridHelper(280, 28, 0xb0a89c, 0xc9c2b6);
+    this.grid = new THREE.GridHelper(320, 32, 0xb0a89c, 0xc9c2b6);
     this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
 
@@ -53,13 +53,27 @@ export class CasePreview {
       roughness: 0.28,
       metalness: 0.12,
     });
+    this.plugMat = new THREE.MeshStandardMaterial({
+      color: 0x44403c,
+      roughness: 0.45,
+      metalness: 0.08,
+    });
+    this.portMat = new THREE.MeshStandardMaterial({
+      color: 0x1c1917,
+      roughness: 0.4,
+      metalness: 0.1,
+    });
 
     this.caseMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.caseMat);
     this.bankMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.bankMat);
     this.glassMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.glassMat);
+    this.storeMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.plugMat);
+    this.portGroup = new THREE.Group();
     this.scene.add(this.caseMesh);
     this.scene.add(this.bankMesh);
     this.scene.add(this.glassMesh);
+    this.scene.add(this.storeMesh);
+    this.scene.add(this.portGroup);
 
     this.fitted = false;
     this.running = true;
@@ -96,21 +110,72 @@ export class CasePreview {
       d.p.floor + d.p.bankH + 0.15
     );
 
+    const plugL = Math.min(32, d.p.storeL - 6);
+    const plugW = Math.min(28, d.p.storeW - 6);
+    const plugH = Math.min(28, d.p.storeH - 2);
+    this.storeMesh.geometry.dispose();
+    this.storeMesh.geometry = new THREE.BoxGeometry(
+      Math.max(1, plugL),
+      Math.max(1, plugW),
+      Math.max(1, plugH)
+    );
+    this.storeMesh.position.set(
+      d.storeX0 + d.p.storeL / 2,
+      d.storeY0 + d.p.storeW / 2,
+      d.p.floor + plugH / 2
+    );
+
+    while (this.portGroup.children.length) {
+      const ch = this.portGroup.children[0];
+      this.portGroup.remove(ch);
+      ch.geometry?.dispose();
+    }
+    const faceX = d.bankX0 - 0.2;
+    const faceZ = d.p.floor + d.p.bankH / 2;
+    const cyBank = d.bankY0 + d.p.bankW / 2;
+    const ports = [
+      { y: cyBank - 18, w: 12.2, h: 5.2 },
+      { y: cyBank, w: 9.0, h: 3.6 },
+      { y: cyBank + 18, w: 12.2, h: 5.2 },
+    ];
+    for (const spec of ports) {
+      const g = new THREE.BoxGeometry(1.2, spec.w, spec.h);
+      const m = new THREE.Mesh(g, this.portMat);
+      m.position.set(faceX, spec.y, faceZ);
+      this.portGroup.add(m);
+    }
+
     this.grid.position.set(d.totalL / 2, d.nestOuterW / 2, -0.2);
     this.d = d;
     if (!this.fitted) this.fit();
   }
 
   fit() {
+    this.setNamedView("iso");
+    this.fitted = true;
+  }
+
+  setNamedView(name) {
     const d = this.d;
     if (!d) return;
-    const span = Math.max(d.totalL, d.nestOuterW, d.baseZ + d.postTop, 90);
-    const dist = span * 1.25;
+    const cy = d.nestOuterW / 2;
     this.camera.up.set(0, 0, 1);
-    this.camera.position.set(-dist * 0.5, -dist * 0.78, dist * 0.52);
-    this.controls.target.set(d.totalL / 2, d.nestOuterW / 2, d.baseZ * 0.4);
+    if (name === "port") {
+      this.camera.position.set(-95, cy - 18, d.zMid + 22);
+      this.controls.target.set(d.p.wall + 8, cy, d.zMid);
+    } else if (name === "wrap") {
+      this.camera.position.set(d.totalL + d.p.wrapDeck * 0.2 + 90, cy - 70, 70);
+      this.controls.target.set(d.deckMidX, cy, d.postTop * 0.45);
+    } else if (name === "store") {
+      this.camera.position.set(d.storeX0 - 40, cy - 95, d.storeBaseZ + 90);
+      this.controls.target.set(d.storeX0 + d.p.storeL / 2, cy, d.p.floor + d.p.storeH * 0.4);
+    } else {
+      const span = Math.max(d.totalL, d.nestOuterW, d.outerH, 90);
+      const dist = span * 1.15;
+      this.camera.position.set(-dist * 0.42, -dist * 0.72, dist * 0.48);
+      this.controls.target.set(d.totalL / 2, cy, d.outerH * 0.28);
+    }
     this.controls.update();
-    this.fitted = true;
   }
 
   resize() {

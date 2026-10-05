@@ -1,8 +1,8 @@
 # Power bank wrap
 
-Live **open tray + figure-8 wrap porch** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm).
+Live **open tray + charger pocket + figure-8 wrap posts** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm).
 
-**Power bank wrap v1 · Oct 5, 2026**
+**Power bank wrap v2 · Oct 5, 2026**
 
 ## Open the designer
 
@@ -16,15 +16,20 @@ Phone-first: orbit the tray, drag sliders, **Download this STL**. Presets: **SYJ
 
 ## What it is
 
-Open tray on the mint face (LEDs stay visible). Cutouts for the USB-A / USB-C PD end, the side power button, and the side micro-USB. A short porch at the 10+ end holds two mushroom wrap posts and a plug clip. Figure-8 the phone cable, clip the plug.
+Open tray on the mint face (LEDs stay visible).
 
-Same shell as the hoco **J159 Essence** (143.5 × 68 × 16 mm) if you ever swap banks.
+- **Short USB end:** one rounded-rectangle window over USB-A + USB-C PD + USB-A
+- **Long sides:** power button and micro-USB cutouts
+- **Next to the bank:** storage well (default 45 × 40 × 30 mm) for a coiled ~1 m cable + compact 20 W USB-C wall plug
+- **Opposite short end:** figure-8 mushroom posts + plug clip, so the cable can reach the ports
 
 ## Print (Snapmaker Luban / PETG)
 
 1. Floor on the bed, posts pointing up. **No supports** (heads are 45° flares).
 2. **PETG**, 0.4 mm nozzle, **0.2 mm** layers, **4 walls**, 20–25% infill.
-3. Drop the bank mint-face up. If it’s tight, raise **XY clearance** or pick **Loose fit**.
+3. Drop the bank mint-face up. Extra charger goes in the taller well.
+
+Default outer size is **242.9 × 72.9 × 31.8 mm** — fits Snapmaker A350 (320×350) and A250 if the long side is on the 250 mm axis. Does **not** fit A150 (160 mm square).
 
 ## Rebuild
 
@@ -35,4 +40,4 @@ npm run build
 npm run export
 ```
 
-`app.bundle.js` and `power-bank-wrap-v1.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.
+`app.bundle.js` and `power-bank-wrap-v2.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.

@@ -83,6 +83,16 @@ function stadiumY(Manifold, w, h, len, segs, temps) {
   return hull2(Manifold, a, b, temps);
 }
 
+/** Rounded-rect prism extruded along +X, centered on YZ. */
+function roundedWindowX(CrossSection, w, h, r, len, temps) {
+  const cs = roundedRect(CrossSection, h, w, r, temps);
+  const prism = cs.extrude(len);
+  temps.push(prism);
+  const alongX = prism.rotate(0, 90, 0);
+  temps.push(alongX);
+  return alongX;
+}
+
 function assertOk(solid, label) {
   const status = solid.status ? solid.status() : "NoError";
   if (status && status !== "NoError") throw new Error(`${label} manifold error: ${status}`);
@@ -166,7 +176,7 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
   const d = derive(raw);
   const p = d.p;
 
-  const outer = placedRounded(
+  const bankOuter = placedRounded(
     CrossSection,
     d.nestOuterL,
     d.nestOuterW,
@@ -177,7 +187,21 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
     0,
     temps
   );
-  const cavity = placedRounded(
+  const storeOuter = placedRounded(
+    CrossSection,
+    p.storeL + p.wall + 2.2,
+    d.nestOuterW,
+    d.storeBaseZ,
+    Math.min(d.outerR, 7),
+    d.storeX0 - 2.2,
+    0,
+    0,
+    temps
+  );
+  let solid = bankOuter.add(storeOuter);
+  temps.push(solid);
+
+  const bankCavity = placedRounded(
     CrossSection,
     d.innerL,
     d.innerW,
@@ -188,7 +212,21 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
     p.floor,
     temps
   );
-  let solid = outer.subtract(cavity);
+  solid = solid.subtract(bankCavity);
+  temps.push(solid);
+
+  const storeCavity = placedRounded(
+    CrossSection,
+    p.storeL,
+    p.storeW,
+    d.storeCavityZ + 6,
+    Math.min(4, p.storeW / 4),
+    d.storeX0,
+    d.storeY0,
+    p.floor,
+    temps
+  );
+  solid = solid.subtract(storeCavity);
   temps.push(solid);
 
   const deck = placedRounded(
@@ -244,11 +282,14 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
   }
 
   const cutters = [];
-  const usb = Manifold.cube([p.wall + 5, p.usbWindowW, p.usbWindowH], false).translate(
-    -2.2,
-    d.usbY0,
-    d.zMid - p.usbWindowH / 2
-  );
+  const usb = roundedWindowX(
+    CrossSection,
+    p.usbWindowW,
+    p.usbWindowH,
+    p.usbWindowR,
+    p.wall + 6,
+    temps
+  ).translate(-2.4, d.nestOuterW / 2, d.zMid);
   temps.push(usb);
   cutters.push(usb);
 

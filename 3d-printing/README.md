@@ -12,7 +12,7 @@ Browser apps for parts you can customize and download as STL.
 | [`../postit-wall-clip/`](../postit-wall-clip/) | Post-it wall clip |
 | [`../striped-frame/`](../striped-frame/) | Striped photo frame (path stripes) |
 | [`../photive-snap-box/`](../photive-snap-box/) | Photive USB snap box (live tray + lid designer) |
-| [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F power-bank tray + figure-8 wrap porch |
+| [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F tray + storage well + figure-8 wrap posts |
 
 On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, and `/power-bank-wrap/`.
 

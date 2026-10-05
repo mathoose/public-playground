@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: power-bank-wrap-v1 -->
+<!-- build: power-bank-wrap-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,11 +14,17 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
         <h1>Power bank wrap</h1>
       </div>
-      <p>v1 · Oct 5, 2026</p>
+      <p>v2 · Oct 5, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
       <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="iso">Iso</button>
+        <button type="button" class="chip" data-view="port">Port end</button>
+        <button type="button" class="chip" data-view="wrap">Wrap end</button>
+        <button type="button" class="chip" data-view="store">Storage</button>
+      </div>
       <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
     <aside class="panel">
@@ -73,16 +79,21 @@
       <details class="settings-group" open>
         <summary>Cutouts</summary>
         <div class="group-body">
-          <p class="group-note">USB-A + USB-C PD window on the short end. Button and micro-USB on opposite long sides, near that end.</p>
+          <p class="group-note">One rounded rectangle on the USB short end — USB-A + USB-C + USB-A. Button and micro-USB on the long sides.</p>
           <div class="row">
             <label for="usbWindowW">USB window width</label>
             <output id="usbWindowW-out"></output>
-            <input id="usbWindowW" type="range" min="36" max="72" step="0.5" value="58" />
+            <input id="usbWindowW" type="range" min="36" max="80" step="0.5" value="62" />
           </div>
           <div class="row">
             <label for="usbWindowH">USB window height</label>
             <output id="usbWindowH-out"></output>
-            <input id="usbWindowH" type="range" min="7" max="16" step="0.1" value="11" />
+            <input id="usbWindowH" type="range" min="8" max="22" step="0.1" value="14" />
+          </div>
+          <div class="row">
+            <label for="usbWindowR">USB window corner R</label>
+            <output id="usbWindowR-out"></output>
+            <input id="usbWindowR" type="range" min="0.5" max="8" step="0.1" value="3.5" />
           </div>
           <div class="row">
             <label for="buttonFromUsb">Button from USB end</label>
@@ -118,13 +129,35 @@
       </details>
 
       <details class="settings-group" open>
+        <summary>Storage</summary>
+        <div class="group-body">
+          <p class="group-note">Open well next to the 10+ end of the bank for a coiled ~1 m USB cable plus a compact 20 W USB-C wall plug. Mint face stays open.</p>
+          <div class="row">
+            <label for="storeL">Compartment length</label>
+            <output id="storeL-out"></output>
+            <input id="storeL" type="range" min="20" max="90" step="0.5" value="45" />
+          </div>
+          <div class="row">
+            <label for="storeW">Compartment width</label>
+            <output id="storeW-out"></output>
+            <input id="storeW" type="range" min="24" max="80" step="0.5" value="40" />
+          </div>
+          <div class="row">
+            <label for="storeH">Compartment height</label>
+            <output id="storeH-out"></output>
+            <input id="storeH" type="range" min="16" max="50" step="0.5" value="30" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
         <summary>Wrap posts</summary>
         <div class="group-body">
-          <p class="group-note">Two mushroom posts on a porch at the 10+ end. Figure-8 the phone cable, then clip the plug.</p>
+          <p class="group-note">Figure-8 posts on the short end opposite the USB window, so the cable can reach the ports.</p>
           <div class="row">
             <label for="wrapDeck">Porch length</label>
             <output id="wrapDeck-out"></output>
-            <input id="wrapDeck" type="range" min="28" max="80" step="0.5" value="50" />
+            <input id="wrapDeck" type="range" min="28" max="80" step="0.5" value="48" />
           </div>
           <div class="row">
             <label for="postSpacing">Post spacing</label>
@@ -198,18 +231,18 @@
             <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
           </div>
           <div class="ready">
-            <a href="power-bank-wrap-v1.stl" download>Print v1 default</a>
+            <a href="power-bank-wrap-v2.stl" download>Print v2 default</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>floor on the bed, posts up</b>. No supports — post heads are 45° flares.
-            Mint face stays open (LEDs visible). USB window on the short end; button and micro-USB on the long sides.
+            USB window is one rounded rectangle on a short end. Wrap posts on the other short end. Storage well sits between them.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Power bank wrap v1 · Oct 5, 2026</p>
+      <p class="foot" id="app-version">Power bank wrap v2 · Oct 5, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
