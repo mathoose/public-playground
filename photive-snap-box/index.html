@@ -1,63 +1,185 @@
 <!DOCTYPE html>
+<!-- build: photive-snap-box-v2 -->
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- build: photive-snap-box-v1 -->
-  <title>Photive snap box</title>
-  <style>
-    :root {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      --ink: #1c1917;
-      --muted: #78716c;
-      --accent: #0f766e;
-      --card: #fffcf7;
-      --line: #e4ddd3;
-      --bg: #efeae2;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--ink);
-    }
-    main { max-width: 36rem; margin: 0 auto; padding: 40px 20px 64px; }
-    h1 { margin: 0 0 8px; letter-spacing: -0.04em; }
-    .lead { color: var(--muted); line-height: 1.5; }
-    .row { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 28px; }
-    a.btn {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      text-decoration: none;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-    a.btn.ghost { background: var(--card); color: var(--accent); border: 1px solid var(--line); }
-    h2 { font-size: 1.05rem; margin: 28px 0 8px; }
-    ul { margin: 0; padding-left: 1.2rem; color: var(--ink); line-height: 1.55; }
-    footer { margin-top: 40px; color: var(--muted); font-size: 0.9rem; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Photive snap box designer</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main>
-    <h1>Photive snap box</h1>
-    <p class="lead">Open tray + snap lid for the Photive 6-port USB brick. Cable-only holes in front; figure-8 cord slides into the rear U-slot, then the lid captures it.</p>
-    <p><img src="./iso.png" alt="Open snap-box tray" style="width:100%;border-radius:14px;border:1px solid var(--line);background:#2a2a2a;" /></p>
-    <div class="row">
-      <a class="btn" href="./photive-snap-box-base.stl" download>Download base STL</a>
-      <a class="btn ghost" href="./photive-snap-box-lid.stl" download>Download lid STL</a>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://cdn.jsdelivr.net/gh/mathoose/public-playground@main/3d-printing/">← 3D printing library</a>
+        <h1>Photive snap box</h1>
+      </div>
+      <p>v2 · Oct 5, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
-    <h2>Luban / PETG</h2>
-    <ul>
-      <li><strong>Base:</strong> floor on the bed, open top up. No supports.</li>
-      <li><strong>Lid:</strong> pretty face on the bed, snap skirt up. No supports.</li>
-      <li><strong>PETG</strong>, 0.4 mm nozzle, 0.2 mm layers, <strong>4 walls</strong>, 20–25% infill.</li>
-    </ul>
-    <p class="lead" style="margin-top:18px">Source: <a href="./photive-snap-box.scad">photive-snap-box.scad</a> · notes in the <a href="./README.md">README</a>.</p>
-    <footer>Photive snap box v1 · Oct 5, 2026</footer>
-  </main>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Fit</summary>
+        <div class="group-body">
+          <p class="group-note">Clearance and the holes you print around the brick. Higher snap clearance = looser lid.</p>
+          <div class="row">
+            <label for="lipClear">Snap-fit clearance</label>
+            <output id="lipClear-out"></output>
+            <input id="lipClear" type="range" min="0.1" max="0.8" step="0.02" value="0.32" />
+          </div>
+          <div class="row">
+            <label for="c8HoleD">Rear cord gap / slot width</label>
+            <output id="c8HoleD-out"></output>
+            <input id="c8HoleD" type="range" min="5" max="14" step="0.1" value="8.5" />
+          </div>
+          <div class="row">
+            <label for="usbHoleW">USB cable hole width</label>
+            <output id="usbHoleW-out"></output>
+            <input id="usbHoleW" type="range" min="3" max="10" step="0.1" value="5" />
+          </div>
+          <div class="row">
+            <label for="usbHoleH">USB cable hole height</label>
+            <output id="usbHoleH-out"></output>
+            <input id="usbHoleH" type="range" min="4" max="14" step="0.1" value="7.6" />
+          </div>
+          <div class="row">
+            <label for="usbPitch">USB hole pitch</label>
+            <output id="usbPitch-out"></output>
+            <input id="usbPitch" type="range" min="7" max="16" step="0.1" value="10" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Inside</summary>
+        <div class="group-body">
+          <p class="group-note">Cavity around the Photive 100×70×26 mm brick. USB extra is the plug pocket at the cable-hole end.</p>
+          <div class="row">
+            <label for="innerWidth">Inner width</label>
+            <output id="innerWidth-out"></output>
+            <input id="innerWidth" type="range" min="50" max="110" step="0.2" value="70.8" />
+          </div>
+          <div class="row">
+            <label for="innerLength">Inner length</label>
+            <output id="innerLength-out"></output>
+            <input id="innerLength" type="range" min="110" max="220" step="0.2" value="137.8" />
+          </div>
+          <div class="row">
+            <label for="usbExtra">USB plug extra</label>
+            <output id="usbExtra-out"></output>
+            <input id="usbExtra" type="range" min="8" max="35" step="0.5" value="15" />
+          </div>
+          <div class="row">
+            <label for="acExtra">Rear extra (C8 plug body)</label>
+            <output id="acExtra-out"></output>
+            <input id="acExtra" type="range" min="10" max="45" step="0.5" value="22" />
+          </div>
+          <div class="row">
+            <label for="innerHeight">Inner / box height</label>
+            <output id="innerHeight-out"></output>
+            <input id="innerHeight" type="range" min="20" max="50" step="0.2" value="26.6" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Box</summary>
+        <div class="group-body">
+          <div class="row">
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out"></output>
+            <input id="wall" type="range" min="1.6" max="4" step="0.1" value="2.4" />
+          </div>
+          <div class="row">
+            <label for="floor">Floor thickness</label>
+            <output id="floor-out"></output>
+            <input id="floor" type="range" min="1.2" max="4" step="0.1" value="2.2" />
+          </div>
+          <div class="row">
+            <label for="cornerRadius">Corner radius</label>
+            <output id="cornerRadius-out"></output>
+            <input id="cornerRadius" type="range" min="0" max="12" step="0.1" value="4" />
+          </div>
+          <div class="row">
+            <label for="edgeFillet">Edge fillet</label>
+            <output id="edgeFillet-out"></output>
+            <input id="edgeFillet" type="range" min="0" max="3" step="0.1" value="1.5" />
+          </div>
+          <div class="row">
+            <label for="usbCount">USB hole count</label>
+            <output id="usbCount-out"></output>
+            <input id="usbCount" type="range" min="1" max="6" step="1" value="6" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Lid</summary>
+        <div class="group-body">
+          <div class="row">
+            <label for="lidThickness">Lid thickness</label>
+            <output id="lidThickness-out"></output>
+            <input id="lidThickness" type="range" min="1.6" max="4" step="0.1" value="2.6" />
+          </div>
+          <div class="row">
+            <label for="lipDepth">Lid snap overlap</label>
+            <output id="lipDepth-out"></output>
+            <input id="lipDepth" type="range" min="3" max="10" step="0.1" value="5" />
+          </div>
+          <div class="row">
+            <label for="lipThick">Skirt thickness</label>
+            <output id="lipThick-out"></output>
+            <input id="lipThick" type="range" min="1.2" max="2.4" step="0.1" value="1.7" />
+          </div>
+          <div class="row">
+            <label for="beadR">Snap bead radius</label>
+            <output id="beadR-out"></output>
+            <input id="beadR" type="range" min="0.3" max="1" step="0.05" value="0.55" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="seg">
+            <button class="chip active" type="button" data-part="both">Both</button>
+            <button class="chip" type="button" data-part="base">Tray</button>
+            <button class="chip" type="button" data-part="lid">Lid</button>
+          </div>
+          <div class="actions">
+            <button type="button" class="wide" id="dlBase">Download base STL</button>
+            <button type="button" class="wide" id="dlLid">Download lid STL</button>
+            <button type="button" class="secondary" id="reset">Reset Photive</button>
+          </div>
+          <div class="ready">
+            <a href="photive-snap-box-base.stl" download>Print v1 tray</a>
+            <a href="photive-snap-box-lid.stl" download>Print v1 lid</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>PETG</b>, 0.2 mm layers, 4 walls, no supports.
+            <b>Base:</b> floor on the bed, open top up.
+            <b>Lid:</b> pretty face on the bed, snap skirt up.
+            Not the travel wrap (PR #13).
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Photive snap box v2 · Oct 5, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
 </body>
 </html>
