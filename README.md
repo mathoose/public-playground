@@ -8,4 +8,4 @@ Scratch repo for small experiments.
 - [`postit-wall-clip/`](postit-wall-clip/) — Post-it wall clip designer + STLs
 - [`striped-frame/`](striped-frame/) — path-stripe picture frame (alternating bands along the moulding). [Open the designer](https://cdn.jsdelivr.net/gh/mathoose/public-playground@cursor/striped-frame-e1e5/striped-frame/).
 - [`photive-snap-box/`](photive-snap-box/) — Photive 6-port USB **snap box** designer (open tray + snap lid). Not the travel-case wrap from PR #13.
-- [`power-bank-wrap/`](power-bank-wrap/) — mint SYJ-F37F slide-on sleeve; cord wraps around the band, two side clips. [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/power-bank-wrap/index.html).
+- [`power-bank-wrap/`](power-bank-wrap/) — mint SYJ-F37F slide-on sleeve; cord wraps around the band, elastic clips on the back. [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/power-bank-wrap/index.html).

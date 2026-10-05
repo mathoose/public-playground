@@ -1,7 +1,7 @@
 /** SYJ-F37F slide-on sleeve — wrap around the band, not toward USB. */
 
-export const APP_VERSION = "4 · Oct 5, 2026";
-export const APP_VERSION_TAG = "v4";
+export const APP_VERSION = "5 · Oct 5, 2026";
+export const APP_VERSION_TAG = "v5";
 export const APP_NAME = "Power bank wrap";
 
 export const PRESETS = {
@@ -150,13 +150,25 @@ export function derive(raw = {}) {
   const zMid = holeZ0 + innerH0 / 2;
   const cy = outerW / 2;
   const cz = outerH / 2;
-  const clipDepth = p.clipOn ? p.cordD + 3.4 : 0;
-  const bboxW = outerW + Math.max(0, clipDepth - 0.6);
-  const bboxH = outerH;
-  const clipY = outerW;
+  const clipWall = 1.3;
+  const clipHoleR = p.cordD / 2;
+  const clipOuterR = clipHoleR + clipWall;
+  const clipWidth = Math.min(clipOuterR * 2, Math.max(4.2, p.wrapGap - 1.8));
+  const clipLen = Math.max(6.4, p.cordD + 4.8);
+  const clipH = clipOuterR * 2;
+  const clipOverlap = 1.4;
+  const clipHang = Math.max(0, clipH - clipOverlap);
+  const clipDepth = p.clipOn ? clipHang : 0;
+  const bboxW = outerW;
+  const bboxH = outerH + Math.max(0, clipDepth - p.wrapStick);
+  const clipX = (wrapX1 + wrapX2) / 2;
+  const clipSpread = Math.min(32, Math.max(16, bodyW * 0.38));
+  const clipY0 = cy - clipSpread / 2;
+  const clipY1 = cy + clipSpread / 2;
+  const clipHoleZ = p.wrapStick + 0.9 - clipOuterR;
   const beltMidA = wrapX0 + p.wrapLane / 2;
   const beltMidB = wrapX2 + p.wrapLane / 2;
-  const grip = Math.max(1.6, p.cordD - 0.4);
+  const grip = Math.max(1.15, p.cordD * 0.58);
   return {
     p,
     innerW0,
@@ -183,7 +195,17 @@ export function derive(raw = {}) {
     zMid,
     cy,
     cz,
-    clipY,
+    clipX,
+    clipY0,
+    clipY1,
+    clipLen,
+    clipWidth,
+    clipH,
+    clipWall,
+    clipHoleR,
+    clipOuterR,
+    clipHoleZ,
+    clipOverlap,
     beltMidA,
     beltMidB,
     grip,

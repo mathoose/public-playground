@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: power-bank-wrap-v4 -->
+<!-- build: power-bank-wrap-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
         <h1>Power bank wrap</h1>
       </div>
-      <p>v4 · Oct 5, 2026</p>
+      <p>v5 · Oct 5, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -30,7 +30,7 @@
       <details class="settings-group" open>
         <summary>Preset</summary>
         <div class="group-body">
-          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two side clips hold the cord ends.</p>
+          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two elastic clips on the back hold the cord ends.</p>
           <div class="seg">
             <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
             <button class="chip" type="button" data-preset="j159">HOCO J159</button>
@@ -133,14 +133,14 @@
       <details class="settings-group" open>
         <summary>Cord clips</summary>
         <div class="group-body">
-          <p class="group-note">Two press-fit clips on one long side, one per cord end. Mouth is 0.4 mm undersized so a USB cable snaps in.</p>
+          <p class="group-note">Two elastic snap clips on the back, in the valley between the wrap rings — they do not sit on the cord path. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
           <div class="row">
             <label for="cordD">Cord diameter</label>
             <output id="cordD-out"></output>
             <input id="cordD" type="range" min="2.4" max="6" step="0.1" value="3.6" />
           </div>
           <div class="row">
-            <label for="clipOn">Side clips</label>
+            <label for="clipOn">Bottom clips</label>
             <output id="clipOn-out"></output>
             <input id="clipOn" type="range" min="0" max="1" step="1" value="1" />
           </div>
@@ -165,18 +165,18 @@
             <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
           </div>
           <div class="ready">
-            <a href="power-bank-wrap-v4.stl" download>Print v4 default</a>
+            <a href="power-bank-wrap-v5.stl" download>Print v5 default</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>standing on the tight end</b> (hole pointing up).
-            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap both ends into the side clips.
+            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap both ends into the bottom clips.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Power bank wrap v4 · Oct 5, 2026</p>
+      <p class="foot" id="app-version">Power bank wrap v5 · Oct 5, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

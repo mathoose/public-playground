@@ -199,16 +199,16 @@ export class CasePreview {
       this.camera.position.set(d.bankX0 - 55, d.cy - 95, d.cz + 58);
       this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.cz);
     } else if (name === "clips") {
-      this.camera.position.set(d.beltMidB + 18, d.bboxW + 48, d.zMid + 22);
-      this.controls.target.set((d.beltMidA + d.beltMidB) / 2, d.outerW + 2, d.zMid);
+      this.camera.position.set(d.clipX + 6, d.cy - 38, -36);
+      this.controls.target.set(d.clipX, d.cy, d.p.wrapStick - 1);
     } else if (name === "side") {
       this.camera.position.set(d.p.sleeveLen * 0.2, -d.bboxW * 1.8, d.cz);
       this.controls.target.set(d.p.sleeveLen * 0.4, d.cy, d.cz);
     } else {
       const span = Math.max(d.p.bankL, d.bboxW, 110);
       const dist = span * 1.02;
-      this.camera.position.set(-dist * 0.7, -dist * 0.58, dist * 0.4);
-      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.42, d.cy, d.cz * 0.7);
+      this.camera.position.set(-dist * 0.58, -dist * 0.72, -dist * 0.16);
+      this.controls.target.set(d.p.sleeveLen * 0.42, d.cy, d.p.wrapStick + 2);
     }
     this.controls.update();
   }

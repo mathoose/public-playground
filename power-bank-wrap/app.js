@@ -68,7 +68,7 @@ function renderReadout(result) {
     · taper <b>${formatMm(d.p.taper)}</b> / side<br />
     Wrap around the <b>68×16 band</b> (not toward USB) in two C-channels
     <b>${formatMm(d.p.wrapLane)}</b> wide, gap <b>${formatMm(d.p.wrapGap)}</b><br />
-    Cord clips <b>${formatMm(d.p.cordD)}</b> (grip ${formatMm(d.grip)})<br />
+    Bottom elastic clips <b>${formatMm(d.p.cordD)}</b> (mouth ${formatMm(d.grip)})<br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
 }

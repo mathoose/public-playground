@@ -23,7 +23,10 @@ assert.ok(d0.outerH > d0.bodyH, "wrap belts add height around the band");
 assert.ok(d0.outerW > d0.bodyW);
 assert.ok(d0.wrapX2 > d0.wrapX1, "two wrap lanes along X");
 assert.ok(d0.bankX0 < 0, "USB end sticks out of the sleeve");
-assert.ok(d0.grip < d0.p.cordD, "clip mouth undersized to grip");
+assert.ok(d0.grip < d0.p.cordD * 0.7, "elastic mouth much tighter than the cord");
+assert.ok(d0.clipX > d0.wrapX1 && d0.clipX < d0.wrapX2, "clips sit in the wrap-ring gap");
+assert.equal(d0.bboxW.toFixed(2), d0.outerW.toFixed(2), "clips no longer stick out the side");
+assert.ok(d0.clipY0 < d0.cy && d0.clipY1 > d0.cy);
 
 const j159 = applyPreset("j159");
 assert.ok(j159.clearXY > DEFAULT_PARAMS.clearXY);
@@ -65,5 +68,5 @@ try {
 }
 
 console.log(
-  `ok v4 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.outerW.toFixed(1)}×${d0.outerH.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
+  `ok v5 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.outerW.toFixed(1)}×${d0.outerH.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
 );

@@ -1,8 +1,8 @@
 # Power bank wrap
 
-Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Cord wraps **around the sleeve band** (the 68×16 cross-section), never over the USB end. Two side clips hold the cord ends.
+Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Cord wraps **around the sleeve band** (the 68×16 cross-section), never over the USB end. Two **elastic snap clips on the back** hold the cord ends, in the valley between the wrap rings.
 
-**Power bank wrap v4 · Oct 5, 2026**
+**Power bank wrap v5 · Oct 5, 2026**
 
 ## Open the designer
 
@@ -20,15 +20,15 @@ An open-ended band the bank **slides into**. USB ports and LEDs stay out.
 
 - **Taper** (default **0.4 mm per side**) so it grips
 - **Two C-channels around the 68×16 perimeter** (rotated 90° vs v3)
-- **Two press-fit clips** on one long side, sized to a USB cable (~3.6 mm, mouth 0.4 mm undersized)
+- **Two elastic omega clips** on the underside, between the wrap rings (mouth ~58% of the cord)
 
 ## Print (Snapmaker Luban / PETG)
 
 1. Stand it on the **tight end**, hole pointing up. **No supports.**
 2. **PETG**, 0.4 mm nozzle, **0.2 mm** layers, **4 walls**, 20–25% infill.
-3. Slide the **10+ end in first**. Wind the cord around the band; snap both ends into the clips.
+3. Slide the **10+ end in first**. Wind the cord around the band; snap both ends into the bottom clips.
 
-Default outer size is **72.0 × 93.6 × 35.1 mm** (clips included) — fits A150 / A250 / A350.
+Default outer size is **72.0 × 87.2 × 35.1 mm** — fits A150 / A250 / A350.
 
 ## Rebuild
 
@@ -39,4 +39,4 @@ npm run build
 npm run export
 ```
 
-`app.bundle.js` and `power-bank-wrap-v4.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.
+`app.bundle.js` and `power-bank-wrap-v5.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.

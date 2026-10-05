@@ -150,40 +150,50 @@ function wrapBelts(Manifold, CrossSection, d, temps) {
   return unionAll(Manifold, belts, temps);
 }
 
-function cordClip(Manifold, d, x, segs, temps) {
-  const p = d.p;
-  const cordD = p.cordD;
-  const holeR = cordD / 2;
+/** Elastic omega snap on the underside, in the valley between wrap rings. */
+function cordClip(Manifold, d, y, segs, temps) {
+  const holeR = d.clipHoleR;
+  const outerR = d.clipOuterR;
   const grip = d.grip;
-  const wall = 1.5;
-  const depth = cordD + 3.4;
-  const len = cordD + 5.2;
-  const h = cordD + 3.8;
-  const y0 = d.outerW - 0.6;
-  const z0 = d.zMid - h / 2;
-  const body = Manifold.cube([len, depth, h], false).translate(x - len / 2, y0, z0);
-  temps.push(body);
-  const hole = Manifold.cylinder(len + 3, holeR, holeR, segs, false)
-    .rotate(0, 90, 0)
-    .translate(x - len / 2 - 1.5, y0 + depth - holeR - wall, d.zMid);
+  const len = d.clipLen;
+  const x = d.clipX;
+  const zHole = d.clipHoleZ;
+  const y0 = y - len / 2;
+  const outer = Manifold.cylinder(len, outerR, outerR, segs, false)
+    .rotate(90, 0, 0)
+    .translate(x, y0 + len, zHole);
+  temps.push(outer);
+  const hole = Manifold.cylinder(len + 3.2, holeR, holeR, segs, false)
+    .rotate(90, 0, 0)
+    .translate(x, y0 + len + 1.6, zHole);
   temps.push(hole);
-  const mouth = Manifold.cube([len + 3, depth, grip], false).translate(
-    x - len / 2 - 1.5,
-    y0 + depth - holeR - wall - grip / 2,
-    d.zMid - grip / 2
+  const mouthH = outerR + 2.2;
+  const mouth = Manifold.cube([grip, len + 3.2, mouthH], false).translate(
+    x - grip / 2,
+    y0 - 1.6,
+    zHole - outerR - 0.3
   );
   temps.push(mouth);
-  let clip = body.subtract(hole);
+  let clip = outer.subtract(hole);
   temps.push(clip);
   clip = clip.subtract(mouth);
+  temps.push(clip);
+  const padW = Math.min(d.clipWidth, outerR * 2);
+  const pad = Manifold.cube([padW, len, 2.2], false).translate(
+    x - padW / 2,
+    y0,
+    d.p.wrapStick - 0.5
+  );
+  temps.push(pad);
+  clip = clip.add(pad);
   temps.push(clip);
   return clip;
 }
 
 function cordClips(Manifold, d, segs, temps) {
   if (!d.p.clipOn) return null;
-  const a = cordClip(Manifold, d, d.beltMidA, segs, temps);
-  const b = cordClip(Manifold, d, d.beltMidB, segs, temps);
+  const a = cordClip(Manifold, d, d.clipY0, segs, temps);
+  const b = cordClip(Manifold, d, d.clipY1, segs, temps);
   return unionAll(Manifold, [a, b], temps);
 }
 
