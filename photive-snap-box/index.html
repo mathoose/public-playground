@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- build: photive-snap-box-v1 -->
+  <title>Photive snap box</title>
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --ink: #1c1917;
+      --muted: #78716c;
+      --accent: #0f766e;
+      --card: #fffcf7;
+      --line: #e4ddd3;
+      --bg: #efeae2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    main { max-width: 36rem; margin: 0 auto; padding: 40px 20px 64px; }
+    h1 { margin: 0 0 8px; letter-spacing: -0.04em; }
+    .lead { color: var(--muted); line-height: 1.5; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 28px; }
+    a.btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    a.btn.ghost { background: var(--card); color: var(--accent); border: 1px solid var(--line); }
+    h2 { font-size: 1.05rem; margin: 28px 0 8px; }
+    ul { margin: 0; padding-left: 1.2rem; color: var(--ink); line-height: 1.55; }
+    footer { margin-top: 40px; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Photive snap box</h1>
+    <p class="lead">Open tray + snap lid for the Photive 6-port USB brick. Cable-only holes in front; figure-8 cord slides into the rear U-slot, then the lid captures it.</p>
+    <p><img src="./iso.png" alt="Open snap-box tray" style="width:100%;border-radius:14px;border:1px solid var(--line);background:#2a2a2a;" /></p>
+    <div class="row">
+      <a class="btn" href="./photive-snap-box-base.stl" download>Download base STL</a>
+      <a class="btn ghost" href="./photive-snap-box-lid.stl" download>Download lid STL</a>
+    </div>
+    <h2>Luban / PETG</h2>
+    <ul>
+      <li><strong>Base:</strong> floor on the bed, open top up. No supports.</li>
+      <li><strong>Lid:</strong> pretty face on the bed, snap skirt up. No supports.</li>
+      <li><strong>PETG</strong>, 0.4 mm nozzle, 0.2 mm layers, <strong>4 walls</strong>, 20–25% infill.</li>
+    </ul>
+    <p class="lead" style="margin-top:18px">Source: <a href="./photive-snap-box.scad">photive-snap-box.scad</a> · notes in the <a href="./README.md">README</a>.</p>
+    <footer>Photive snap box v1 · Oct 5, 2026</footer>
+  </main>
+</body>
+</html>
