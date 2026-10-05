@@ -26,7 +26,7 @@ jobs:
       - name: Assemble 3D printing library
         run: |
           set -e
-          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box
+          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/power-bank-wrap
           cp 3d-printing/index.html 3d-printing/styles.css _site/
           # Apps
           tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
@@ -37,6 +37,8 @@ jobs:
             | tar -C _site/striped-frame -xf -
           tar -C photive-snap-box --exclude=node_modules -cf - . \
             | tar -C _site/photive-snap-box -xf -
+          tar -C power-bank-wrap --exclude=node_modules -cf - . \
+            | tar -C _site/power-bank-wrap -xf -
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

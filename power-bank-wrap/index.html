@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- build: power-bank-wrap-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Power bank wrap designer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
+        <h1>Power bank wrap</h1>
+      </div>
+      <p>v1 · Oct 5, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Preset</summary>
+        <div class="group-body">
+          <p class="group-note">Mattheus’s mint SYJ-F37F is 143 × 68 × 16 mm. J159 is the same shell (143.5 mm).</p>
+          <div class="seg">
+            <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
+            <button class="chip" type="button" data-preset="j159">HOCO J159</button>
+            <button class="chip" type="button" data-preset="loose">Loose fit</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Bank</summary>
+        <div class="group-body">
+          <div class="row">
+            <label for="bankL">Length (USB ↔ 10+)</label>
+            <output id="bankL-out"></output>
+            <input id="bankL" type="range" min="120" max="170" step="0.1" value="143" />
+          </div>
+          <div class="row">
+            <label for="bankW">Width</label>
+            <output id="bankW-out"></output>
+            <input id="bankW" type="range" min="50" max="90" step="0.1" value="68" />
+          </div>
+          <div class="row">
+            <label for="bankH">Thickness</label>
+            <output id="bankH-out"></output>
+            <input id="bankH" type="range" min="12" max="28" step="0.1" value="16" />
+          </div>
+          <div class="row">
+            <label for="bankR">Corner radius</label>
+            <output id="bankR-out"></output>
+            <input id="bankR" type="range" min="2" max="14" step="0.1" value="8" />
+          </div>
+          <div class="row">
+            <label for="clearXY">XY clearance</label>
+            <output id="clearXY-out"></output>
+            <input id="clearXY" type="range" min="0.15" max="1.2" step="0.05" value="0.45" />
+          </div>
+          <div class="row">
+            <label for="clearZ">Z clearance</label>
+            <output id="clearZ-out"></output>
+            <input id="clearZ" type="range" min="0.1" max="1.2" step="0.05" value="0.35" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Cutouts</summary>
+        <div class="group-body">
+          <p class="group-note">USB-A + USB-C PD window on the short end. Button and micro-USB on opposite long sides, near that end.</p>
+          <div class="row">
+            <label for="usbWindowW">USB window width</label>
+            <output id="usbWindowW-out"></output>
+            <input id="usbWindowW" type="range" min="36" max="72" step="0.5" value="58" />
+          </div>
+          <div class="row">
+            <label for="usbWindowH">USB window height</label>
+            <output id="usbWindowH-out"></output>
+            <input id="usbWindowH" type="range" min="7" max="16" step="0.1" value="11" />
+          </div>
+          <div class="row">
+            <label for="buttonFromUsb">Button from USB end</label>
+            <output id="buttonFromUsb-out"></output>
+            <input id="buttonFromUsb" type="range" min="10" max="50" step="0.5" value="22" />
+          </div>
+          <div class="row">
+            <label for="buttonW">Button hole length</label>
+            <output id="buttonW-out"></output>
+            <input id="buttonW" type="range" min="8" max="24" step="0.5" value="16" />
+          </div>
+          <div class="row">
+            <label for="buttonH">Button hole height</label>
+            <output id="buttonH-out"></output>
+            <input id="buttonH" type="range" min="6" max="14" step="0.1" value="10" />
+          </div>
+          <div class="row">
+            <label for="microFromUsb">Micro-USB from USB end</label>
+            <output id="microFromUsb-out"></output>
+            <input id="microFromUsb" type="range" min="10" max="50" step="0.5" value="22" />
+          </div>
+          <div class="row">
+            <label for="microW">Micro-USB hole length</label>
+            <output id="microW-out"></output>
+            <input id="microW" type="range" min="8" max="22" step="0.5" value="14" />
+          </div>
+          <div class="row">
+            <label for="microH">Micro-USB hole height</label>
+            <output id="microH-out"></output>
+            <input id="microH" type="range" min="5" max="14" step="0.1" value="9" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Wrap posts</summary>
+        <div class="group-body">
+          <p class="group-note">Two mushroom posts on a porch at the 10+ end. Figure-8 the phone cable, then clip the plug.</p>
+          <div class="row">
+            <label for="wrapDeck">Porch length</label>
+            <output id="wrapDeck-out"></output>
+            <input id="wrapDeck" type="range" min="28" max="80" step="0.5" value="50" />
+          </div>
+          <div class="row">
+            <label for="postSpacing">Post spacing</label>
+            <output id="postSpacing-out"></output>
+            <input id="postSpacing" type="range" min="22" max="58" step="0.5" value="38" />
+          </div>
+          <div class="row">
+            <label for="postStemD">Stem diameter</label>
+            <output id="postStemD-out"></output>
+            <input id="postStemD" type="range" min="5" max="12" step="0.1" value="8" />
+          </div>
+          <div class="row">
+            <label for="postHeadD">Head diameter</label>
+            <output id="postHeadD-out"></output>
+            <input id="postHeadD" type="range" min="8" max="20" step="0.1" value="14.5" />
+          </div>
+          <div class="row">
+            <label for="postH">Post height</label>
+            <output id="postH-out"></output>
+            <input id="postH" type="range" min="8" max="20" step="0.1" value="12" />
+          </div>
+          <div class="row">
+            <label for="postHeadH">Flare height</label>
+            <output id="postHeadH-out"></output>
+            <input id="postHeadH" type="range" min="2" max="6" step="0.1" value="3.4" />
+          </div>
+          <div class="row">
+            <label for="clipOn">Plug clip</label>
+            <output id="clipOn-out"></output>
+            <input id="clipOn" type="range" min="0" max="1" step="1" value="1" />
+          </div>
+          <div class="row">
+            <label for="clipW">Clip inner width</label>
+            <output id="clipW-out"></output>
+            <input id="clipW" type="range" min="10" max="18" step="0.1" value="13.2" />
+          </div>
+          <div class="row">
+            <label for="clipOpening">Clip opening</label>
+            <output id="clipOpening-out"></output>
+            <input id="clipOpening" type="range" min="3.5" max="8" step="0.1" value="5.8" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Shell</summary>
+        <div class="group-body">
+          <div class="row">
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out"></output>
+            <input id="wall" type="range" min="1.6" max="3.6" step="0.1" value="2" />
+          </div>
+          <div class="row">
+            <label for="floor">Floor thickness</label>
+            <output id="floor-out"></output>
+            <input id="floor" type="range" min="1.2" max="3.2" step="0.1" value="1.8" />
+          </div>
+          <div class="row">
+            <label for="lip">Rim lip</label>
+            <output id="lip-out"></output>
+            <input id="lip" type="range" min="0" max="1.8" step="0.05" value="0.9" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download this STL</button>
+            <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
+          </div>
+          <div class="ready">
+            <a href="power-bank-wrap-v1.stl" download>Print v1 default</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>floor on the bed, posts up</b>. No supports — post heads are 45° flares.
+            Mint face stays open (LEDs visible). USB window on the short end; button and micro-USB on the long sides.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Power bank wrap v1 · Oct 5, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
