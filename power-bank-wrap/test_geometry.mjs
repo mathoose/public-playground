@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import {
   DEFAULT_PARAMS,
-  PRESETS,
   applyPreset,
   applySliderChange,
   clampParams,
@@ -10,59 +9,51 @@ import {
 } from "./geometry.js";
 
 const d0 = derive();
-assert.ok(Math.abs(d0.p.bankL - 143) < 1e-6);
 assert.ok(Math.abs(d0.p.bankW - 68) < 1e-6);
 assert.ok(Math.abs(d0.p.bankH - 16) < 1e-6);
-assert.equal(d0.innerL.toFixed(2), "143.90");
-assert.equal(d0.innerW.toFixed(2), "68.90");
-assert.equal(d0.nestOuterL.toFixed(2), "147.90");
-assert.equal(d0.nestOuterW.toFixed(2), "72.90");
-assert.ok(d0.totalL > d0.nestOuterL + 40, `totalL ${d0.totalL}`);
-assert.ok(d0.storeX0 === d0.nestOuterL, `store after bank ${d0.storeX0} vs ${d0.nestOuterL}`);
-assert.ok(d0.deckX0 > d0.storeX0 + 40, `wrap after storage ${d0.deckX0}`);
-assert.ok(d0.storeBaseZ > d0.baseZ, `storage taller ${d0.storeBaseZ} vs ${d0.baseZ}`);
-assert.ok(d0.baseZ > 16 && d0.baseZ < 22, `baseZ ${d0.baseZ}`);
-assert.ok(d0.buttonX > d0.bankX0 + 15 && d0.buttonX < d0.bankX0 + 30);
-assert.ok(d0.postY1 - d0.postY0 > 30);
+assert.equal(d0.innerW0.toFixed(2), "68.80");
+assert.equal(d0.innerH0.toFixed(2), "16.70");
+assert.ok(d0.innerW1 < d0.innerW0, `taper W ${d0.innerW1} vs ${d0.innerW0}`);
+assert.ok(d0.innerH1 < d0.innerH0, `taper H ${d0.innerH1} vs ${d0.innerH0}`);
+assert.equal(d0.innerW1.toFixed(2), (68.8 - 0.8).toFixed(2));
+assert.equal(d0.p.taper, 0.4);
+assert.equal(d0.p.sleeveLen, 72);
+assert.ok(d0.outerW > d0.innerW0 + 2 * d0.p.wall);
+assert.ok(d0.wrapSpacing > 60);
+assert.ok(d0.bankX0 < 0, "USB end sticks out of the sleeve");
 
 const j159 = applyPreset("j159");
-assert.equal(j159.bankL, 143.5);
-const dJ = derive(j159);
-assert.ok(dJ.innerL > d0.innerL);
-
+assert.ok(j159.clearXY > DEFAULT_PARAMS.clearXY);
 const loose = applyPreset("loose");
-assert.ok(loose.clearXY > DEFAULT_PARAMS.clearXY);
+assert.ok(loose.clearXY > j159.clearXY);
 
-const grown = applySliderChange(DEFAULT_PARAMS, "wrapDeck", 60);
-assert.equal(grown.wrapDeck, 60);
+const grown = applySliderChange(DEFAULT_PARAMS, "sleeveLen", 100);
+assert.equal(grown.sleeveLen, 100);
 assert.ok(derive(grown).totalL > d0.totalL);
 
-const tight = warnings({ ...DEFAULT_PARAMS, lip: 1.6, clearXY: 0.2 });
-assert.ok(tight.some((n) => /lip|tight/i.test(n)));
-
 const same = clampParams(DEFAULT_PARAMS);
-assert.equal(same.usbWindowW, 62);
-assert.equal(same.storeL, 45);
-assert.equal(same.storeW, 40);
-assert.equal(same.storeH, 30);
-assert.equal(same.clipOn, 1);
+assert.equal(same.wrapStick, 9);
+assert.equal(same.slotOn, 1);
+
+const notes = warnings({ ...DEFAULT_PARAMS, taper: 0.05 });
+assert.ok(notes.some((n) => /taper/i.test(n)));
 
 let manifoldOk = false;
 try {
   const { buildCase, buildCaseStl, stlTriangleCount } = await import("./stl.js");
   const preview = await buildCase(DEFAULT_PARAMS, { quality: "preview" });
-  assert.ok(preview.volume > 8_000, `volume ${preview.volume}`);
-  assert.ok(preview.tris > 400, `tris ${preview.tris}`);
-  assert.equal(preview.d.nestOuterW.toFixed(2), d0.nestOuterW.toFixed(2));
+  assert.ok(preview.volume > 2_000, `volume ${preview.volume}`);
+  assert.ok(preview.tris > 200, `tris ${preview.tris}`);
+  assert.equal(preview.d.outerW.toFixed(2), d0.outerW.toFixed(2));
 
   const stl = await buildCaseStl(DEFAULT_PARAMS);
-  assert.ok(stlTriangleCount(stl.stl) > 400);
+  assert.ok(stlTriangleCount(stl.stl) > 200);
   assert.ok(stl.stl.byteLength > 84);
 
-  const grownStore = await buildCase(applySliderChange(DEFAULT_PARAMS, "storeL", 70), {
+  const wide = await buildCase(applySliderChange(DEFAULT_PARAMS, "wrapStick", 14), {
     quality: "preview",
   });
-  assert.ok(grownStore.d.totalL > d0.totalL);
+  assert.ok(wide.d.outerW > d0.outerW);
   manifoldOk = true;
 } catch (err) {
   if (String(err).includes("Cannot find package 'manifold-3d'")) {
@@ -73,5 +64,5 @@ try {
 }
 
 console.log(
-  `ok geometry defaults nest ${d0.nestOuterL.toFixed(1)}×${d0.nestOuterW.toFixed(1)}×${d0.baseZ.toFixed(1)} overall ${d0.totalL.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
+  `ok sleeve entry ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)} tight ${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.outerW.toFixed(1)}×${d0.outerH.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
 );

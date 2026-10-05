@@ -1,10 +1,18 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { manifoldMeshToPositions } from "./stl.js";
+import { manifoldMeshToPositions, parseBinaryStl } from "./stl.js";
 
 function geomFrom(mesh) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(manifoldMeshToPositions(mesh), 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function geomFromStl(buffer) {
+  const pos = parseBinaryStl(buffer);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.computeVertexNormals();
   return geo;
 }
@@ -23,7 +31,7 @@ export class CasePreview {
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
-    this.controls.target.set(90, 36, 12);
+    this.controls.target.set(40, 40, 12);
 
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.72));
     const key = new THREE.DirectionalLight(0xffffff, 1.05);
@@ -33,7 +41,7 @@ export class CasePreview {
     fill.position.set(80, 40, -20);
     this.scene.add(fill);
 
-    this.grid = new THREE.GridHelper(320, 32, 0xb0a89c, 0xc9c2b6);
+    this.grid = new THREE.GridHelper(280, 28, 0xb0a89c, 0xc9c2b6);
     this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
 
@@ -53,27 +61,31 @@ export class CasePreview {
       roughness: 0.28,
       metalness: 0.12,
     });
-    this.plugMat = new THREE.MeshStandardMaterial({
-      color: 0x44403c,
-      roughness: 0.45,
-      metalness: 0.08,
-    });
     this.portMat = new THREE.MeshStandardMaterial({
       color: 0x1c1917,
       roughness: 0.4,
       metalness: 0.1,
     });
+    this.refMat = new THREE.MeshStandardMaterial({
+      color: 0x5b7c99,
+      roughness: 0.48,
+      metalness: 0.08,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+    });
 
     this.caseMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.caseMat);
     this.bankMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.bankMat);
     this.glassMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.glassMat);
-    this.storeMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.plugMat);
     this.portGroup = new THREE.Group();
+    this.refMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.refMat);
+    this.refMesh.visible = false;
     this.scene.add(this.caseMesh);
     this.scene.add(this.bankMesh);
     this.scene.add(this.glassMesh);
-    this.scene.add(this.storeMesh);
     this.scene.add(this.portGroup);
+    this.scene.add(this.refMesh);
 
     this.fitted = false;
     this.running = true;
@@ -99,7 +111,7 @@ export class CasePreview {
     this.bankMesh.position.set(
       d.bankX0 + d.p.bankL / 2,
       d.bankY0 + d.p.bankW / 2,
-      d.p.floor + d.p.bankH / 2
+      d.bankZ0 + d.p.bankH / 2
     );
 
     this.glassMesh.geometry.dispose();
@@ -107,22 +119,7 @@ export class CasePreview {
     this.glassMesh.position.set(
       d.bankX0 + 16,
       d.bankY0 + d.p.bankW / 2,
-      d.p.floor + d.p.bankH + 0.15
-    );
-
-    const plugL = Math.min(32, d.p.storeL - 6);
-    const plugW = Math.min(28, d.p.storeW - 6);
-    const plugH = Math.min(28, d.p.storeH - 2);
-    this.storeMesh.geometry.dispose();
-    this.storeMesh.geometry = new THREE.BoxGeometry(
-      Math.max(1, plugL),
-      Math.max(1, plugW),
-      Math.max(1, plugH)
-    );
-    this.storeMesh.position.set(
-      d.storeX0 + d.p.storeL / 2,
-      d.storeY0 + d.p.storeW / 2,
-      d.p.floor + plugH / 2
+      d.bankZ0 + d.p.bankH + 0.15
     );
 
     while (this.portGroup.children.length) {
@@ -131,7 +128,7 @@ export class CasePreview {
       ch.geometry?.dispose();
     }
     const faceX = d.bankX0 - 0.2;
-    const faceZ = d.p.floor + d.p.bankH / 2;
+    const faceZ = d.bankZ0 + d.p.bankH / 2;
     const cyBank = d.bankY0 + d.p.bankW / 2;
     const ports = [
       { y: cyBank - 18, w: 12.2, h: 5.2 },
@@ -145,9 +142,46 @@ export class CasePreview {
       this.portGroup.add(m);
     }
 
-    this.grid.position.set(d.totalL / 2, d.nestOuterW / 2, -0.2);
+    this.grid.position.set(d.p.sleeveLen / 2, d.cy, -0.2);
     this.d = d;
+    this._placeReference();
     if (!this.fitted) this.fit();
+  }
+
+  async loadReference(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      const buf = await res.arrayBuffer();
+      this.refMesh.geometry.dispose();
+      this.refMesh.geometry = geomFromStl(buf);
+      this.refMesh.geometry.computeBoundingBox();
+      this.refReady = true;
+      this._placeReference();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  _placeReference() {
+    if (!this.refReady || !this.d) return;
+    const box = this.refMesh.geometry.boundingBox;
+    if (!box) return;
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    // Sit the Anker wrap beside our sleeve, both on Z=0, aligned along X.
+    this.refMesh.position.set(
+      this.d.p.sleeveLen / 2 - center.x,
+      this.d.outerW + 18 - box.min.y,
+      -box.min.z
+    );
+  }
+
+  showReference(on) {
+    this.refMesh.visible = !!on && this.refReady;
   }
 
   fit() {
@@ -158,22 +192,24 @@ export class CasePreview {
   setNamedView(name) {
     const d = this.d;
     if (!d) return;
-    const cy = d.nestOuterW / 2;
     this.camera.up.set(0, 0, 1);
-    if (name === "port") {
-      this.camera.position.set(-95, cy - 18, d.zMid + 22);
-      this.controls.target.set(d.p.wall + 8, cy, d.zMid);
+    this.showReference(name === "ref");
+    if (name === "side") {
+      this.camera.position.set(d.p.sleeveLen * 0.15, -d.outerW * 2.1, d.outerH * 0.7);
+      this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.outerH * 0.5);
     } else if (name === "wrap") {
-      this.camera.position.set(d.totalL + d.p.wrapDeck * 0.2 + 90, cy - 70, 70);
-      this.controls.target.set(d.deckMidX, cy, d.postTop * 0.45);
-    } else if (name === "store") {
-      this.camera.position.set(d.storeX0 - 40, cy - 95, d.storeBaseZ + 90);
-      this.controls.target.set(d.storeX0 + d.p.storeL / 2, cy, d.p.floor + d.p.storeH * 0.4);
+      this.camera.position.set(d.p.sleeveLen + 25, -70, d.outerH + 28);
+      this.controls.target.set(d.p.sleeveLen * 0.72, 2, d.outerH * 0.5);
+    } else if (name === "ref") {
+      const span = Math.max(d.p.sleeveLen, d.outerW + 80, 90);
+      const dist = span * 1.2;
+      this.camera.position.set(-dist * 0.35, -dist * 0.55, dist * 0.55);
+      this.controls.target.set(d.p.sleeveLen / 2, d.outerW * 0.7, d.outerH * 0.3);
     } else {
-      const span = Math.max(d.totalL, d.nestOuterW, d.outerH, 90);
-      const dist = span * 1.15;
-      this.camera.position.set(-dist * 0.42, -dist * 0.72, dist * 0.48);
-      this.controls.target.set(d.totalL / 2, cy, d.outerH * 0.28);
+      const span = Math.max(d.p.bankL, d.outerW, 110);
+      const dist = span * 1.05;
+      this.camera.position.set(-dist * 0.72, -dist * 0.62, dist * 0.38);
+      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.45, d.cy, d.outerH * 0.4);
     }
     this.controls.update();
   }

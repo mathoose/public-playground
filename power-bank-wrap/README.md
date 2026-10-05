@@ -1,8 +1,8 @@
 # Power bank wrap
 
-Live **open tray + charger pocket + figure-8 wrap posts** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm).
+Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Modeled on the Anker 733 cable wrap: two outer cord pockets, a tapered hole so it grips.
 
-**Power bank wrap v2 · Oct 5, 2026**
+**Power bank wrap v3 · Oct 5, 2026**
 
 ## Open the designer
 
@@ -12,24 +12,26 @@ jsDelivr serves HTML as text, so use **htmlpreview**:
 
 After merge: [designer on main](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/power-bank-wrap/index.html) · [files on GitHub](https://github.com/mathoose/public-playground/tree/main/power-bank-wrap)
 
-Phone-first: orbit the tray, drag sliders, **Download this STL**. Presets: **SYJ-F37F**, **HOCO J159**, **Loose fit**.
+Phone-first: orbit the sleeve, drag sliders, **Download this STL**. Presets: **SYJ-F37F**, **HOCO J159**, **Loose fit**.
 
 ## What it is
 
-Open tray on the mint face (LEDs stay visible).
+An open-ended band the bank **slides into**. USB ports and LEDs stay out the other end.
 
-- **Short USB end:** one rounded-rectangle window over USB-A + USB-C PD + USB-A
-- **Long sides:** power button and micro-USB cutouts
-- **Next to the bank:** storage well (default 45 × 40 × 30 mm) for a coiled ~1 m cable + compact 20 W USB-C wall plug
-- **Opposite short end:** figure-8 mushroom posts + plug clip, so the cable can reach the ports
+- **Inner width / sleeve length / thickness** are sliders
+- **Taper** (default **0.4 mm per side**): the far end of the hole is slightly smaller, so it slides on tight and stays put
+- **Two C-channel wrap pockets** on the long sides (figure-8 the cable)
+- Optional side slots so the power button and micro-USB aren’t covered if you lengthen the sleeve
+
+“Width and length to be blue” was treated as **adjustable sliders**, not a print color.
 
 ## Print (Snapmaker Luban / PETG)
 
-1. Floor on the bed, posts pointing up. **No supports** (heads are 45° flares).
+1. Stand it on the **tight end**, hole pointing up. **No supports.**
 2. **PETG**, 0.4 mm nozzle, **0.2 mm** layers, **4 walls**, 20–25% infill.
-3. Drop the bank mint-face up. Extra charger goes in the taller well.
+3. Slide the **10+ end in first**. USB / LEDs / button stay exposed.
 
-Default outer size is **242.9 × 72.9 × 31.8 mm** — fits Snapmaker A350 (320×350) and A250 if the long side is on the 250 mm axis. Does **not** fit A150 (160 mm square).
+Default outer size is **72.0 × 91.2 × 21.1 mm** — fits A150 / A250 / A350.
 
 ## Rebuild
 
@@ -40,4 +42,4 @@ npm run build
 npm run export
 ```
 
-`app.bundle.js` and `power-bank-wrap-v2.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.
+`app.bundle.js` and `power-bank-wrap-v3.stl` are committed so htmlpreview / Pages work without `npm install` on the phone.

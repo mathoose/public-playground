@@ -60,37 +60,21 @@ function extrudedRounded(CrossSection, sizeX, sizeY, h, r, temps) {
   return solid;
 }
 
-function placedRounded(CrossSection, sizeX, sizeY, h, r, ox, oy, oz, temps) {
-  const solid = extrudedRounded(CrossSection, sizeX, sizeY, h, r, temps);
-  const placed = solid.translate(ox + sizeX / 2, oy + sizeY / 2, oz);
-  temps.push(placed);
-  return placed;
+function alongX(solid, temps) {
+  const rot = solid.rotate(0, 90, 0);
+  temps.push(rot);
+  return rot;
 }
 
-function stadiumY(Manifold, w, h, len, segs, temps) {
-  const r = Math.min(w, h) / 2;
-  const extra = Math.max(0, Math.max(w, h) - 2 * r);
-  const alongW = w >= h;
-  const c1 = Manifold.cylinder(len, r, r, segs, false).rotate(90, 0, 0);
-  temps.push(c1);
-  if (extra < 0.05) return c1;
-  const dx = alongW ? extra / 2 : 0;
-  const dz = alongW ? 0 : extra / 2;
-  const a = c1.translate(-dx, 0, -dz);
-  temps.push(a);
-  const b = c1.translate(dx, 0, dz);
-  temps.push(b);
-  return hull2(Manifold, a, b, temps);
-}
-
-/** Rounded-rect prism extruded along +X, centered on YZ. */
-function roundedWindowX(CrossSection, w, h, r, len, temps) {
-  const cs = roundedRect(CrossSection, h, w, r, temps);
-  const prism = cs.extrude(len);
-  temps.push(prism);
-  const alongX = prism.rotate(0, 90, 0);
-  temps.push(alongX);
-  return alongX;
+function taperedRoundedX(Manifold, CrossSection, w0, h0, r0, w1, h1, r1, len, temps) {
+  const a = extrudedRounded(CrossSection, h0, w0, 0.55, r0, temps);
+  const b = extrudedRounded(CrossSection, h1, w1, 0.55, r1, temps);
+  const aX = alongX(a, temps);
+  const bX = alongX(b, temps).translate(len - 0.55, 0, 0);
+  temps.push(bX);
+  const hull = Manifold.hull([aX, bX]);
+  temps.push(hull);
+  return hull;
 }
 
 function assertOk(solid, label) {
@@ -107,228 +91,116 @@ function unionAll(Manifold, parts, temps) {
   return u;
 }
 
-function hull2(Manifold, a, b, temps) {
-  const h = Manifold.hull([a, b]);
-  temps.push(h);
-  return h;
+function wrapPockets(Manifold, d, temps) {
+  const p = d.p;
+  const len = p.wrapLen;
+  const x = d.wrapX0;
+  const stick = p.wrapStick;
+  const fl = p.wrapFlange;
+  const web = Math.min(1.8, stick * 0.28);
+  const overlap = 1.6;
+  const h = d.outerH;
+  const parts = [];
+
+  const leftBody = Manifold.cube([len, stick + overlap, h], false).translate(
+    x,
+    -0.02,
+    0
+  );
+  temps.push(leftBody);
+  const leftCh = Manifold.cube([len + 2, stick - web + 1.2, h - 2 * fl], false).translate(
+    x - 1,
+    -1.1,
+    fl
+  );
+  temps.push(leftCh);
+  const left = leftBody.subtract(leftCh);
+  temps.push(left);
+  parts.push(left);
+
+  const rightY = d.outerW - stick;
+  const rightBody = Manifold.cube([len, stick + overlap, h], false).translate(
+    x,
+    rightY - overlap,
+    0
+  );
+  temps.push(rightBody);
+  const rightCh = Manifold.cube([len + 2, stick - web + 1.2, h - 2 * fl], false).translate(
+    x - 1,
+    rightY + web - 0.1,
+    fl
+  );
+  temps.push(rightCh);
+  const right = rightBody.subtract(rightCh);
+  temps.push(right);
+  parts.push(right);
+
+  return unionAll(Manifold, parts, temps);
 }
 
-function wrapPost(Manifold, d, x, y, segs, temps) {
+function sideSlots(Manifold, d, temps) {
   const p = d.p;
-  const stemR = p.postStemD / 2;
-  const headR = p.postHeadD / 2;
-  const stem = Manifold.cylinder(d.stemH + 0.4, stemR, stemR, segs, false).translate(
+  if (!p.slotOn) return null;
+  const slotLen = Math.min(22, Math.max(10, p.sleeveLen * 0.28));
+  const x = (p.sleeveLen - slotLen) / 2;
+  const h = p.slotH;
+  const z = d.zMid - h / 2;
+  const thick = p.wall + 2.4;
+  const left = Manifold.cube([slotLen, thick, h], false).translate(
     x,
-    y,
-    d.p.floor - 0.2
+    p.wrapStick - 0.6,
+    z
   );
-  temps.push(stem);
-  const flare = Manifold.cylinder(d.flareH, stemR, headR, segs, false).translate(
+  temps.push(left);
+  const right = Manifold.cube([slotLen, thick, h], false).translate(
     x,
-    y,
-    d.p.floor + d.stemH
+    d.outerW - p.wrapStick - p.wall - 1.8,
+    z
   );
-  temps.push(flare);
-  return unionAll(Manifold, [stem, flare], temps);
-}
-
-function plugClip(Manifold, d, segs, temps) {
-  const p = d.p;
-  const wall = 1.8;
-  const ox = d.deckX0 + p.wrapDeck - p.clipDepth - 1.2;
-  const oy = d.nestOuterW / 2 - (p.clipW + 2 * wall) / 2;
-  const outerH = p.clipOpening + 2.4;
-  const body = Manifold.cube([p.clipDepth + 1.2, p.clipW + 2 * wall, outerH], false).translate(
-    ox,
-    oy,
-    d.p.floor
-  );
-  temps.push(body);
-  const slot = Manifold.cube([p.clipDepth + 4, p.clipW, p.clipOpening], false).translate(
-    ox + 1.4,
-    oy + wall,
-    d.p.floor + 1.1
-  );
-  temps.push(slot);
-  const mouth = Manifold.cube([3.2, p.clipW + 0.6, p.clipOpening + 0.4], false).translate(
-    ox + p.clipDepth - 0.6,
-    oy + wall - 0.3,
-    d.p.floor + 0.9
-  );
-  temps.push(mouth);
-  let clip = body.subtract(slot);
-  temps.push(clip);
-  clip = clip.subtract(mouth);
-  temps.push(clip);
-  const keepFloor = Manifold.cube([p.clipDepth + 1.2, p.clipW + 2 * wall, 1.1], false).translate(
-    ox,
-    oy,
-    d.p.floor
-  );
-  temps.push(keepFloor);
-  clip = clip.add(keepFloor);
-  temps.push(clip);
-  return clip;
+  temps.push(right);
+  return unionAll(Manifold, [left, right], temps);
 }
 
 export function buildCaseSolid(wasm, raw, temps, segs) {
   const { Manifold, CrossSection } = wasm;
+  if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(segs);
   const d = derive(raw);
   const p = d.p;
 
-  const bankOuter = placedRounded(
+  const outer = extrudedRounded(CrossSection, d.outerH, d.bodyW, p.sleeveLen, d.outerR, temps);
+  const outerX = alongX(outer, temps).translate(0, d.cy, d.outerH / 2);
+  temps.push(outerX);
+
+  const inner = taperedRoundedX(
+    Manifold,
     CrossSection,
-    d.nestOuterL,
-    d.nestOuterW,
-    d.baseZ,
-    d.outerR,
-    0,
-    0,
-    0,
+    d.innerW0,
+    d.innerH0,
+    d.innerR0,
+    d.innerW1,
+    d.innerH1,
+    d.innerR1,
+    p.sleeveLen + 2.4,
     temps
-  );
-  const storeOuter = placedRounded(
-    CrossSection,
-    p.storeL + p.wall + 2.2,
-    d.nestOuterW,
-    d.storeBaseZ,
-    Math.min(d.outerR, 7),
-    d.storeX0 - 2.2,
-    0,
-    0,
-    temps
-  );
-  let solid = bankOuter.add(storeOuter);
+  ).translate(-1.2, d.cy, d.outerH / 2);
+  temps.push(inner);
+
+  let solid = outerX.subtract(inner);
   temps.push(solid);
 
-  const bankCavity = placedRounded(
-    CrossSection,
-    d.innerL,
-    d.innerW,
-    d.cavityZ + 6,
-    d.innerR,
-    p.wall,
-    p.wall,
-    p.floor,
-    temps
-  );
-  solid = solid.subtract(bankCavity);
-  temps.push(solid);
-
-  const storeCavity = placedRounded(
-    CrossSection,
-    p.storeL,
-    p.storeW,
-    d.storeCavityZ + 6,
-    Math.min(4, p.storeW / 4),
-    d.storeX0,
-    d.storeY0,
-    p.floor,
-    temps
-  );
-  solid = solid.subtract(storeCavity);
-  temps.push(solid);
-
-  const deck = placedRounded(
-    CrossSection,
-    p.wrapDeck + 2.4,
-    d.nestOuterW,
-    p.floor,
-    Math.min(d.outerR, 6),
-    d.deckX0 - 2.4,
-    0,
-    0,
-    temps
-  );
-  solid = solid.add(deck);
-  temps.push(solid);
-
-  if (p.lip >= 0.15) {
-    const lipH = Math.max(0.8, p.lip);
-    const ring = placedRounded(
-      CrossSection,
-      d.innerL,
-      d.innerW,
-      lipH,
-      d.innerR,
-      p.wall,
-      p.wall,
-      d.baseZ - lipH,
-      temps
-    );
-    const hole = placedRounded(
-      CrossSection,
-      Math.max(8, d.innerL - 2 * p.lip),
-      Math.max(8, d.innerW - 2 * p.lip),
-      lipH + 0.8,
-      Math.max(0.4, d.innerR - p.lip),
-      p.wall + p.lip,
-      p.wall + p.lip,
-      d.baseZ - lipH - 0.2,
-      temps
-    );
-    let lip = ring.subtract(hole);
-    temps.push(lip);
-    const usbClear = Manifold.cube([p.wall + p.lip * 2 + 8, d.innerW + 4, lipH + 2], false).translate(
-      -2,
-      p.wall - 2,
-      d.baseZ - lipH - 0.6
-    );
-    temps.push(usbClear);
-    lip = lip.subtract(usbClear);
-    temps.push(lip);
-    solid = solid.add(lip);
+  const pockets = wrapPockets(Manifold, d, temps);
+  if (pockets) {
+    solid = solid.add(pockets);
     temps.push(solid);
   }
 
-  const cutters = [];
-  const usb = roundedWindowX(
-    CrossSection,
-    p.usbWindowW,
-    p.usbWindowH,
-    p.usbWindowR,
-    p.wall + 6,
-    temps
-  ).translate(-2.4, d.nestOuterW / 2, d.zMid);
-  temps.push(usb);
-  cutters.push(usb);
-
-  const btn = stadiumY(Manifold, p.buttonW, p.buttonH, p.wall + 5, segs, temps).translate(
-    d.buttonX,
-    -2,
-    d.zMid
-  );
-  temps.push(btn);
-  cutters.push(btn);
-
-  const micro = stadiumY(Manifold, p.microW, p.microH, p.wall + 5, segs, temps).translate(
-    d.microX,
-    d.nestOuterW - p.wall - 3,
-    d.zMid
-  );
-  temps.push(micro);
-  cutters.push(micro);
-
-  const cutter = unionAll(Manifold, cutters, temps);
-  if (cutter) {
-    solid = solid.subtract(cutter);
+  const slots = sideSlots(Manifold, d, temps);
+  if (slots) {
+    solid = solid.subtract(slots);
     temps.push(solid);
   }
 
-  const postA = wrapPost(Manifold, d, d.deckMidX, d.postY0, segs, temps);
-  const postB = wrapPost(Manifold, d, d.deckMidX, d.postY1, segs, temps);
-  solid = solid.add(postA);
-  temps.push(solid);
-  solid = solid.add(postB);
-  temps.push(solid);
-
-  if (p.clipOn) {
-    const clip = plugClip(Manifold, d, segs, temps);
-    solid = solid.add(clip);
-    temps.push(solid);
-  }
-
-  return assertOk(solid, "case");
+  return assertOk(solid, "sleeve");
 }
 
 export async function buildCase(raw, { quality = "preview" } = {}) {
@@ -431,6 +303,23 @@ export function manifoldMeshToPositions(mesh) {
     pos[i++] = vertProperties[v];
     pos[i++] = vertProperties[v + 1];
     pos[i++] = vertProperties[v + 2];
+  }
+  return pos;
+}
+
+export function parseBinaryStl(buffer) {
+  const view = new DataView(buffer);
+  const triCount = view.getUint32(80, true);
+  const pos = new Float32Array(triCount * 9);
+  let o = 84;
+  let i = 0;
+  for (let t = 0; t < triCount; t++) {
+    o += 12;
+    for (let k = 0; k < 9; k++) {
+      pos[i++] = view.getFloat32(o, true);
+      o += 4;
+    }
+    o += 2;
   }
   return pos;
 }
