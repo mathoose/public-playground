@@ -12,8 +12,10 @@ Browser apps for parts you can customize and download as STL.
 | [`../postit-wall-clip/`](../postit-wall-clip/) | Post-it wall clip |
 | [`../striped-frame/`](../striped-frame/) | Striped photo frame (path stripes) |
 | [`../photive-snap-box/`](../photive-snap-box/) | Photive USB snap box (live tray + lid designer) |
+| [`../henson-razor-tool/`](../henson-razor-tool/) | Henson AL13 / Ti22 blade-change cradle + handle grip |
+| [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F slide-on sleeve, wrap around the band, elastic clips on the back |
 
-On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, and `/photive-snap-box/`.
+On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, and `/power-bank-wrap/`.
 
 ## Add another app
 
