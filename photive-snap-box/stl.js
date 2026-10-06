@@ -145,20 +145,17 @@ export function buildBaseSolid(wasm, raw, temps, segs) {
   temps.push(slot);
   cutters.push(slot);
 
+  // Snap grooves on the OUTER faces of the long walls (the lid skirt wraps outside).
   const xs = [d.outerL * 0.28, d.outerL * 0.72];
-  const pz = d.baseZ - p.beadDrop;
+  const pz = d.baseZ - d.beadDrop;
   const pw = p.beadLen + 1.2;
   const ph = p.beadR * 2 + 1.0;
-  const pd = p.beadR + p.lipClear + p.pocketExtra + 0.15;
+  const gd = d.grooveDepth;
   for (const px of xs) {
-    const a = Manifold.cube([pw, pd + 0.25, ph], false).translate(px - pw / 2, d.wall - pd, pz - ph / 2);
+    const a = Manifold.cube([pw, gd + 0.5, ph], false).translate(px - pw / 2, -0.5, pz - ph / 2);
     temps.push(a);
     cutters.push(a);
-    const b = Manifold.cube([pw, pd + 0.25, ph], false).translate(
-      px - pw / 2,
-      d.outerW - d.wall - 0.25,
-      pz - ph / 2
-    );
+    const b = Manifold.cube([pw, gd + 0.5, ph], false).translate(px - pw / 2, d.outerW - gd, pz - ph / 2);
     temps.push(b);
     cutters.push(b);
   }
@@ -207,71 +204,74 @@ export function buildLidSolid(wasm, raw, temps, segs) {
   const { Manifold, CrossSection } = wasm;
   const d = derive(raw);
   const p = d.p;
+  const off = -d.lidOff;
+  const skirtTop = p.lidThickness + p.lipDepth;
 
-  const plate = placedRounded(
-    CrossSection,
-    d.outerL,
-    d.outerW,
-    p.lidThickness,
-    d.outerR,
-    0,
-    0,
-    0,
-    temps
-  );
-
-  const ox = d.skirtOx;
-  const oy = d.skirtOy;
+  const plate = placedRounded(CrossSection, d.lidL, d.lidW, p.lidThickness, d.lidR, off, off, 0, temps);
   const skirtOuter = placedRounded(
     CrossSection,
-    ox,
-    oy,
-    p.lipDepth,
-    Math.max(0.6, d.innerR - p.lipClear),
-    (d.outerL - ox) / 2,
-    (d.outerW - oy) / 2,
-    p.lidThickness,
+    d.lidL,
+    d.lidW,
+    p.lipDepth + 0.2,
+    d.lidR,
+    off,
+    off,
+    p.lidThickness - 0.2,
     temps
   );
-  const ix = ox - 2 * p.lipThick;
-  const iy = oy - 2 * p.lipThick;
   const skirtInner = placedRounded(
     CrossSection,
-    ix,
-    iy,
-    p.lipDepth + 0.6,
-    Math.max(0.4, d.innerR - p.lipClear - p.lipThick),
-    (d.outerL - ix) / 2,
-    (d.outerW - iy) / 2,
-    p.lidThickness - 0.2,
+    d.skirtInL,
+    d.skirtInW,
+    p.lipDepth + 1,
+    d.skirtInR,
+    -p.lipClear,
+    -p.lipClear,
+    p.lidThickness,
     temps
   );
   let skirt = skirtOuter.subtract(skirtInner);
   temps.push(skirt);
-  const gap = Manifold.cube([d.wall * 2 + 4, p.c8HoleD + 1.2, p.lipDepth + 2], true).translate(
-    d.outerL / 2 + ox / 2 - d.wall,
-    d.outerW / 2,
-    p.lidThickness + p.lipDepth / 2
+
+  // Lead-in chamfer on the skirt mouth so it self-centres over the rim.
+  const lead = Math.min(0.6, p.lipThick * 0.4);
+  const leadLo = placedRounded(
+    CrossSection,
+    d.skirtInL,
+    d.skirtInW,
+    0.02,
+    d.skirtInR,
+    -p.lipClear,
+    -p.lipClear,
+    skirtTop - lead,
+    temps
   );
-  temps.push(gap);
-  skirt = skirt.subtract(gap);
+  const leadHi = placedRounded(
+    CrossSection,
+    d.skirtInL + 2 * lead,
+    d.skirtInW + 2 * lead,
+    0.02,
+    d.skirtInR + lead,
+    -p.lipClear - lead,
+    -p.lipClear - lead,
+    skirtTop + 0.01,
+    temps
+  );
+  skirt = skirt.subtract(hull2(Manifold, leadLo, leadHi, temps));
   temps.push(skirt);
 
   const beads = [];
   const beadXs = [d.outerL * 0.28, d.outerL * 0.72];
-  const oz = p.lidThickness + p.beadDrop;
-  const oyOut = (d.innerW - 2 * p.lipClear) / 2;
+  const oz = p.lidThickness + d.beadDrop;
   for (const px of beadXs) {
-    for (const side of [-1, 1]) {
+    for (const by of [-p.lipClear, d.outerW + p.lipClear]) {
       const s0 = Manifold.sphere(p.beadR, segs);
       temps.push(s0);
-      const s1 = s0.translate(0, 0, -p.beadLen / 2 + p.beadR);
+      const s1 = s0.translate(-p.beadLen / 2 + p.beadR, 0, 0);
       temps.push(s1);
-      const s2 = s0.translate(0, 0, p.beadLen / 2 - p.beadR);
+      const s2 = s0.translate(p.beadLen / 2 - p.beadR, 0, 0);
       temps.push(s2);
-      const hull = hull2(Manifold, s1, s2, temps).rotate(0, 90, 0);
-      temps.push(hull);
-      const placed = hull.translate(px, d.outerW / 2 + side * oyOut, oz);
+      const placed = hull2(Manifold, s1, s2, temps).translate(px, by, oz);
       temps.push(placed);
       beads.push(placed);
     }
@@ -301,11 +301,13 @@ export function buildLidSolid(wasm, raw, temps, segs) {
   solid = solid.add(keeper);
   temps.push(solid);
 
+  // Thumb scallops in the skirt mouth, middle of each long side.
   const nicks = [];
-  for (const y of [0, d.outerW]) {
-    const nick = Manifold.cylinder(20, p.lidNickD / 2, p.lidNickD / 2, segs, true)
-      .rotate(0, 90, 0)
-      .translate(d.outerL / 2, y, p.lidThickness / 2);
+  const nz = skirtTop + p.lidNickR - p.lidNickDepth;
+  for (const y of [-d.lidOff + p.lipThick / 2, d.outerW + d.lidOff - p.lipThick / 2]) {
+    const nick = Manifold.cylinder(p.lipThick + 2, p.lidNickR, p.lidNickR, segs, true)
+      .rotate(90, 0, 0)
+      .translate(d.outerL / 2, y, nz);
     temps.push(nick);
     nicks.push(nick);
   }
@@ -317,17 +319,70 @@ export function buildLidSolid(wasm, raw, temps, segs) {
   return assertOk(solid, "lid");
 }
 
+/**
+ * USB spacer comb. Drops in over the cables against the front wall; each tooth fills the gap
+ * between the wall and that port's plug body. Local coords match derive(): x from the front
+ * wall's inner face, y from the side wall, z from the floor (print as-is, no supports).
+ */
+export function buildSpacerSolid(wasm, raw, temps, segs) {
+  const { Manifold, CrossSection } = wasm;
+  const d = derive(raw);
+  const p = d.p;
+  const c = p.spacerFit;
+  const W = d.innerW;
+  const H = d.spacerH;
+
+  const parts = [Manifold.cube([p.spacerSpine, W, H], false)];
+  if (d.stopH > 0) parts.push(Manifold.cube([d.stopDepth, W, d.stopH], false));
+  for (const t of d.teeth) {
+    parts.push(Manifold.cube([t.depth, d.toothW, H], false).translate(0, t.y - d.toothW / 2, 0));
+  }
+  temps.push(...parts);
+  let solid = unionAll(Manifold, parts, temps);
+
+  const clip = placedRounded(CrossSection, d.innerL, W - 2 * c, H, d.innerR, 0, c, 0, temps);
+  solid = solid.intersect(clip);
+  temps.push(solid);
+
+  const slots = [];
+  const len = d.stopDepth + 2;
+  for (const t of d.teeth) {
+    const round = Manifold.cylinder(len, d.slotR, d.slotR, segs, false)
+      .rotate(0, 90, 0)
+      .translate(-1, t.y, d.usbZc);
+    temps.push(round);
+    const up = Manifold.cube([len, 2 * d.slotR, H - d.usbZc + 1], false).translate(-1, t.y - d.slotR, d.usbZc);
+    temps.push(up);
+    slots.push(round, up);
+  }
+  const notch = Manifold.cube([p.spacerSpine + 2, 3, 3], false).translate(-1, c - 0.5, H - 2.5);
+  temps.push(notch);
+  slots.push(notch);
+  const slotU = unionAll(Manifold, slots, temps);
+  if (slotU) {
+    solid = solid.subtract(slotU);
+    temps.push(solid);
+  }
+  return assertOk(solid, "spacer");
+}
+
 export function lidToPreview(solid, d, gap = 12, temps = []) {
   const a = solid.translate(0, -d.outerW, 0);
   temps.push(a);
   const b = a.rotate(180, 0, 0);
   temps.push(b);
-  const c = b.translate(0, 0, d.p.lidThickness + d.baseZ + d.p.lidThickness + gap);
+  const c = b.translate(0, 0, d.baseZ + d.p.lidThickness + gap);
   temps.push(c);
   return c;
 }
 
-export async function buildBox(raw, { quality = "preview", previewLid = true } = {}) {
+export function spacerToBase(solid, d, temps = []) {
+  const placed = solid.translate(d.wall, d.wall, d.floor);
+  temps.push(placed);
+  return placed;
+}
+
+export async function buildBox(raw, { quality = "preview", previewLid = true, lidGap = 12 } = {}) {
   const wasm = await loadManifold();
   const segs = quality === "export" ? 32 : 20;
   if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(segs);
@@ -336,35 +391,46 @@ export async function buildBox(raw, { quality = "preview", previewLid = true } =
   try {
     const base = buildBaseSolid(wasm, raw, temps, segs);
     const lidPrint = buildLidSolid(wasm, raw, temps, segs);
-    const lid = previewLid ? lidToPreview(lidPrint, d, 12, temps) : lidPrint;
+    const spacerPrint = buildSpacerSolid(wasm, raw, temps, segs);
+    const lid = previewLid ? lidToPreview(lidPrint, d, lidGap, temps) : lidPrint;
+    const spacer = spacerToBase(spacerPrint, d, temps);
     const baseMesh = base.getMesh();
     const lidMesh = lid.getMesh();
-    const baseVol = base.volume();
-    const lidVol = lidPrint.volume();
+    const spacerMesh = spacer.getMesh();
     return {
       d,
       baseMesh,
       lidMesh,
-      baseVolume: baseVol,
-      lidVolume: lidVol,
+      spacerMesh,
+      baseVolume: base.volume(),
+      lidVolume: lidPrint.volume(),
+      spacerVolume: spacerPrint.volume(),
       baseTris: (baseMesh.triVerts.length || 0) / 3,
       lidTris: (lidMesh.triVerts.length || 0) / 3,
+      spacerTris: (spacerMesh.triVerts.length || 0) / 3,
     };
   } finally {
     deleteAll(temps);
   }
 }
 
+const PART_NAMES = {
+  base: "photive-snap-box-base",
+  lid: "photive-snap-box-lid",
+  spacer: "photive-snap-box-usb-spacer",
+};
+
 export async function buildPartStl(raw, part) {
   const wasm = await loadManifold();
   if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(32);
   const temps = [];
   try {
-    const solid =
-      part === "lid" ? buildLidSolid(wasm, raw, temps, 32) : buildBaseSolid(wasm, raw, temps, 32);
+    const build =
+      part === "lid" ? buildLidSolid : part === "spacer" ? buildSpacerSolid : buildBaseSolid;
+    const solid = build(wasm, raw, temps, 32);
     const mesh = solid.getMesh();
     const volume = solid.volume();
-    const name = part === "lid" ? "photive-snap-box-lid" : "photive-snap-box-base";
+    const name = PART_NAMES[part] || PART_NAMES.base;
     return { stl: meshToStl(mesh, name), volume, mesh, d: derive(raw) };
   } finally {
     deleteAll(temps);
@@ -420,7 +486,7 @@ export function meshToStl(mesh, name = "mesh") {
     view.setFloat32(o + 36, cx, true);
     view.setFloat32(o + 40, cy, true);
     view.setFloat32(o + 44, cz, true);
-    view.setUint16(o, 0, true);
+    view.setUint16(o + 48, 0, true);
     o += 50;
   }
   return buf;

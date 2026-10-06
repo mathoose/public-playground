@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<!-- build: henson-razor-tool-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Henson razor tool designer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/3d-printing/index.html">← 3D printing library</a>
+        <h1>Henson razor tool</h1>
+      </div>
+      <p>v1 · Oct 5, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Fit</summary>
+        <div class="group-body">
+          <p class="group-note">Clearance is added on every side of the head. Raise it if the head will not drop in; lower it if it rocks.</p>
+          <div class="row">
+            <label for="clearance">Fit clearance (per side)</label>
+            <output id="clearance-out"></output>
+            <input id="clearance" type="range" min="0.05" max="0.8" step="0.05" value="0.3" />
+          </div>
+          <div class="row">
+            <label for="bladeRelief">Blade-edge relief (per side)</label>
+            <output id="bladeRelief-out"></output>
+            <input id="bladeRelief" type="range" min="0.5" max="3" step="0.1" value="1.5" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Razor head</summary>
+        <div class="group-body">
+          <p class="group-note">Henson AL13 / Ti22 defaults (same head). Caliper your head and adjust — the cap sits face-down in the pocket.</p>
+          <div class="row">
+            <label for="headLength">Head length (end to end)</label>
+            <output id="headLength-out"></output>
+            <input id="headLength" type="range" min="38" max="50" step="0.1" value="43.0" />
+          </div>
+          <div class="row">
+            <label for="headWidth">Head width at blade line</label>
+            <output id="headWidth-out"></output>
+            <input id="headWidth" type="range" min="20" max="28" step="0.1" value="23.5" />
+          </div>
+          <div class="row">
+            <label for="capTopWidth">Cap top width</label>
+            <output id="capTopWidth-out"></output>
+            <input id="capTopWidth" type="range" min="12" max="26" step="0.1" value="17.5" />
+          </div>
+          <div class="row">
+            <label for="capDepth">Cap grip depth</label>
+            <output id="capDepth-out"></output>
+            <input id="capDepth" type="range" min="2" max="7" step="0.1" value="4.0" />
+          </div>
+          <div class="row">
+            <label for="headCornerR">Head corner radius</label>
+            <output id="headCornerR-out"></output>
+            <input id="headCornerR" type="range" min="0.5" max="6" step="0.1" value="3.0" />
+          </div>
+          <div class="row">
+            <label for="upperDepth">Relief tier height</label>
+            <output id="upperDepth-out"></output>
+            <input id="upperDepth" type="range" min="2" max="10" step="0.1" value="5.5" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Cradle</summary>
+        <div class="group-body">
+          <p class="group-note">Knurled puck you hold (or set on the counter) while you twist the handle.</p>
+          <div class="row">
+            <label for="puckD">Cradle diameter</label>
+            <output id="puckD-out"></output>
+            <input id="puckD" type="range" min="52" max="90" step="1" value="62" />
+          </div>
+          <div class="row">
+            <label for="floor">Floor thickness</label>
+            <output id="floor-out"></output>
+            <input id="floor" type="range" min="1.6" max="5" step="0.1" value="2.4" />
+          </div>
+          <div class="row">
+            <label for="pushHoleD">Push-out hole</label>
+            <output id="pushHoleD-out"></output>
+            <input id="pushHoleD" type="range" min="0" max="18" step="0.5" value="12" />
+          </div>
+          <div class="row">
+            <label for="gripRibs">Grip ribs</label>
+            <output id="gripRibs-out"></output>
+            <input id="gripRibs" type="range" min="0" max="36" step="1" value="20" />
+          </div>
+          <div class="row">
+            <label for="ribDepth">Rib depth</label>
+            <output id="ribDepth-out"></output>
+            <input id="ribDepth" type="range" min="0" max="2.5" step="0.1" value="1.2" />
+          </div>
+          <div class="row">
+            <label for="edgeRound">Edge round</label>
+            <output id="edgeRound-out"></output>
+            <input id="edgeRound" type="range" min="0" max="3" step="0.1" value="1.5" />
+          </div>
+          <div class="row">
+            <label for="notchW">Finger notch width</label>
+            <output id="notchW-out"></output>
+            <input id="notchW" type="range" min="0" max="20" step="0.5" value="14" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Handle grip</summary>
+        <div class="group-body">
+          <p class="group-note">Optional fluted sleeve that stays on the handle. With the head off, slide it on from the threaded end and push toward the tail; the bore follows the handle taper so it wedges tight near the tail.</p>
+          <div class="row">
+            <label for="handleTailD">Handle Ø at tail</label>
+            <output id="handleTailD-out"></output>
+            <input id="handleTailD" type="range" min="10" max="15" step="0.05" value="12.25" />
+          </div>
+          <div class="row">
+            <label for="handleHeadD">Handle Ø near head</label>
+            <output id="handleHeadD-out"></output>
+            <input id="handleHeadD" type="range" min="8" max="13" step="0.05" value="9.75" />
+          </div>
+          <div class="row">
+            <label for="gripLen">Grip length</label>
+            <output id="gripLen-out"></output>
+            <input id="gripLen" type="range" min="20" max="70" step="1" value="40" />
+          </div>
+          <div class="row">
+            <label for="gripOD">Grip outer Ø</label>
+            <output id="gripOD-out"></output>
+            <input id="gripOD" type="range" min="18" max="34" step="0.5" value="24" />
+          </div>
+          <div class="row">
+            <label for="gripClear">Bore clearance (per side)</label>
+            <output id="gripClear-out"></output>
+            <input id="gripClear" type="range" min="0" max="0.8" step="0.05" value="0.1" />
+          </div>
+          <div class="row">
+            <label for="gripFlutes">Grip flutes</label>
+            <output id="gripFlutes-out"></output>
+            <input id="gripFlutes" type="range" min="0" max="16" step="1" value="10" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>How to use</summary>
+        <div class="group-body">
+          <ol class="steps">
+            <li>Drop the razor <b>head-first, cap down</b> into the cradle so the handle points up. The cap’s narrow top face goes to the bottom of the pocket.</li>
+            <li>Hold the knurled cradle (or set it on the counter) and turn the <b>handle counter-clockwise</b> (lefty-loosey, looking down at the handle tail). The optional grip sleeve gives wet hands more purchase.</li>
+            <li>Lift the handle out — the baseplate comes with it or lifts off. The cap stays in the pocket <b>blade-up</b>; the blade edges sit in the relief gap, away from plastic and fingers.</li>
+            <li>Take the old blade off by its <b>short ends only</b> (use the finger notches). Push the cap up through the bottom hole if it sticks.</li>
+            <li>Lay the new blade on the cap tabs, put the baseplate back (bushing up), thread the handle <b>clockwise</b> until finger-tight.</li>
+          </ol>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="seg">
+            <button class="chip active" type="button" data-part="both">Both</button>
+            <button class="chip" type="button" data-part="cradle">Cradle</button>
+            <button class="chip" type="button" data-part="grip">Grip</button>
+            <button class="chip active" type="button" id="razorToggle">Show razor</button>
+          </div>
+          <div class="actions">
+            <button type="button" class="wide" id="dlCradle">Download cradle STL</button>
+            <button type="button" class="wide" id="dlGrip">Download grip STL</button>
+            <button type="button" class="secondary" id="reset">Reset Henson</button>
+          </div>
+          <div class="ready">
+            <a href="henson-head-cradle-v1.stl" download>Print v1 cradle</a>
+            <a href="henson-handle-grip-v1.stl" download>Print v1 grip</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>PETG</b> (or PLA), 0.2 mm layers, 3–4 walls, <b>no supports</b>.
+            <b>Cradle:</b> flat bottom on the bed, pocket up.
+            <b>Grip:</b> stand it up, wide (tail) end on the bed.
+            Red = blade, grey = razor stand-in (preview only).
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Henson razor tool v1 · Oct 5, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
