@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: project-hub-v1 -->
+<!-- build: project-hub-v2 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -122,6 +122,14 @@
     footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 0 30px; }
     .sp { height: 8px; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    a.drive-card {
+      display: block; text-decoration: none; color: inherit; margin-bottom: 10px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--card)), var(--card));
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+    }
+    a.drive-card .drive-title { font-weight: 700; font-size: 16px; margin: 0 0 4px; }
+    a.drive-card .drive-sub { font-size: 13px; color: var(--muted); margin: 0; }
+    a.drive-card .drive-cta { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 650; color: var(--accent); }
   </style>
 </head>
 <body>
@@ -143,6 +151,12 @@
     <!-- FEED -->
     <section class="view on" id="v-feed">
       <div id="feedBanner"></div>
+
+      <a class="card drive-card" id="driveBriefingCard" href="../drive-briefing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/drive-briefing/index.html">
+        <div class="drive-title">🎧 Drive briefing</div>
+        <p class="drive-sub">Latest project audio for the car — tap to open the player (Oct 6, 2026).</p>
+        <span class="drive-cta">Play briefing ↗</span>
+      </a>
 
       <details class="box" id="addNoteBox">
         <summary>＋ Log an update / note</summary>
@@ -328,7 +342,7 @@
   <script>
   (function () {
     "use strict";
-    const APP_VERSION = "1 · Oct 5, 2026";
+    const APP_VERSION = "2 · Oct 6, 2026";
     const LS_KEY = "project-hub-v1";
     const FEED_KEY = "project-hub-feed-v1";
     const APPS_KEY = "project-hub-apps-v1";
@@ -366,6 +380,7 @@
         pp("power-bank-wrap", "Power bank wrap", "in-pr", { aliases: ["power bank", "power-bank"], branch: "cursor/power-bank-wrap-v7-9c5d", notes: "v7 — 17 mm wrap lanes, clips at each wrap-lane end, shared undo + typed numbers." }),
         pp("3d-printing", "3D printing library", "live", { aliases: ["library", "3d printing"], notes: "Thin hub of cards linking each STL app folder. Add a card for every new print app." }),
         pp("aruba-packing", "Aruba packing", "live", { aliases: ["aruba", "packing", "outfit", "wardrobe"], branch: "", notes: "Packing list + wardrobe grid. Outfit-counter PR #2 still open." }),
+        pp("drive-briefing", "Drive briefing", "live", { aliases: ["drive briefing", "drive", "audio", "tts", "briefing"], notes: "Commute listen-back. Agents post htmlpreview link to drive-briefing/index.html (not raw mp3)." }),
         pp("project-hub", "Project Hub", "in-pr", { aliases: ["project hub", "project-hub"], branch: "cursor/project-hub-95fb", notes: "This app — feed, compare, borrow-feature prompts." }),
         { id: "cabinet-shelf", name: "Cabinet shelf", repo: "", path: "", status: "research", live: "", branch: "", aliases: ["cabinet", "shelf"], seed: true,
           notes: "~18 in cabinet, opening 43 × 38 cm, pin heights 10.5 cm and 35 cm, Printables shelf holders. Shelf 3/4 in (~19 mm) thick, rounded edges (1–3 mm). Route: online parametric models; custom cabinet-shelf/ STLs only as fallback." },
@@ -958,6 +973,13 @@
     });
 
     // ---------- boot ----------
+    (function () {
+      var dbc = document.getElementById("driveBriefingCard");
+      if (dbc && (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:")) {
+        var hp = dbc.getAttribute("data-htmlpreview");
+        if (hp) dbc.href = hp;
+      }
+    })();
     $("footer").textContent = "Project Hub v" + APP_VERSION;
     renderAll();
     setView(ui.view || "feed");
