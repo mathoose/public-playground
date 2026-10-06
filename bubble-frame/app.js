@@ -1,4 +1,5 @@
 import {
+  APP_VERSION,
   PRESETS,
   applyTargetOverlap,
   clampParams,
@@ -25,7 +26,6 @@ import {
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
-const APP_VERSION = "2 · Oct 6, 2026";
 const lastExports = {};
 
 const $ = (id) => document.getElementById(id);
@@ -43,6 +43,10 @@ function fmtMm(v) {
 }
 
 function renderForm() {
+  const active = document.activeElement;
+  const skipCorner =
+    active === $("outerCornerRadiusRange") || active === $("outerCornerRadius");
+
   $("units").value = params.units;
   $("photoW").value = roundForInput(params.photoW, params.units);
   $("photoH").value = roundForInput(params.photoH, params.units);
@@ -96,6 +100,13 @@ function renderForm() {
       Math.abs(preset.h - params.photoH) < 0.05;
     btn.classList.toggle("active", Boolean(on));
   }
+
+  if (!skipCorner) {
+    $("outerCornerRadius").value = params.outerCornerRadius.toFixed(1);
+    $("outerCornerRadiusRange").value = params.outerCornerRadius;
+  }
+  const maxCorner = Math.min(params.ballDiameter, Math.min(params.photoW, params.photoH) / 2);
+  $("outerCornerRadiusRange").max = String(Math.max(0, maxCorner).toFixed(1));
 }
 
 function renderReadout(layout) {
@@ -180,6 +191,7 @@ function bind() {
   };
   bindRange("ballDiameterRange", "ballDiameter", "ballDiameter", true);
   bindRange("imageOverlapRange", "imageOverlap", "imageOverlap", true);
+  bindRange("outerCornerRadiusRange", "outerCornerRadius", "outerCornerRadius", false);
   $("ballOverlapRange").addEventListener("input", () => {
     params.targetBallOverlap = Number($("ballOverlapRange").value);
     params = applyTargetOverlap(params);

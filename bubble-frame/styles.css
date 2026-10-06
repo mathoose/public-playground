@@ -75,6 +75,49 @@ input[type="number"], select {
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.35; }
 
+.settings-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffdf9;
+  margin: 0 0 10px;
+  overflow: clip;
+}
+.settings-group > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.settings-group > summary::-webkit-details-marker { display: none; }
+.settings-group > summary::after {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.settings-group[open] > summary::after {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+.settings-group > summary:hover { background: rgba(109, 40, 217, 0.04); }
+.group-body {
+  padding: 0 14px 12px;
+  border-top: 1px solid var(--line);
+}
+
 .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .chip, .icon-btn, .btn {
   border: 1px solid var(--line);
@@ -245,23 +288,30 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   font-weight: 650;
   overflow-wrap: anywhere;
 }
+.foot {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
 
 @media (max-width: 900px) {
   .app {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) minmax(280px, 42vh);
     height: 100dvh;
+    height: 100svh;
   }
   .panel {
     height: auto;
     border-right: 0;
     border-top: 1px solid var(--line);
     order: 2;
+    padding-top: 14px;
   }
   .stage {
     height: auto;
     min-height: 0;
-    grid-template-rows: minmax(0, 1fr) 180px;
+    grid-template-rows: minmax(0, 1fr) 160px;
     order: 1;
   }
 }

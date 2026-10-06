@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   IN,
+  APP_VERSION,
   actualOverlap,
   applyTargetOverlap,
   centerLineSize,
@@ -12,6 +13,7 @@ import {
   defaultParams,
   hangHoleLayout,
   layoutBeads,
+  outerPerimeterPoly,
   polygonArea,
   standBounds,
   standPolygon,
@@ -78,6 +80,15 @@ almost(innermost, -photoH / 2 + lip, 1e-9, "image overlap of bottom beads");
 almost(layout.outer.w, photoW + 2 * D - 2 * lip, 1e-9, "outer width");
 almost(layout.opening.w, photoW - 2 * lip, 1e-9, "opening width");
 almost(layout.opening.h, photoH - 2 * lip, 1e-9, "opening height");
+
+assert(defaultParams().outerCornerRadius === 1.5, "default outer corner radius");
+const roundedP = clampParams({ ...p, outerCornerRadius: 8 });
+assert(roundedP.outerCornerRadius === 8, "corner radius clamp keeps value");
+const roundedLayout = layoutBeads(roundedP);
+assert(roundedLayout.outerCornerRadius === 8, "layout exposes corner radius");
+const poly = outerPerimeterPoly(roundedLayout.outer.w, roundedLayout.outer.h, 8, 8);
+assert(poly.length > 8, "rounded outer perimeter has arc points");
+assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
 
 const topEdge = layout.beads.filter((b) => b.id.startsWith("top-") || b.id === "corner-tl" || b.id === "corner-tr");
 assert(topEdge.length === 8, "top side includes corners");

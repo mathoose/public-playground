@@ -1,5 +1,8 @@
 /** Layout math for a flat-backed bubble picture frame. Units are millimeters. */
 
+export const APP_VERSION = "2 · Oct 6, 2026";
+export const APP_VERSION_TAG = "v2";
+
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
 
@@ -74,6 +77,7 @@ export function defaultParams() {
     standEnabled: true,
     standAngleDeg: 18,
     standThickness: 4,
+    outerCornerRadius: 1.5,
   };
 }
 
@@ -114,6 +118,11 @@ export function clampParams(p) {
   if (next.linkH) next.countBottom = next.countTop;
   if (next.linkV) next.countRight = next.countLeft;
   next.disabled = Array.isArray(p.disabled) ? [...p.disabled] : [];
+  const maxCorner = Math.min(
+    next.ballDiameter,
+    Math.min(next.photoW, next.photoH) / 2
+  );
+  next.outerCornerRadius = Math.min(maxCorner, Math.max(0, Number(p.outerCornerRadius) || 0));
   return next;
 }
 
@@ -224,6 +233,9 @@ export function layoutBeads(p) {
   if (enabled.length < 4) {
     warnings.push("Too many beads are turned off — the frame may fall apart.");
   }
+  if (params.outerCornerRadius > r * 0.85) {
+    warnings.push("Large outer corner radius may cut deeply into the corner beads.");
+  }
 
   return {
     params,
@@ -243,8 +255,42 @@ export function layoutBeads(p) {
     photo: { w: params.photoW, h: params.photoH },
     uniqueTotal,
     enabledCount: enabled.length,
+    outerCornerRadius: params.outerCornerRadius,
     warnings,
   };
+}
+
+/**
+ * Outer perimeter as a closed polygon (CCW), with optional rounded corners.
+ * Same geometry as striped-frame for preview / silhouette.
+ */
+export function outerPerimeterPoly(outerW, outerH, cornerRadius, segmentsPerCorner = 10) {
+  const hw = outerW / 2;
+  const hh = outerH / 2;
+  const R = Math.min(Math.max(0, cornerRadius), hw, hh);
+  if (R < 1e-6) {
+    return ensureCcw([
+      [-hw, -hh],
+      [hw, -hh],
+      [hw, hh],
+      [-hw, hh],
+    ]);
+  }
+  const pts = [];
+  const corners = [
+    { cx: hw - R, cy: hh - R, a0: 0, a1: Math.PI / 2 },
+    { cx: -hw + R, cy: hh - R, a0: Math.PI / 2, a1: Math.PI },
+    { cx: -hw + R, cy: -hh + R, a0: Math.PI, a1: (3 * Math.PI) / 2 },
+    { cx: hw - R, cy: -hh + R, a0: (3 * Math.PI) / 2, a1: 2 * Math.PI },
+  ];
+  for (const c of corners) {
+    for (let i = 0; i <= segmentsPerCorner; i++) {
+      const t = i / segmentsPerCorner;
+      const a = c.a0 + (c.a1 - c.a0) * t;
+      pts.push([c.cx + R * Math.cos(a), c.cy + R * Math.sin(a)]);
+    }
+  }
+  return ensureCcw(pts);
 }
 
 export function estimateVolumeMm3(layout, webThickness) {
