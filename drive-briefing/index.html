@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- build: drive-briefing-v1 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1e3a5f" />
+  <title>Drive briefing · Oct 6, 2026</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --ink: #f4f6fa;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dim: #0ea5e9;
+      --line: #2d3a4f;
+      --tap: 56px;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+      color: var(--ink);
+      font: 16px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 24px);
+    }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; margin-bottom: 20px; min-height: var(--tap); }
+    header h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.02em; }
+    .date { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+    .player {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 28px 20px 22px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #playBig {
+      width: min(100%, 280px);
+      min-height: 72px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: #0c1220;
+      font: inherit;
+      font-size: 1.25rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 28px rgba(56, 189, 248, 0.35);
+      -webkit-tap-highlight-color: transparent;
+    }
+    #playBig:active { transform: scale(0.98); }
+    #playBig.playing { background: var(--line); color: var(--ink); box-shadow: none; }
+    audio {
+      width: 100%;
+      margin-top: 18px;
+      min-height: 44px;
+    }
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 14px;
+      line-height: 1.4;
+    }
+    .speed { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .speed button {
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .speed button.on { border-color: var(--accent); color: var(--accent); }
+    footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <a class="back" id="hubLink" href="../project-hub/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/project-hub/index.html">← Project Hub</a>
+
+  <header>
+    <h1>3D printing · drive briefing</h1>
+    <p class="date">October 6, 2026</p>
+  </header>
+
+  <div class="player">
+    <button type="button" id="playBig" aria-controls="briefing">▶ Play briefing</button>
+    <audio id="briefing" controls preload="metadata" playsinline src="./latest.mp3">
+      Your browser does not support audio playback.
+    </audio>
+    <p class="hint" id="autoplayNote">Tap Play once. On iPhone, audio cannot start until you tap (even with <code>?autoplay=1</code>). Use 2× or 3× in the player if your browser exposes playback speed.</p>
+    <div class="speed" aria-label="Playback speed">
+      <button type="button" data-rate="1">1×</button>
+      <button type="button" data-rate="1.5">1.5×</button>
+      <button type="button" data-rate="2" class="on">2×</button>
+      <button type="button" data-rate="2.5">2.5×</button>
+      <button type="button" data-rate="3">3×</button>
+    </div>
+  </div>
+
+  <footer id="footer">Drive briefing v1 · Oct 6, 2026</footer>
+
+  <script>
+    (function () {
+      var APP_VERSION = "1 · Oct 6, 2026";
+      var audio = document.getElementById("briefing");
+      var playBig = document.getElementById("playBig");
+      var hub = document.getElementById("hubLink");
+
+      if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+        var hp = hub.getAttribute("data-htmlpreview");
+        if (hp) hub.href = hp;
+      }
+
+      function setPlaying(on) {
+        playBig.classList.toggle("playing", on);
+        playBig.textContent = on ? "⏸ Pause" : "▶ Play briefing";
+      }
+
+      playBig.addEventListener("click", function () {
+        if (audio.paused) {
+          audio.play().catch(function () {
+            document.getElementById("autoplayNote").textContent =
+              "Playback blocked — tap the native controls below, then try Play again.";
+          });
+        } else {
+          audio.pause();
+        }
+      });
+
+      audio.addEventListener("play", function () { setPlaying(true); });
+      audio.addEventListener("pause", function () { setPlaying(false); });
+      audio.addEventListener("ended", function () { setPlaying(false); });
+
+      document.querySelectorAll(".speed button").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var rate = parseFloat(btn.getAttribute("data-rate"), 10);
+          audio.playbackRate = rate;
+          document.querySelectorAll(".speed button").forEach(function (b) { b.classList.remove("on"); });
+          btn.classList.add("on");
+        });
+      });
+      audio.playbackRate = 2;
+
+      if (/[?&]autoplay=1/.test(location.search)) {
+        audio.play().catch(function () {
+          document.getElementById("autoplayNote").textContent =
+            "Autoplay was requested but blocked (normal on iOS). Tap Play or use the controls below.";
+        });
+      }
+
+      document.getElementById("footer").textContent = "Drive briefing v" + APP_VERSION;
+    })();
+  </script>
+</body>
+</html>
