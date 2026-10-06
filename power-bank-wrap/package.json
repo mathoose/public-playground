@@ -1,10 +1,11 @@
 {
-  "name": "usb-charger-travel-case",
+  "name": "power-bank-wrap",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node test_geometry.mjs"
+    "test": "node test_geometry.mjs && node test_history.mjs",
+    "export": "node export_default.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
