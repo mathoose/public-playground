@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: power-bank-wrap-v7 -->
+<!-- build: power-bank-wrap-v7.1 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-v7-9c5d/3d-printing/index.html">← 3D printing library</a>
         <h1>Power bank wrap</h1>
       </div>
-      <p>v7 · Oct 6, 2026</p>
+      <p>v7.1 · Oct 6, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -30,7 +30,7 @@
       <details class="settings-group" open>
         <summary>Preset</summary>
         <div class="group-body">
-          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two elastic clips on each long side (four total), spaced apart, with flared roots so they don’t snap off.</p>
+          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two elastic clips on the top face and two on the bottom face, spaced apart along the sleeve, with flared roots so they don’t snap off.</p>
           <div class="seg">
             <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
             <button class="chip" type="button" data-preset="j159">HOCO J159</button>
@@ -133,7 +133,7 @@
       <details class="settings-group" open>
         <summary>Cord clips</summary>
         <div class="group-body">
-          <p class="group-note">Four elastic omega snaps — two on each long side of the sleeve, in the end insets so they miss the wrap channels and the inner hole. Flared filleted roots join the wall. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
+          <p class="group-note">Four elastic omega snaps on the wide faces — two on top, two on the bottom — in the end insets so they miss the wrap channels and the inner hole. Flared filleted roots join the wall. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
           <div class="row">
             <label for="cordD">Cord diameter</label>
             <output id="cordD-out"></output>
@@ -175,18 +175,18 @@
             <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
           </div>
           <div class="ready">
-            <a href="power-bank-wrap-v7.stl" download>Print v7 default</a>
+            <a href="power-bank-wrap-v7.1.stl" download>Print v7.1 default</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>standing on the tight end</b> (hole pointing up).
-            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap each end into a side clip.
+            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap each end into a top or bottom clip.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Power bank wrap v7 · Oct 6, 2026</p>
+      <p class="foot" id="app-version">Power bank wrap v7.1 · Oct 6, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

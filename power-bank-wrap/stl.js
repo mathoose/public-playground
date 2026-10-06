@@ -103,12 +103,6 @@ function roundedFrameX(CrossSection, Manifold, outerW, outerH, innerW, innerH, r
   return frame;
 }
 
-function alongY(solid, temps) {
-  const rot = solid.rotate(90, 0, 0);
-  temps.push(rot);
-  return rot;
-}
-
 function wrapBelts(Manifold, CrossSection, d, temps) {
   const p = d.p;
   const stick = p.wrapStick;
@@ -156,7 +150,7 @@ function wrapBelts(Manifold, CrossSection, d, temps) {
   return unionAll(Manifold, belts, temps);
 }
 
-/** Elastic omega snap on a long side, flared root so it won't snap off. */
+/** Elastic omega snap on the top or bottom face, flared root so it won't snap off. */
 function cordClip(Manifold, CrossSection, d, place, segs, temps) {
   const holeR = d.clipHoleR;
   const outerR = d.clipOuterR;
@@ -164,24 +158,21 @@ function cordClip(Manifold, CrossSection, d, place, segs, temps) {
   const grip = d.grip;
   const len = d.clipLen;
   const overlap = d.clipOverlap;
-  const { x, yWall, yHole, z, outward } = place;
+  const { x, y, zWall, zHole, outward } = place;
+  const y0 = y - len / 2;
 
-  const outer = Manifold.cylinder(len, outerR, outerR, segs, false).translate(
-    x,
-    yHole,
-    z - len / 2
-  );
+  const outer = Manifold.cylinder(len, outerR, outerR, segs, false)
+    .rotate(90, 0, 0)
+    .translate(x, y0 + len, zHole);
   temps.push(outer);
 
-  const yInner = yWall - overlap * outward;
-  const yLo = Math.min(yHole, yInner);
-  const yHi = Math.max(yHole, yInner);
-  const rootLen = Math.max(0.8, yHi - yLo);
-  const rAtLo = yLo === yHole ? outerR : rootR;
-  const rAtHi = yHi === yHole ? outerR : rootR;
-  const root = Manifold.cylinder(rootLen, rAtLo, rAtHi, segs, false)
-    .rotate(90, 0, 0)
-    .translate(x, yLo + rootLen, z);
+  const zInner = zWall - overlap * outward;
+  const zLo = Math.min(zHole, zInner);
+  const zHi = Math.max(zHole, zInner);
+  const rootLen = Math.max(0.8, zHi - zLo);
+  const rAtLo = zLo === zHole ? outerR : rootR;
+  const rAtHi = zHi === zHole ? outerR : rootR;
+  const root = Manifold.cylinder(rootLen, rAtLo, rAtHi, segs, false).translate(x, y, zLo);
   temps.push(root);
 
   const padW = 2 * rootR;
@@ -195,30 +186,28 @@ function cordClip(Manifold, CrossSection, d, place, segs, temps) {
     Math.min(rootR - 0.15, padW / 2 - 0.15),
     temps
   );
-  const padTy = outward < 0 ? yWall + overlap : yWall + 1.1;
-  const padY = alongY(pad, temps).translate(x, padTy, z);
-  temps.push(padY);
+  const padTz = outward < 0 ? zWall - 1.1 : zWall - overlap;
+  const padZ = pad.translate(x, y, padTz);
+  temps.push(padZ);
 
   let body = root.add(outer);
   temps.push(body);
-  body = body.add(padY);
+  body = body.add(padZ);
   temps.push(body);
 
-  const hole = Manifold.cylinder(len + 3.2, holeR, holeR, segs, false).translate(
-    x,
-    yHole,
-    z - len / 2 - 1.6
-  );
+  const hole = Manifold.cylinder(len + 3.2, holeR, holeR, segs, false)
+    .rotate(90, 0, 0)
+    .translate(x, y0 + len + 1.6, zHole);
   temps.push(hole);
   body = body.subtract(hole);
   temps.push(body);
 
-  const mouthY0 = outward < 0 ? yHole - outerR - 2.4 : yHole - 0.15;
-  const mouthY1 = outward < 0 ? yHole + 0.15 : yHole + outerR + 2.4;
-  const mouth = Manifold.cube([grip, Math.max(0.8, mouthY1 - mouthY0), len + 3.2], false).translate(
+  const mouthZ0 = outward < 0 ? zHole - outerR - 2.4 : zHole - 0.15;
+  const mouthZ1 = outward < 0 ? zHole + 0.15 : zHole + outerR + 2.4;
+  const mouth = Manifold.cube([grip, len + 3.2, Math.max(0.8, mouthZ1 - mouthZ0)], false).translate(
     x - grip / 2,
-    mouthY0,
-    z - len / 2 - 1.6
+    y0 - 1.6,
+    mouthZ0
   );
   temps.push(mouth);
   body = body.subtract(mouth);

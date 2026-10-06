@@ -1,7 +1,7 @@
 /** SYJ-F37F slide-on sleeve — wrap around the band, not toward USB. */
 
-export const APP_VERSION = "7 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v7";
+export const APP_VERSION = "7.1 · Oct 6, 2026";
+export const APP_VERSION_TAG = "v7.1";
 export const APP_NAME = "Power bank wrap";
 
 export const PRESETS = {
@@ -154,13 +154,27 @@ function snapXToInsets(x, wrapX0, wrapX3, pad, sleeveLen, fallback) {
   return Number(best.toFixed(2));
 }
 
-function buildClipPlacements({ count, clipXA, clipXB, clipMidX, yWallL, yWallR, yHoleL, yHoleR, z }) {
+function buildClipPlacements({ count, clipXA, clipXB, clipMidX, y, zWallB, zWallT, zHoleB, zHoleT }) {
   if (count <= 0) return [];
   const xs = count >= 4 ? [clipXA, clipXB] : [clipMidX];
   const out = [];
   for (const x of xs) {
-    out.push({ x, side: "L", outward: -1, yWall: yWallL, yHole: yHoleL, z });
-    out.push({ x, side: "R", outward: 1, yWall: yWallR, yHole: yHoleR, z });
+    out.push({
+      x,
+      y,
+      face: "bottom",
+      outward: -1,
+      zWall: zWallB,
+      zHole: zHoleB,
+    });
+    out.push({
+      x,
+      y,
+      face: "top",
+      outward: 1,
+      zWall: zWallT,
+      zHole: zHoleT,
+    });
   }
   return out;
 }
@@ -202,16 +216,16 @@ export function derive(raw = {}) {
   const clipH = clipOuterR * 2;
   const clipOverlap = 1.2;
   const clipHang = clipOuterR + 0.35;
-  const yWallL = p.wrapStick;
-  const yWallR = p.wrapStick + bodyW;
-  const yHoleL = yWallL - clipHang;
-  const yHoleR = yWallR + clipHang;
+  const zWallB = p.wrapStick;
+  const zWallT = p.wrapStick + bodyH;
+  const zHoleB = zWallB - clipHang;
+  const zHoleT = zWallT + clipHang;
   const mouthExtra = 2.2;
-  const yMin = p.clipCount ? yHoleL - clipOuterR - mouthExtra : 0;
-  const yMax = p.clipCount ? yHoleR + clipOuterR + mouthExtra : outerW;
-  const clipDepth = p.clipCount ? Math.max(0, -yMin, yMax - outerW) : 0;
-  const bboxW = outerW + 2 * clipDepth;
-  const bboxH = outerH;
+  const zMin = p.clipCount ? zHoleB - clipOuterR - mouthExtra : 0;
+  const zMax = p.clipCount ? zHoleT + clipOuterR + mouthExtra : outerH;
+  const clipDepth = p.clipCount ? Math.max(0, -zMin, zMax - outerH) : 0;
+  const bboxW = outerW;
+  const bboxH = outerH + 2 * clipDepth;
   const lanePad = clipOuterR + 0.8;
   const insetA = Number(clamp(wrapX0 / 2, lanePad, Math.max(lanePad, wrapX0 - lanePad)).toFixed(2));
   const insetB = Number(
@@ -227,17 +241,16 @@ export function derive(raw = {}) {
     clipXB = insetB;
   }
   const clipMidX = Number(((clipXA + clipXB) / 2).toFixed(2));
-  const clipZ = cz;
   const clips = buildClipPlacements({
     count: p.clipCount,
     clipXA,
     clipXB,
     clipMidX,
-    yWallL,
-    yWallR,
-    yHoleL,
-    yHoleR,
-    z: clipZ,
+    y: cy,
+    zWallB,
+    zWallT,
+    zHoleB,
+    zHoleT,
   });
   const beltMidA = wrapX0 + p.wrapLane / 2;
   const beltMidB = wrapX2 + p.wrapLane / 2;
@@ -271,7 +284,6 @@ export function derive(raw = {}) {
     clipXA,
     clipXB,
     clipMidX,
-    clipZ,
     clipLen,
     clipWidth,
     clipH,
@@ -282,10 +294,10 @@ export function derive(raw = {}) {
     clipRootR,
     clipOverlap,
     clipHang,
-    yWallL,
-    yWallR,
-    yHoleL,
-    yHoleR,
+    zWallB,
+    zWallT,
+    zHoleB,
+    zHoleT,
     clips,
     beltMidA,
     beltMidB,

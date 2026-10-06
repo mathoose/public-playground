@@ -29,19 +29,22 @@ assert.ok(d0.bankX0 < 0, "USB end sticks out of the sleeve");
 assert.ok(d0.grip < d0.p.cordD * 0.7, "elastic mouth much tighter than the cord");
 assert.ok(Math.abs(d0.grip - d0.p.cordD * 0.58) < 0.05, "mouth ~58% of cord");
 assert.equal(d0.clips.length, 4);
-assert.equal(d0.clips.filter((c) => c.side === "L").length, 2);
-assert.equal(d0.clips.filter((c) => c.side === "R").length, 2);
-assert.ok(d0.clipXB - d0.clipXA > 20, "clips on a side are spaced apart");
+assert.equal(d0.clips.filter((c) => c.face === "top").length, 2);
+assert.equal(d0.clips.filter((c) => c.face === "bottom").length, 2);
+assert.ok(d0.clipXB - d0.clipXA > 20, "clips on a face are spaced apart along the sleeve");
 for (const c of d0.clips) {
   const inLaneA = c.x > d0.wrapX0 + 1.2 && c.x < d0.wrapX1 - 1.2;
   const inLaneB = c.x > d0.wrapX2 + 1.2 && c.x < d0.wrapX3 - 1.2;
   assert.ok(!inLaneA && !inLaneB, `clip X ${c.x} sits in a wrap lane`);
+  assert.equal(c.y, d0.cy, "clips sit on the midline of the top/bottom face");
 }
 assert.ok(d0.clipRootR > d0.clipOuterR, "flared root is wider than the omega");
 assert.ok(d0.clipFillet >= 2, "default fillet is generous");
 
 const pair = derive({ clipCount: 2 });
 assert.equal(pair.clips.length, 2);
+assert.equal(pair.clips.filter((c) => c.face === "top").length, 1);
+assert.equal(pair.clips.filter((c) => c.face === "bottom").length, 1);
 
 const off = derive({ clipCount: 0 });
 assert.equal(off.clips.length, 0);
@@ -92,5 +95,5 @@ try {
 }
 
 console.log(
-  `ok v7 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.bboxW.toFixed(1)}×${d0.bboxH.toFixed(1)} lanes ${d0.p.wrapLane} clips ${d0.clips.length} X ${d0.clipXA}/${d0.clipXB}${manifoldOk ? " + manifold" : ""}`
+  `ok v7.1 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.bboxW.toFixed(1)}×${d0.bboxH.toFixed(1)} lanes ${d0.p.wrapLane} clips ${d0.clips.length} X ${d0.clipXA}/${d0.clipXB}${manifoldOk ? " + manifold" : ""}`
 );
