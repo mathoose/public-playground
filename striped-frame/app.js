@@ -27,6 +27,7 @@ import {
   stlTriangleCount,
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const lastExports = {};
 const $ = (id) => document.getElementById(id);
@@ -145,41 +146,26 @@ function renderColorRows(force) {
 
 function renderForm(opts = {}) {
   const active = document.activeElement;
-  const skipLip = active === $("lipRange") || active === $("lip");
-  const skipMw = active === $("mouldingWidthRange") || active === $("mouldingWidth");
-  const skipShared = active === $("sharedHeightRange") || active === $("sharedHeight");
-  const skipCorner =
-    active === $("outerCornerRadiusRange") || active === $("outerCornerRadius");
-  const skipInEdge = active === $("insideEdgeSizeRange") || active === $("insideEdgeSize");
-  const skipOutEdge = active === $("outsideEdgeSizeRange") || active === $("outsideEdgeSize");
+  const pair = (rangeId, numberId, v) => {
+    if (active !== $(numberId)) $(numberId).value = v.toFixed(1);
+    if (active !== $(rangeId)) $(rangeId).value = v;
+  };
 
   $("units").value = params.units;
   $("photoW").value = roundForInput(params.photoW, params.units);
   $("photoH").value = roundForInput(params.photoH, params.units);
   $("unitW").textContent = params.units;
   $("unitH").textContent = params.units;
-  if (!skipLip) {
-    $("lip").value = params.lip.toFixed(1);
-    $("lipRange").value = params.lip;
-  }
   const maxLip = Math.min(params.photoW, params.photoH) / 2 - 1;
   $("lipRange").max = String(Math.max(1, maxLip).toFixed(1));
-  if (!skipMw) {
-    $("mouldingWidth").value = params.mouldingWidth.toFixed(1);
-    $("mouldingWidthRange").value = params.mouldingWidth;
-  }
+  pair("lipRange", "lip", params.lip);
+  pair("mouldingWidthRange", "mouldingWidth", params.mouldingWidth);
   $("equalHeights").checked = params.equalHeights;
-  if (!skipShared) {
-    $("sharedHeight").value = params.sharedHeight.toFixed(1);
-    $("sharedHeightRange").value = params.sharedHeight;
-  }
+  pair("sharedHeightRange", "sharedHeight", params.sharedHeight);
   $("sharedHeightBlock").hidden = !params.equalHeights;
-  if (!skipCorner) {
-    $("outerCornerRadius").value = params.outerCornerRadius.toFixed(1);
-    $("outerCornerRadiusRange").value = params.outerCornerRadius;
-  }
   const maxCorner = Math.min(params.mouldingWidth, Math.min(params.photoW, params.photoH) / 2);
   $("outerCornerRadiusRange").max = String(Math.max(0, maxCorner).toFixed(1));
+  pair("outerCornerRadiusRange", "outerCornerRadius", params.outerCornerRadius);
   for (const btn of document.querySelectorAll("[data-inside-edge]")) {
     btn.classList.toggle("active", btn.dataset.insideEdge === params.insideEdgeMode);
   }
@@ -188,14 +174,8 @@ function renderForm(opts = {}) {
   }
   $("insideEdgeSizeBlock").hidden = params.insideEdgeMode === "none";
   $("outsideEdgeSizeBlock").hidden = params.outsideEdgeMode === "none";
-  if (!skipInEdge) {
-    $("insideEdgeSize").value = params.insideEdgeSize.toFixed(1);
-    $("insideEdgeSizeRange").value = params.insideEdgeSize;
-  }
-  if (!skipOutEdge) {
-    $("outsideEdgeSize").value = params.outsideEdgeSize.toFixed(1);
-    $("outsideEdgeSizeRange").value = params.outsideEdgeSize;
-  }
+  pair("insideEdgeSizeRange", "insideEdgeSize", params.insideEdgeSize);
+  pair("outsideEdgeSizeRange", "outsideEdgeSize", params.outsideEdgeSize);
   $("bedThickness").value = params.bedThickness.toFixed(1);
   $("plateThickness").value = params.plateThickness.toFixed(1);
   $("hangHoles").checked = params.hangHoles;
@@ -516,6 +496,7 @@ function init() {
   });
   bind();
   refresh({ fit: true });
+  pairSlidersWithNumbers(document.querySelector(".panel"));
   installUndo({
     panel: document.querySelector(".panel"),
     read: () => params,

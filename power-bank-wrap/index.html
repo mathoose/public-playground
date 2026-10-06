@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<!-- build: power-bank-wrap-v6 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Power bank wrap designer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
+        <h1>Power bank wrap</h1>
+      </div>
+      <p>v6 · Oct 6, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="iso">Iso</button>
+        <button type="button" class="chip" data-view="path">Cord path</button>
+        <button type="button" class="chip" data-view="clips">Clips</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <div class="history-bar" role="group" aria-label="Edit history">
+        <button type="button" class="secondary" id="undo" disabled title="Undo (Ctrl or ⌘ Z)">Undo</button>
+        <button type="button" class="secondary" id="redo" disabled title="Redo (Shift+Ctrl or ⌘ Z)">Redo</button>
+      </div>
+      <details class="settings-group" open>
+        <summary>Preset</summary>
+        <div class="group-body">
+          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two elastic clips on the back hold the cord ends.</p>
+          <div class="seg">
+            <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
+            <button class="chip" type="button" data-preset="j159">HOCO J159</button>
+            <button class="chip" type="button" data-preset="loose">Loose fit</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Inner hole</summary>
+        <div class="group-body">
+          <p class="group-note">Width and length of the sleeve. Entry is looser; the far end shrinks by the taper on each side.</p>
+          <div class="row">
+            <label for="bankW">Inner width (bank)</label>
+            <output id="bankW-out"></output>
+            <input id="bankW" type="range" min="48" max="90" step="0.1" value="68" />
+          </div>
+          <div class="row">
+            <label for="sleeveLen">Sleeve length</label>
+            <output id="sleeveLen-out"></output>
+            <input id="sleeveLen" type="range" min="28" max="140" step="0.5" value="72" />
+          </div>
+          <div class="row">
+            <label for="bankH">Inner height (thickness)</label>
+            <output id="bankH-out"></output>
+            <input id="bankH" type="range" min="12" max="28" step="0.1" value="16" />
+          </div>
+          <div class="row">
+            <label for="bankL">Bank length (preview)</label>
+            <output id="bankL-out"></output>
+            <input id="bankL" type="range" min="90" max="180" step="0.5" value="143" />
+          </div>
+          <div class="row">
+            <label for="bankR">Corner radius</label>
+            <output id="bankR-out"></output>
+            <input id="bankR" type="range" min="2" max="14" step="0.1" value="8" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Fit</summary>
+        <div class="group-body">
+          <p class="group-note">Clearance at the open (entry) end. Taper is how much smaller the far end is, per side.</p>
+          <div class="row">
+            <label for="clearXY">Fit clearance (width)</label>
+            <output id="clearXY-out"></output>
+            <input id="clearXY" type="range" min="0.1" max="1.2" step="0.05" value="0.4" />
+          </div>
+          <div class="row">
+            <label for="clearZ">Fit clearance (thickness)</label>
+            <output id="clearZ-out"></output>
+            <input id="clearZ" type="range" min="0.1" max="1.2" step="0.05" value="0.35" />
+          </div>
+          <div class="row">
+            <label for="taper">Taper per side</label>
+            <output id="taper-out"></output>
+            <input id="taper" type="range" min="0" max="1.2" step="0.05" value="0.4" />
+          </div>
+          <div class="row">
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out"></output>
+            <input id="wall" type="range" min="1.6" max="3.6" step="0.1" value="2.2" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Wrap around band</summary>
+        <div class="group-body">
+          <p class="group-note">Two C-channels go around the 68×16 cross-section (rotated 90° from v3). Wind the cord around the sleeve itself — it cannot reach the USB end.</p>
+          <div class="row">
+            <label for="wrapStick">Channel depth</label>
+            <output id="wrapStick-out"></output>
+            <input id="wrapStick" type="range" min="4" max="14" step="0.1" value="7" />
+          </div>
+          <div class="row">
+            <label for="wrapLane">Channel width</label>
+            <output id="wrapLane-out"></output>
+            <input id="wrapLane" type="range" min="8" max="22" step="0.1" value="11" />
+          </div>
+          <div class="row">
+            <label for="wrapGap">Gap between channels</label>
+            <output id="wrapGap-out"></output>
+            <input id="wrapGap" type="range" min="6" max="40" step="0.5" value="12" />
+          </div>
+          <div class="row">
+            <label for="wrapFlange">Flange thickness</label>
+            <output id="wrapFlange-out"></output>
+            <input id="wrapFlange" type="range" min="1.4" max="4.5" step="0.1" value="2.2" />
+          </div>
+          <div class="row">
+            <label for="wrapInset">End inset</label>
+            <output id="wrapInset-out"></output>
+            <input id="wrapInset" type="range" min="2" max="24" step="0.5" value="6" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Cord clips</summary>
+        <div class="group-body">
+          <p class="group-note">Two elastic snap clips on the back, in the valley between the wrap rings — they do not sit on the cord path. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
+          <div class="row">
+            <label for="cordD">Cord diameter</label>
+            <output id="cordD-out"></output>
+            <input id="cordD" type="range" min="2.4" max="6" step="0.1" value="3.6" />
+          </div>
+          <div class="row">
+            <label for="clipOn">Bottom clips</label>
+            <output id="clipOn-out"></output>
+            <input id="clipOn" type="range" min="0" max="1" step="1" value="1" />
+          </div>
+          <div class="row">
+            <label for="slotOn">Side slots (button / micro)</label>
+            <output id="slotOn-out"></output>
+            <input id="slotOn" type="range" min="0" max="1" step="1" value="0" />
+          </div>
+          <div class="row">
+            <label for="slotH">Slot height</label>
+            <output id="slotH-out"></output>
+            <input id="slotH" type="range" min="5" max="14" step="0.1" value="9" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download this STL</button>
+            <button type="button" class="secondary" id="reset">Reset SYJ-F37F</button>
+          </div>
+          <div class="ready">
+            <a href="power-bank-wrap-v5.stl" download>Print v5 default</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>standing on the tight end</b> (hole pointing up).
+            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap both ends into the bottom clips.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Power bank wrap v6 · Oct 6, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

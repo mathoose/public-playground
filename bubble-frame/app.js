@@ -23,6 +23,7 @@ import {
   stlTriangleCount,
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const APP_VERSION = "2 · Oct 6, 2026";
 const lastExports = {};
@@ -372,6 +373,7 @@ function init() {
   if (versionEl) versionEl.textContent = `Bubble frame v${APP_VERSION}`;
   bind();
   refresh({ fit: true });
+  pairSlidersWithNumbers(document.querySelector(".panel"));
   installUndo({
     panel: document.querySelector(".panel"),
     before: document.querySelector(".panel .presets"),

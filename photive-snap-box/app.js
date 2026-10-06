@@ -15,51 +15,12 @@ import {
 import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const $ = (id) => document.getElementById(id);
 
 const UNITS = Object.fromEntries(SLIDERS.map((s) => [s.key, s.unit]));
 const OPEN_LIFT = 14;
-
-function valueDigits(step) {
-  if (step >= 1) return 0;
-  const frac = String(step).split(".")[1];
-  return frac ? frac.length : 1;
-}
-
-function ensureNumberInputs() {
-  for (const spec of SLIDERS) {
-    const range = $(spec.key);
-    if (!range) continue;
-    const row = range.closest(".row");
-    if (!row) continue;
-    let num = $(`${spec.key}-num`);
-    if (!num) {
-      num = document.createElement("input");
-      num.type = "number";
-      num.id = `${spec.key}-num`;
-      num.className = "value-num";
-      num.setAttribute("aria-label", row.querySelector("label")?.textContent?.trim() || spec.key);
-      const out = $(`${spec.key}-out`);
-      if (out) out.replaceWith(num);
-      else row.insertBefore(num, range);
-    }
-    range.min = String(spec.min);
-    range.max = String(spec.max);
-    range.step = String(spec.step);
-    num.min = String(spec.min);
-    num.max = String(sliderAbsMax(spec));
-    num.step = String(spec.step);
-  }
-}
-
-function setParam(key, rawValue) {
-  const value = Number(rawValue);
-  if (!Number.isFinite(value)) return;
-  params = applySliderChange(params, key, value);
-  writeParams(params);
-  scheduleRebuild();
-}
 
 const VIEWS = {
   open: { base: true, lid: true, spacer: true, ghosts: true, lift: OPEN_LIFT },
@@ -86,21 +47,25 @@ function fmtValue(key, n) {
   return `${Number(n).toFixed(digits)}${unit}`;
 }
 
+function syncSliderDom() {
+  for (const spec of SLIDERS) {
+    const range = $(spec.key);
+    if (!range) continue;
+    range.min = String(spec.min);
+    range.max = String(sliderAbsMax(spec));
+    range.step = String(spec.step);
+    if (spec.unit) range.dataset.unit = spec.unit;
+  }
+}
+
 function writeParams(p) {
   params = mergeParams(p);
-  for (const spec of SLIDERS) {
-    const { key } = spec;
+  syncSliderDom();
+  for (const { key } of SLIDERS) {
     const el = $(key);
-    const num = $(`${key}-num`);
-    const v = params[key];
-    if (el) el.value = String(Math.min(v, spec.max));
-    if (num) {
-      const digits = valueDigits(spec.step);
-      num.value = Number(v).toFixed(digits);
-      num.classList.toggle("over-slider", v > spec.max);
-    }
     const out = $(`${key}-out`);
-    if (out) out.textContent = fmtValue(key, v);
+    if (el) el.value = String(params[key]);
+    if (out) out.textContent = fmtValue(key, params[key]);
   }
   PLUG_KEYS.forEach((key, i) => {
     const row = $(key)?.closest(".row");
@@ -212,24 +177,16 @@ function setSection(on) {
 }
 
 function bind() {
-  ensureNumberInputs();
   writeParams(DEFAULT_PARAMS);
   for (const { key } of SLIDERS) {
     const el = $(key);
-    const num = $(`${key}-num`);
-    if (el) {
-      el.addEventListener("input", () => setParam(key, el.value));
-    }
-    if (num) {
-      num.addEventListener("change", () => setParam(key, num.value));
-      num.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          num.blur();
-          setParam(key, num.value);
-        }
-      });
-    }
+    if (!el) continue;
+    el.addEventListener("input", () => {
+      const value = Number(el.value);
+      params = applySliderChange(params, key, value);
+      writeParams(params);
+      scheduleRebuild();
+    });
   }
   $("reset")?.addEventListener("click", () => {
     params = mergeParams(DEFAULT_PARAMS);
@@ -252,6 +209,7 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BoxPreview({ canvas: $("view") });
 bind();
+pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: () => params,
