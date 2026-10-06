@@ -90,6 +90,30 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   padding: 6px 10px;
   cursor: pointer;
 }
+.view-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.view-bar .chip { margin: 0; font-size: 0.78rem; padding: 6px 10px; }
+
+body.capture header,
+body.capture .panel,
+body.capture .hint,
+body.capture .view-btn,
+body.capture .view-bar {
+  display: none !important;
+}
+body.capture .app {
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+}
+body.capture .stage {
+  height: 100dvh;
+}
 
 .panel {
   background: var(--panel);
@@ -98,6 +122,25 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   overflow: auto;
   overscroll-behavior: contain;
   min-height: 0;
+}
+
+.history-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+  padding-bottom: 2px;
+}
+.history-bar button {
+  flex: 1;
+  min-height: 40px;
+}
+.history-bar button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .settings-group {
@@ -146,10 +189,6 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   line-height: 1.35;
 }
 
-.view-group .view-seg {
-  margin-top: 4px;
-}
-
 .row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -158,31 +197,10 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   margin: 10px 0 0;
 }
 .row label { font-size: 0.9rem; }
-.row output,
-.row input.value-num {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-}
 .row output {
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
-}
-input.value-num {
-  width: 4.75rem;
-  justify-self: end;
-  text-align: right;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 5px 6px;
-  background: #fff;
-  color: var(--ink);
-}
-input.value-num.over-slider {
-  border-color: var(--warn);
-  background: #fffaf5;
-}
-input.value-num:focus {
-  outline: 2px solid rgba(15, 118, 110, 0.35);
-  outline-offset: 1px;
+  font-size: 0.85rem;
 }
 input[type="range"] {
   width: 100%;

@@ -24,6 +24,8 @@ function usbSpan(d) {
   return (d.p.usbCount - 1) * d.p.usbPitch;
 }
 
+const wideC8 = clampParams({ ...DEFAULT_PARAMS, c8HoleD: 30 });
+assert.equal(wideC8.c8HoleD, 28);
 const same = clampParams(DEFAULT_PARAMS);
 assert.equal(same.usbExtra, 15);
 assert.equal(same.acExtra, 22);

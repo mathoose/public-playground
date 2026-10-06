@@ -75,14 +75,6 @@ input[type="number"], select {
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.35; }
 
-.history-row {
-  display: flex;
-  gap: 8px;
-  margin: 0 0 12px;
-}
-.history-row .btn { flex: 1; padding: 8px 10px; font-size: 0.88rem; }
-.history-row .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
 .settings-group {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -210,6 +202,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   margin: 10px 0;
 }
 .notes { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+.foot {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 .notes code { background: #eee; padding: 1px 5px; border-radius: 4px; }
 
 .stage {

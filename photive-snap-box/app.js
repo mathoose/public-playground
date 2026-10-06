@@ -9,10 +9,13 @@ import {
   derive,
   formatMm,
   mergeParams,
+  sliderAbsMax,
   warnings,
 } from "./geometry.js";
 import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -44,8 +47,20 @@ function fmtValue(key, n) {
   return `${Number(n).toFixed(digits)}${unit}`;
 }
 
+function syncSliderDom() {
+  for (const spec of SLIDERS) {
+    const range = $(spec.key);
+    if (!range) continue;
+    range.min = String(spec.min);
+    range.max = String(sliderAbsMax(spec));
+    range.step = String(spec.step);
+    if (spec.unit) range.dataset.unit = spec.unit;
+  }
+}
+
 function writeParams(p) {
   params = mergeParams(p);
+  syncSliderDom();
   for (const { key } of SLIDERS) {
     const el = $(key);
     const out = $(`${key}-out`);
@@ -194,6 +209,15 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BoxPreview({ canvas: $("view") });
 bind();
+pairSlidersWithNumbers(document.querySelector(".panel"));
+installUndo({
+  panel: document.querySelector(".panel"),
+  read: () => params,
+  apply: (snapshot) => {
+    writeParams(snapshot);
+    scheduleRebuild();
+  },
+});
 setPartView("open");
 setStatus("Loading CAD…");
 rebuild().catch((err) => {

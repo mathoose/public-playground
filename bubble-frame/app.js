@@ -17,13 +17,14 @@ import {
   toggleDisabled,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
-import { createParamUndo } from "./param-undo.js";
 import {
   buildBackPlateStl,
   buildFrameMesh,
   buildStandStl,
   stlTriangleCount,
 } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const lastExports = {};
 
@@ -31,14 +32,6 @@ const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
 let preview;
-const paramHistory = createParamUndo();
-
-function updateHistoryButtons() {
-  const undoBtn = $("undoBtn");
-  const redoBtn = $("redoBtn");
-  if (undoBtn) undoBtn.disabled = !paramHistory.canUndo();
-  if (redoBtn) redoBtn.disabled = !paramHistory.canRedo();
-}
 
 function roundForInput(mm, units) {
   const v = mmToDisplay(mm, units);
@@ -137,8 +130,6 @@ function renderReadout(layout) {
 
 function refresh(opts = {}) {
   params = pruneDisabled(clampParams(params));
-  if (!opts.skipHistory) paramHistory.record(params);
-  updateHistoryButtons();
   renderForm();
   const layout = preview.update(params);
   renderReadout(layout);
@@ -293,19 +284,6 @@ function bind() {
     refresh();
   });
 
-  $("undoBtn")?.addEventListener("click", () => {
-    const prev = paramHistory.undo(params);
-    if (!prev) return;
-    params = prev;
-    refresh({ skipHistory: true });
-  });
-  $("redoBtn")?.addEventListener("click", () => {
-    const next = paramHistory.redo(params);
-    if (!next) return;
-    params = next;
-    refresh({ skipHistory: true });
-  });
-
   $("resetView").addEventListener("click", () => preview.fit());
 
   $("photoFile").addEventListener("change", async (e) => {
@@ -403,13 +381,20 @@ function init() {
       refresh();
     },
   });
-  paramHistory.seed(params);
-  bind();
-  refresh({ fit: true, skipHistory: true });
-  paramHistory.seed(params);
-  updateHistoryButtons();
   const versionEl = $("app-version");
   if (versionEl) versionEl.textContent = `Bubble frame v${APP_VERSION}`;
+  bind();
+  refresh({ fit: true });
+  pairSlidersWithNumbers(document.querySelector(".panel"));
+  installUndo({
+    panel: document.querySelector(".panel"),
+    before: document.querySelector(".panel .presets"),
+    read: () => params,
+    apply: (snapshot) => {
+      params = snapshot;
+      refresh();
+    },
+  });
   preview.resize();
   window.addEventListener("resize", () => preview.resize());
 }

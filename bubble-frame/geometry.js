@@ -1,7 +1,7 @@
 /** Layout math for a flat-backed bubble picture frame. Units are millimeters. */
 
-export const APP_VERSION = "1 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v1";
+export const APP_VERSION = "2 · Oct 6, 2026";
+export const APP_VERSION_TAG = "v2";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
