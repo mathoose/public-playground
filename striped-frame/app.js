@@ -26,6 +26,7 @@ import {
   buildStandStl,
   stlTriangleCount,
 } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
 
 const lastExports = {};
 const $ = (id) => document.getElementById(id);
@@ -515,6 +516,14 @@ function init() {
   });
   bind();
   refresh({ fit: true });
+  installUndo({
+    panel: document.querySelector(".panel"),
+    read: () => params,
+    apply: (snapshot) => {
+      params = snapshot;
+      refresh();
+    },
+  });
   preview.resize();
   window.addEventListener("resize", () => preview.resize());
 }

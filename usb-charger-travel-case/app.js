@@ -13,6 +13,7 @@ import {
   downloadArrayBuffer,
   stlTriangleCount,
 } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -211,4 +212,12 @@ if (versionEl) versionEl.textContent = `Photive travel case v${APP_VERSION}`;
 preview = new CasePreview({ canvas: $("view") });
 writeParams(DEFAULT_PARAMS);
 bind();
+installUndo({
+  panel: document.querySelector(".panel"),
+  read: readParams,
+  apply: (snapshot) => {
+    writeParams(snapshot);
+    scheduleRebuild();
+  },
+});
 rebuild({ fit: true });

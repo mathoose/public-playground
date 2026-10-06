@@ -1,6 +1,6 @@
 /** Path-stripe picture frame: alternating bands along the moulding loop. Units mm. */
 
-export const APP_VERSION = "3 · Sep 20, 2026";
+export const APP_VERSION = "4 · Oct 6, 2026";
 export const APP_VERSION_TAG = "v3";
 
 /** Front-face edge finish modes. */

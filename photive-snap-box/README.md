@@ -2,7 +2,7 @@
 
 Live **open tray + snap-over lid + USB spacer comb** designer for Mattheus’s **Photive 6-port** USB brick.
 
-**Photive snap box v3 · Oct 5, 2026**
+**Photive snap box v4 · Oct 6, 2026**
 
 Not the travel case (wrap / six organizer slots / USB cap). Those stay on hold in [PR #13](https://github.com/mathoose/public-playground/pull/13).
 

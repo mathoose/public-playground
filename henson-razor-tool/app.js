@@ -11,6 +11,7 @@ import {
 } from "./geometry.js";
 import { ToolPreview } from "./preview.js";
 import { buildAll, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
 
 const $ = (id) => document.getElementById(id);
 const UNITS = Object.fromEntries(SLIDERS.map((s) => [s.key, s.unit]));
@@ -146,6 +147,14 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new ToolPreview({ canvas: $("view") });
 bind();
+installUndo({
+  panel: document.querySelector(".panel"),
+  read: () => params,
+  apply: (snapshot) => {
+    writeParams(snapshot);
+    scheduleRebuild();
+  },
+});
 applyView();
 setStatus("Loading CAD…");
 rebuild();

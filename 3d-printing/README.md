@@ -21,3 +21,17 @@ On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, and `/
 2. Add a card in [`index.html`](index.html).
 3. Copy the folder in `.github/workflows/pages.yml` next to the other apps.
 4. Prefer **collapsible settings groups** (`<details class="settings-group">`) for params — see `striped-frame/`.
+5. **Add Undo / Redo** (required for every designer) — import the shared module and call it once after the controls are bound:
+
+   ```js
+   import { installUndo } from "../shared/undo-history.js";
+
+   installUndo({
+     panel: document.querySelector(".panel"),
+     read: () => params,                 // plain JSON-able settings
+     apply: (snapshot) => { params = snapshot; refresh(); },  // write back + rebuild
+   });
+   ```
+
+   It adds a sticky Undo / Redo bar at the top of the settings panel (never over the canvas), records one step per slider release / change / preset / Reset click, and handles ⌘Z / Ctrl+Z and ⇧⌘Z / Ctrl+Shift+Z. esbuild bundles it into `app.bundle.js`, so nothing extra needs deploying. See [`../shared/README.md`](../shared/README.md).
+6. Show a footer version (`<p class="foot" id="app-version">App name vN · Mon D, YYYY</p>`) and a cache marker (`<!-- build: your-app-vN -->`); bump both on every ship.

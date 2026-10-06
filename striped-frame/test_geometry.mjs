@@ -34,7 +34,7 @@ function almost(a, b, eps, msg) {
 }
 
 assert(APP_VERSION_TAG === "v3", "version tag");
-assert(APP_VERSION.includes("Sep 20, 2026"), "version date");
+assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
 
 const p = defaultParams();
 assert(p.colorCount === 2, "default 2 colors");
