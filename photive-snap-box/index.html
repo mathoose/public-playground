@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: photive-snap-box-v4 -->
+<!-- build: photive-snap-box-v6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../" data-htmlpreview="https://cdn.jsdelivr.net/gh/mathoose/public-playground@0ba8fd926c1d0b3ce9a68031b2c9f07061aa4421/3d-printing/">← 3D printing library</a>
         <h1>Photive snap box</h1>
       </div>
-      <p>v4 · Oct 6, 2026</p>
+      <p>v6 · Oct 6, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -22,6 +22,21 @@
       <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
     <aside class="panel">
+      <details class="settings-group view-group" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="group-note">3D preview only — does not change STL exports.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" data-part="open">Open</button>
+            <button class="chip" type="button" data-part="closed">Closed</button>
+            <button class="chip" type="button" data-part="base">Tray</button>
+            <button class="chip" type="button" data-part="lid">Lid</button>
+            <button class="chip" type="button" data-part="spacer">Spacer</button>
+            <button class="chip" type="button" id="sectionBtn">Section</button>
+          </div>
+        </div>
+      </details>
+
       <details class="settings-group" open>
         <summary>Fit</summary>
         <div class="group-body">
@@ -34,7 +49,7 @@
           <div class="row">
             <label for="c8HoleD">Rear cord gap / slot width</label>
             <output id="c8HoleD-out"></output>
-            <input id="c8HoleD" type="range" min="5" max="14" step="0.1" value="8.5" />
+            <input id="c8HoleD" type="range" min="5" max="25" step="0.1" value="8.5" />
           </div>
           <div class="row">
             <label for="usbHoleW">USB cable hole width</label>
@@ -194,14 +209,6 @@
       <details class="settings-group" open>
         <summary>Download</summary>
         <div class="group-body">
-          <div class="seg">
-            <button class="chip active" type="button" data-part="open">Open</button>
-            <button class="chip" type="button" data-part="closed">Closed</button>
-            <button class="chip" type="button" data-part="base">Tray</button>
-            <button class="chip" type="button" data-part="lid">Lid</button>
-            <button class="chip" type="button" data-part="spacer">Spacer</button>
-            <button class="chip" type="button" id="sectionBtn">Section</button>
-          </div>
           <div class="actions">
             <button type="button" class="wide" id="dlBase">Download base STL</button>
             <button type="button" class="wide" id="dlLid">Download lid STL</button>
@@ -225,7 +232,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Photive snap box v4 · Oct 6, 2026</p>
+      <p class="foot" id="app-version">Photive snap box v6 · Oct 6, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
