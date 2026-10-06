@@ -150,13 +150,12 @@ function wrapBelts(Manifold, CrossSection, d, temps) {
   return unionAll(Manifold, belts, temps);
 }
 
-/** Elastic omega snap on the underside, in the valley between wrap rings. */
-function cordClip(Manifold, d, y, segs, temps) {
+/** Elastic omega snap on the underside, one per wrap-lane end. */
+function cordClip(Manifold, d, x, y, segs, temps) {
   const holeR = d.clipHoleR;
   const outerR = d.clipOuterR;
   const grip = d.grip;
   const len = d.clipLen;
-  const x = d.clipX;
   const zHole = d.clipHoleZ;
   const y0 = y - len / 2;
   const outer = Manifold.cylinder(len, outerR, outerR, segs, false)
@@ -192,8 +191,8 @@ function cordClip(Manifold, d, y, segs, temps) {
 
 function cordClips(Manifold, d, segs, temps) {
   if (!d.p.clipOn) return null;
-  const a = cordClip(Manifold, d, d.clipY0, segs, temps);
-  const b = cordClip(Manifold, d, d.clipY1, segs, temps);
+  const a = cordClip(Manifold, d, d.clipXA, d.clipYA, segs, temps);
+  const b = cordClip(Manifold, d, d.clipXB, d.clipYB, segs, temps);
   return unionAll(Manifold, [a, b], temps);
 }
 

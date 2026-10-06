@@ -14,7 +14,8 @@ import {
 } from "./geometry.js";
 import { CasePreview } from "./preview.js";
 import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
-import { bindParamHistoryHotkeys, createParamHistory } from "./history.js";
+import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -25,7 +26,6 @@ let preview;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
-const history = createParamHistory();
 
 function fmtValue(key, n) {
   if (key === "slotOn" || key === "clipOn") return n >= 0.5 ? "on" : "off";
@@ -37,11 +37,17 @@ function fmtValue(key, n) {
 
 function writeParams(p) {
   params = mergeParams(p);
-  for (const { key } of SLIDERS) {
-    const el = $(key);
-    const out = $(`${key}-out`);
-    if (el) el.value = String(params[key]);
-    if (out) out.textContent = fmtValue(key, params[key]);
+  for (const spec of SLIDERS) {
+    const el = $(spec.key);
+    const out = $(`${spec.key}-out`);
+    if (el) {
+      el.min = String(spec.min);
+      el.max = String(spec.max);
+      el.step = String(spec.step);
+      if (spec.unit) el.dataset.unit = spec.unit;
+      el.value = String(params[spec.key]);
+    }
+    if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
   syncPresetButtons();
 }
@@ -81,36 +87,11 @@ function renderReadout(result) {
     · taper <b>${formatMm(d.p.taper)}</b> / side<br />
     Wrap around the <b>68×16 band</b> (not toward USB) in two C-channels
     <b>${formatMm(d.p.wrapLane)}</b> wide, gap <b>${formatMm(d.p.wrapGap)}</b><br />
-    Bottom elastic clips <b>${formatMm(d.p.cordD)}</b> (mouth ${formatMm(d.grip)})<br />
+    Elastic clips at each wrap-lane end <b>${formatMm(d.p.cordD)}</b>
+    (mouth ${formatMm(d.grip)}) · USB-end X <b>${d.clipXA.toFixed(1)}</b>,
+    tight-end X <b>${d.clipXB.toFixed(1)}</b> mm<br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
-}
-
-function updateHistoryButtons() {
-  const undoBtn = $("undo");
-  const redoBtn = $("redo");
-  if (undoBtn) undoBtn.disabled = !history.canUndo;
-  if (redoBtn) redoBtn.disabled = !history.canRedo;
-}
-
-function recordParams() {
-  history.push(params);
-  updateHistoryButtons();
-}
-
-function applyRecorded(next) {
-  if (!next) return;
-  writeParams(next);
-  updateHistoryButtons();
-  scheduleRebuild();
-}
-
-function undo() {
-  applyRecorded(history.undo());
-}
-
-function redo() {
-  applyRecorded(history.redo());
 }
 
 async function rebuild() {
@@ -152,7 +133,6 @@ async function downloadStl() {
 
 function bind() {
   writeParams(DEFAULT_PARAMS);
-  recordParams();
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -161,16 +141,12 @@ function bind() {
       writeParams(params);
       scheduleRebuild();
     });
-    el.addEventListener("change", () => {
-      recordParams();
-    });
   }
   document.querySelectorAll("[data-preset]").forEach((btn) => {
     btn.addEventListener("click", () => {
       params = applyPreset(btn.getAttribute("data-preset"));
       writeParams(params);
       preview.fitted = false;
-      recordParams();
       scheduleRebuild();
     });
   });
@@ -178,17 +154,13 @@ function bind() {
     params = mergeParams(DEFAULT_PARAMS);
     writeParams(params);
     preview.fitted = false;
-    recordParams();
     scheduleRebuild();
   });
-  $("undo")?.addEventListener("click", () => undo());
-  $("redo")?.addEventListener("click", () => redo());
   $("resetView")?.addEventListener("click", () => preview.fit());
   document.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
   $("download")?.addEventListener("click", () => downloadStl());
-  bindParamHistoryHotkeys({ undo, redo });
 }
 
 const versionEl = $("app-version");
@@ -196,8 +168,16 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new CasePreview({ canvas: $("view") });
 window.__wrapPreview = preview;
-window.__wrapHistory = history;
 bind();
+pairSlidersWithNumbers(document.querySelector(".panel"));
+window.__wrapHistory = installUndo({
+  panel: document.querySelector(".panel"),
+  read: () => params,
+  apply: (snapshot) => {
+    writeParams(snapshot);
+    scheduleRebuild();
+  },
+});
 setStatus("Loading CAD…");
 
 const shot = new URLSearchParams(location.search).get("shot");

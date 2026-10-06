@@ -195,14 +195,14 @@ export class CasePreview {
     const d = this.d;
     if (!d) return;
     this.camera.up.set(0, 0, 1);
-    this.camera.up.set(0, 0, 1);
     this.showCord(name !== "clips");
     if (name === "path") {
       this.camera.position.set(d.bankX0 - 55, d.cy - 95, d.cz + 58);
       this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.cz);
     } else if (name === "clips") {
-      this.camera.position.set(d.clipX + 8, d.cy - 40, -34);
-      this.controls.target.set(d.clipX, d.cy, d.p.wrapStick);
+      const midX = d.clipMidX ?? (d.clipXA + d.clipXB) / 2;
+      this.camera.position.set(midX - 6, d.cy - 78, -36);
+      this.controls.target.set(midX, d.cy, d.p.wrapStick * 0.35);
     } else if (name === "side") {
       this.camera.position.set(d.p.sleeveLen * 0.2, -d.bboxW * 1.8, d.cz);
       this.controls.target.set(d.p.sleeveLen * 0.4, d.cy, d.cz);
