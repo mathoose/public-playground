@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: power-bank-wrap-v5 -->
+<!-- build: power-bank-wrap-v6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/3d-printing/index.html">← 3D printing library</a>
         <h1>Power bank wrap</h1>
       </div>
-      <p>v5 · Oct 5, 2026</p>
+      <p>v6 · Oct 6, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -27,6 +27,10 @@
       <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
     <aside class="panel">
+      <div class="history-bar" role="group" aria-label="Edit history">
+        <button type="button" class="secondary" id="undo" disabled title="Undo (Ctrl or ⌘ Z)">Undo</button>
+        <button type="button" class="secondary" id="redo" disabled title="Redo (Shift+Ctrl or ⌘ Z)">Redo</button>
+      </div>
       <details class="settings-group" open>
         <summary>Preset</summary>
         <div class="group-body">
@@ -176,7 +180,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Power bank wrap v5 · Oct 5, 2026</p>
+      <p class="foot" id="app-version">Power bank wrap v6 · Oct 6, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

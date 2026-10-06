@@ -1,7 +1,7 @@
 /** SYJ-F37F slide-on sleeve — wrap around the band, not toward USB. */
 
-export const APP_VERSION = "5 · Oct 5, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Oct 6, 2026";
+export const APP_VERSION_TAG = "v6";
 export const APP_NAME = "Power bank wrap";
 
 export const PRESETS = {

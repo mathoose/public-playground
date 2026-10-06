@@ -2,7 +2,7 @@
 
 Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Cord wraps **around the sleeve band** (the 68×16 cross-section), never over the USB end. Two **elastic snap clips on the back** hold the cord ends, in the valley between the wrap rings.
 
-**Power bank wrap v5 · Oct 5, 2026**
+**Power bank wrap v6 · Oct 6, 2026**
 
 ## Open the designer
 
@@ -12,7 +12,7 @@ jsDelivr serves HTML as text, so use **htmlpreview**:
 
 After merge: [designer on main](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/power-bank-wrap/index.html) · [files on GitHub](https://github.com/mathoose/public-playground/tree/main/power-bank-wrap)
 
-Phone-first: orbit, drag sliders, **Download this STL**. Presets: **SYJ-F37F**, **HOCO J159**, **Loose fit**.
+Phone-first: orbit, drag sliders, **Undo** / **Redo** (also Ctrl/⌘Z), **Download this STL**. Presets: **SYJ-F37F**, **HOCO J159**, **Loose fit**.
 
 ## What it is
 

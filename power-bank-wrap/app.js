@@ -3,6 +3,7 @@ import {
   APP_VERSION,
   APP_VERSION_TAG,
   DEFAULT_PARAMS,
+  PRESETS,
   SLIDERS,
   applyPreset,
   applySliderChange,
@@ -13,6 +14,7 @@ import {
 } from "./geometry.js";
 import { CasePreview } from "./preview.js";
 import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { bindParamHistoryHotkeys, createParamHistory } from "./history.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,6 +25,7 @@ let preview;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
+const history = createParamHistory();
 
 function fmtValue(key, n) {
   if (key === "slotOn" || key === "clipOn") return n >= 0.5 ? "on" : "off";
@@ -40,6 +43,16 @@ function writeParams(p) {
     if (el) el.value = String(params[key]);
     if (out) out.textContent = fmtValue(key, params[key]);
   }
+  syncPresetButtons();
+}
+
+function syncPresetButtons() {
+  document.querySelectorAll("[data-preset]").forEach((btn) => {
+    const name = btn.getAttribute("data-preset");
+    const preset = PRESETS[name] ? applyPreset(name) : null;
+    const match = preset && SLIDERS.every(({ key }) => params[key] === preset[key]);
+    btn.classList.toggle("active", !!match);
+  });
 }
 
 function setStatus(text, kind = "") {
@@ -71,6 +84,33 @@ function renderReadout(result) {
     Bottom elastic clips <b>${formatMm(d.p.cordD)}</b> (mouth ${formatMm(d.grip)})<br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
+}
+
+function updateHistoryButtons() {
+  const undoBtn = $("undo");
+  const redoBtn = $("redo");
+  if (undoBtn) undoBtn.disabled = !history.canUndo;
+  if (redoBtn) redoBtn.disabled = !history.canRedo;
+}
+
+function recordParams() {
+  history.push(params);
+  updateHistoryButtons();
+}
+
+function applyRecorded(next) {
+  if (!next) return;
+  writeParams(next);
+  updateHistoryButtons();
+  scheduleRebuild();
+}
+
+function undo() {
+  applyRecorded(history.undo());
+}
+
+function redo() {
+  applyRecorded(history.redo());
 }
 
 async function rebuild() {
@@ -112,6 +152,7 @@ async function downloadStl() {
 
 function bind() {
   writeParams(DEFAULT_PARAMS);
+  recordParams();
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -120,31 +161,34 @@ function bind() {
       writeParams(params);
       scheduleRebuild();
     });
+    el.addEventListener("change", () => {
+      recordParams();
+    });
   }
   document.querySelectorAll("[data-preset]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll("[data-preset]").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
       params = applyPreset(btn.getAttribute("data-preset"));
       writeParams(params);
       preview.fitted = false;
+      recordParams();
       scheduleRebuild();
     });
   });
   $("reset")?.addEventListener("click", () => {
-    document.querySelectorAll("[data-preset]").forEach((b) => {
-      b.classList.toggle("active", b.getAttribute("data-preset") === "syj");
-    });
     params = mergeParams(DEFAULT_PARAMS);
     writeParams(params);
     preview.fitted = false;
+    recordParams();
     scheduleRebuild();
   });
+  $("undo")?.addEventListener("click", () => undo());
+  $("redo")?.addEventListener("click", () => redo());
   $("resetView")?.addEventListener("click", () => preview.fit());
   document.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
   $("download")?.addEventListener("click", () => downloadStl());
+  bindParamHistoryHotkeys({ undo, redo });
 }
 
 const versionEl = $("app-version");
@@ -152,6 +196,7 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new CasePreview({ canvas: $("view") });
 window.__wrapPreview = preview;
+window.__wrapHistory = history;
 bind();
 setStatus("Loading CAD…");
 

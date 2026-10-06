@@ -68,5 +68,5 @@ try {
 }
 
 console.log(
-  `ok v5 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.outerW.toFixed(1)}×${d0.outerH.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
+  `ok v6 sleeve ${d0.innerW0.toFixed(1)}×${d0.innerH0.toFixed(1)}→${d0.innerW1.toFixed(1)}×${d0.innerH1.toFixed(1)} outer ${d0.p.sleeveLen.toFixed(1)}×${d0.outerW.toFixed(1)}×${d0.outerH.toFixed(1)}${manifoldOk ? " + manifold" : ""}`
 );
