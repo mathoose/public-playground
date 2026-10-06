@@ -2,7 +2,7 @@
 
 Live **open tray + snap-over lid + USB spacer comb** designer for Mattheus’s **Photive 6-port** USB brick.
 
-**Photive snap box v3 · Oct 5, 2026**
+**Photive snap box v4 · Oct 6, 2026**
 
 This is the **canonical** Photive 6-port designer. The separate **travel-case** app (`usb-charger-travel-case/`, wrap / six organizer slots) was retired and removed from the repo in Oct 2026.
 

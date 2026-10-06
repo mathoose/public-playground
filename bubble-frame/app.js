@@ -22,7 +22,10 @@ import {
   buildStandStl,
   stlTriangleCount,
 } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
+const APP_VERSION = "2 · Oct 6, 2026";
 const lastExports = {};
 
 const $ = (id) => document.getElementById(id);
@@ -366,8 +369,20 @@ function init() {
       refresh();
     },
   });
+  const versionEl = $("app-version");
+  if (versionEl) versionEl.textContent = `Bubble frame v${APP_VERSION}`;
   bind();
   refresh({ fit: true });
+  pairSlidersWithNumbers(document.querySelector(".panel"));
+  installUndo({
+    panel: document.querySelector(".panel"),
+    before: document.querySelector(".panel .presets"),
+    read: () => params,
+    apply: (snapshot) => {
+      params = snapshot;
+      refresh();
+    },
+  });
   preview.resize();
   window.addEventListener("resize", () => preview.resize());
 }

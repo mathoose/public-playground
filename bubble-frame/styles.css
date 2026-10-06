@@ -159,6 +159,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   margin: 10px 0;
 }
 .notes { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+.foot {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 .notes code { background: #eee; padding: 1px 5px; border-radius: 4px; }
 
 .stage {

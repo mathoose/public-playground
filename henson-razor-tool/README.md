@@ -2,7 +2,7 @@
 
 Live designer for a **blade-change cradle** (and optional **handle grip**) for the **Henson AL13 / Ti22** safety razor, so your fingers never hold the head while you unscrew it.
 
-**Henson razor tool v1 · Oct 5, 2026**
+**Henson razor tool v2 · Oct 6, 2026**
 
 ## Open the designer
 

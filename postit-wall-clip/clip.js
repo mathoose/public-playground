@@ -1,6 +1,6 @@
 /** Browser port of generate.py — same defaults and ribbon mesh. */
 
-export const APP_VERSION = "3 · Sep 20, 2026";
+export const APP_VERSION = "4 · Oct 6, 2026";
 export const APP_VERSION_TAG = "v3";
 
 export const DEFAULT_PARAMS = Object.freeze({

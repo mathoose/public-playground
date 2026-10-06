@@ -2,7 +2,7 @@
 
 A reprint of the small gray hairpin clip that holds Post-it notes on a wall.
 
-**This version:** Post-it clip v3 · Sep 20, 2026
+**This version:** Post-it clip v4 · Oct 6, 2026
 
 ## Your place (bookmark this)
 

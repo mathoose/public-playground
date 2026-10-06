@@ -11,3 +11,4 @@ Scratch repo for small experiments.
 - [`photive-snap-box/`](photive-snap-box/) — Photive 6-port USB **snap box** designer (canonical; open tray + snap lid + USB spacer). The old **travel-case** app (`usb-charger-travel-case/`) was removed Oct 2026.
 - [`henson-razor-tool/`](henson-razor-tool/) — Henson AL13 / Ti22 **blade-change cradle** + handle grip designer. [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/henson-razor-tool-67bf/henson-razor-tool/index.html).
 - [`power-bank-wrap/`](power-bank-wrap/) — mint SYJ-F37F slide-on sleeve; cord wraps around the band, elastic clips on the back. [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-9c5d/power-bank-wrap/index.html).
+- [`shared/`](shared/) — code shared by the STL designers (Undo / Redo history, typeable slider numbers). Every designer imports it; new ones should too.

@@ -4,7 +4,7 @@
  * Henson-fit prints on Printables (guard #523295, unscrew tool #1561273).
  */
 
-export const APP_VERSION = "1 · Oct 5, 2026";
+export const APP_VERSION = "2 · Oct 6, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Henson razor tool";
 

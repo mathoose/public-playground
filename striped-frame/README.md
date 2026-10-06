@@ -6,7 +6,7 @@ Parametric **path-stripe picture frame** STL designer — forked from [`bubble-f
 
 **GitHub:** [striped-frame](https://github.com/mathoose/public-playground/tree/main/striped-frame) (after merge)
 
-Footer / version: **Striped frame v3 · Sep 20, 2026** (`<!-- build: striped-frame-v3 -->`)
+Footer / version: **Striped frame v4 · Oct 6, 2026** (`<!-- build: striped-frame-v4 -->`)
 
 ## Open
 
