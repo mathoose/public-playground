@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: photive-snap-box-v2 -->
+<!-- build: photive-snap-box-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../" data-htmlpreview="https://cdn.jsdelivr.net/gh/mathoose/public-playground@0ba8fd926c1d0b3ce9a68031b2c9f07061aa4421/3d-printing/">← 3D printing library</a>
         <h1>Photive snap box</h1>
       </div>
-      <p>v2 · Oct 5, 2026</p>
+      <p>v3 · Oct 5, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -25,11 +25,11 @@
       <details class="settings-group" open>
         <summary>Fit</summary>
         <div class="group-body">
-          <p class="group-note">Clearance and the holes you print around the brick. Higher snap clearance = looser lid.</p>
+          <p class="group-note">The lid is a cap: its skirt slides <b>over the outside</b> of the tray walls. Clearance is the gap per side between skirt and wall — higher = looser lid.</p>
           <div class="row">
-            <label for="lipClear">Snap-fit clearance</label>
+            <label for="lipClear">Lid clearance (per side)</label>
             <output id="lipClear-out"></output>
-            <input id="lipClear" type="range" min="0.1" max="0.8" step="0.02" value="0.32" />
+            <input id="lipClear" type="range" min="0.15" max="0.6" step="0.01" value="0.28" />
           </div>
           <div class="row">
             <label for="c8HoleD">Rear cord gap / slot width</label>
@@ -86,6 +86,54 @@
         </div>
       </details>
 
+      <details class="settings-group" open>
+        <summary>USB spacers</summary>
+        <div class="group-body">
+          <p class="group-note">A comb drops in against the front wall, over the cables. Each tooth fills the gap behind one plug so it can’t back out. Measure each plug from the brick face to the back of its body (calipers) — 0 = empty port. Looking at the USB holes from outside the box, <b>port 1 is the rightmost</b>; the spacer has a corner notch on its port-1 end.</p>
+          <div class="row">
+            <label for="spacerFit">Spacer fit gap</label>
+            <output id="spacerFit-out"></output>
+            <input id="spacerFit" type="range" min="0.1" max="0.6" step="0.05" value="0.25" />
+          </div>
+          <div class="row">
+            <label for="stopH">Brick stop bar height</label>
+            <output id="stopH-out"></output>
+            <input id="stopH" type="range" min="0" max="8" step="0.5" value="4" />
+          </div>
+          <div class="row">
+            <label for="plug1">Port 1 plug length</label>
+            <output id="plug1-out"></output>
+            <input id="plug1" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div class="row">
+            <label for="plug2">Port 2 plug length</label>
+            <output id="plug2-out"></output>
+            <input id="plug2" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div class="row">
+            <label for="plug3">Port 3 plug length</label>
+            <output id="plug3-out"></output>
+            <input id="plug3" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div class="row">
+            <label for="plug4">Port 4 plug length</label>
+            <output id="plug4-out"></output>
+            <input id="plug4" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div class="row">
+            <label for="plug5">Port 5 plug length</label>
+            <output id="plug5-out"></output>
+            <input id="plug5" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div class="row">
+            <label for="plug6">Port 6 plug length</label>
+            <output id="plug6-out"></output>
+            <input id="plug6" type="range" min="0" max="35" step="0.5" value="11" />
+          </div>
+          <div id="spacerReadout" class="readout"></div>
+        </div>
+      </details>
+
       <details class="settings-group">
         <summary>Box</summary>
         <div class="group-body">
@@ -105,9 +153,9 @@
             <input id="cornerRadius" type="range" min="0" max="12" step="0.1" value="4" />
           </div>
           <div class="row">
-            <label for="edgeFillet">Edge fillet</label>
+            <label for="edgeFillet">Rim lead-in chamfer</label>
             <output id="edgeFillet-out"></output>
-            <input id="edgeFillet" type="range" min="0" max="3" step="0.1" value="1.5" />
+            <input id="edgeFillet" type="range" min="0" max="2" step="0.1" value="1" />
           </div>
           <div class="row">
             <label for="usbCount">USB hole count</label>
@@ -133,7 +181,7 @@
           <div class="row">
             <label for="lipThick">Skirt thickness</label>
             <output id="lipThick-out"></output>
-            <input id="lipThick" type="range" min="1.2" max="2.4" step="0.1" value="1.7" />
+            <input id="lipThick" type="range" min="1.2" max="2.4" step="0.1" value="1.6" />
           </div>
           <div class="row">
             <label for="beadR">Snap bead radius</label>
@@ -147,18 +195,23 @@
         <summary>Download</summary>
         <div class="group-body">
           <div class="seg">
-            <button class="chip active" type="button" data-part="both">Both</button>
+            <button class="chip active" type="button" data-part="open">Open</button>
+            <button class="chip" type="button" data-part="closed">Closed</button>
             <button class="chip" type="button" data-part="base">Tray</button>
             <button class="chip" type="button" data-part="lid">Lid</button>
+            <button class="chip" type="button" data-part="spacer">Spacer</button>
+            <button class="chip" type="button" id="sectionBtn">Section</button>
           </div>
           <div class="actions">
             <button type="button" class="wide" id="dlBase">Download base STL</button>
             <button type="button" class="wide" id="dlLid">Download lid STL</button>
+            <button type="button" class="wide" id="dlSpacer">Download USB spacer STL</button>
             <button type="button" class="secondary" id="reset">Reset Photive</button>
           </div>
           <div class="ready">
-            <a href="photive-snap-box-base.stl" download>Print v1 tray</a>
-            <a href="photive-snap-box-lid.stl" download>Print v1 lid</a>
+            <a href="photive-snap-box-base.stl" download>Print v3 tray</a>
+            <a href="photive-snap-box-lid.stl" download>Print v3 lid</a>
+            <a href="photive-snap-box-usb-spacer.stl" download>Print v3 spacer</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
@@ -167,11 +220,12 @@
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, no supports.
             <b>Base:</b> floor on the bed, open top up.
             <b>Lid:</b> pretty face on the bed, snap skirt up.
-            Not the travel wrap (PR #13).
+            <b>Spacer:</b> as exported, flat bottom on the bed, slots up.
+            Canonical Photive designer — the old travel-case app was removed from the repo.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Photive snap box v2 · Oct 5, 2026</p>
+      <p class="foot" id="app-version">Photive snap box v3 · Oct 5, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
