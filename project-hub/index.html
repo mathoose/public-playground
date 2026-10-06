@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: project-hub-v1 -->
+<!-- build: project-hub-v2 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -103,6 +103,9 @@
     .s-research, .s-idea { color: var(--note); background: color-mix(in srgb, var(--note) 14%, transparent); }
     .s-sent { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
     .s-done { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .s-private { color: var(--muted); background: var(--chip); }
+    .s-project { color: var(--accent); background: var(--soft); }
+    .idea-body { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 6px; }
     .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 16px 4px 6px; }
     .item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow); }
     .item .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
@@ -135,6 +138,7 @@
       <button data-view="projects">Projects<span class="count" id="cProj"></span></button>
       <button data-view="compare">Compare</button>
       <button data-view="borrow">Borrow<span class="count" id="cReq"></span></button>
+      <button data-view="ideas">Ideas<span class="count" id="cIdeas"></span></button>
       <button data-view="data">Data</button>
     </nav>
   </header>
@@ -275,16 +279,58 @@
       <div id="reqList"></div>
     </section>
 
+    <!-- IDEAS -->
+    <section class="view" id="v-ideas">
+      <div class="banner">Ideas stay in this browser only — never sent to GitHub. <b>For Project</b> ideas can be copied into Cursor Project chat so agents can use them; <b>Private</b> is yours alone.</div>
+
+      <details class="box" open id="ideaAddBox">
+        <summary>＋ Capture an idea</summary>
+        <div class="inner">
+          <label class="f" for="iTitle">Title</label>
+          <input id="iTitle" placeholder="e.g. Snap lid with living hinge on snap box" />
+          <label class="f" for="iBody">Details (markdown ok)</label>
+          <textarea id="iBody" placeholder="What you want, constraints, links…"></textarea>
+          <div class="grid2">
+            <div><label class="f" for="iProject">Project tag (optional)</label><select id="iProject"></select></div>
+            <div>
+              <label class="f">Visibility</label>
+              <div class="chips" id="iVisChips">
+                <label class="chip on" data-vis="project"><input type="radio" name="iVis" value="project" checked /> For Project</label>
+                <label class="chip" data-vis="private"><input type="radio" name="iVis" value="private" /> Private</label>
+              </div>
+              <div class="hint">For Project → agents can see it when you copy or export. Private → device only.</div>
+            </div>
+          </div>
+          <div class="sp"></div>
+          <div class="row">
+            <button class="btn primary" id="iSave">Save idea</button>
+            <button class="btn ghost" id="iCancelEdit" hidden>Cancel edit</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="row" style="justify-content:space-between;margin:8px 4px 6px">
+        <div class="chips" id="ideaFilter">
+          <span class="chip on" data-ifilter="all">All</span>
+          <span class="chip" data-ifilter="private">Private</span>
+          <span class="chip" data-ifilter="project">For Project</span>
+        </div>
+        <span class="muted small" id="ideaCount"></span>
+      </div>
+      <div id="ideaList"></div>
+    </section>
+
     <!-- DATA -->
     <section class="view" id="v-data">
       <details class="box" open>
         <summary>Backup (export / import)</summary>
         <div class="inner">
-          <div class="muted small">Notes, projects, comparisons and requests live in this browser only (per device). Export to move them between iPhone and Mac, or keep a backup.</div>
+          <div class="muted small">Notes, projects, comparisons, requests, and ideas live in this browser only (per device). Export to move them between iPhone and Mac, or keep a backup. Full JSON includes private ideas; <b>Copy for agent</b> only includes For Project ideas.</div>
           <div class="sp"></div>
           <div class="row">
             <button class="btn primary" id="exDownload">Download JSON</button>
             <button class="btn" id="exCopy">Copy JSON</button>
+            <button class="btn" id="exAgent">Copy for agent</button>
           </div>
           <label class="f" for="imText">Import — pick a file or paste JSON</label>
           <input id="imFile" type="file" accept="application/json,.json,text/plain" />
@@ -328,7 +374,7 @@
   <script>
   (function () {
     "use strict";
-    const APP_VERSION = "1 · Oct 5, 2026";
+    const APP_VERSION = "2 · Oct 6, 2026";
     const LS_KEY = "project-hub-v1";
     const FEED_KEY = "project-hub-feed-v1";
     const APPS_KEY = "project-hub-apps-v1";
@@ -366,7 +412,7 @@
         pp("power-bank-wrap", "Power bank wrap", "in-pr", { aliases: ["power bank", "power-bank"], branch: "cursor/power-bank-wrap-v7-9c5d", notes: "v7 — 17 mm wrap lanes, clips at each wrap-lane end, shared undo + typed numbers." }),
         pp("3d-printing", "3D printing library", "live", { aliases: ["library", "3d printing"], notes: "Thin hub of cards linking each STL app folder. Add a card for every new print app." }),
         pp("aruba-packing", "Aruba packing", "live", { aliases: ["aruba", "packing", "outfit", "wardrobe"], branch: "", notes: "Packing list + wardrobe grid. Outfit-counter PR #2 still open." }),
-        pp("project-hub", "Project Hub", "in-pr", { aliases: ["project hub", "project-hub"], branch: "cursor/project-hub-95fb", notes: "This app — feed, compare, borrow-feature prompts." }),
+        pp("project-hub", "Project Hub", "in-pr", { aliases: ["project hub", "project-hub"], branch: "cursor/project-hub-ideas-0672", notes: "This app — feed, compare, borrow prompts, and Ideas (private vs for-project capture)." }),
         { id: "cabinet-shelf", name: "Cabinet shelf", repo: "", path: "", status: "research", live: "", branch: "", aliases: ["cabinet", "shelf"], seed: true,
           notes: "~18 in cabinet, opening 43 × 38 cm, pin heights 10.5 cm and 35 cm, Printables shelf holders. Shelf 3/4 in (~19 mm) thick, rounded edges (1–3 mm). Route: online parametric models; custom cabinet-shelf/ STLs only as fallback." },
         { id: "outlet-covers", name: "Outlet covers", repo: "", path: "", status: "blocked", live: "", branch: "", aliases: ["outlet", "faceplate", "wall plate"], seed: true,
@@ -396,12 +442,12 @@
       ];
     }
     function defaultState() {
-      return { version: 1, seedVersion: 1, repos: [PP, CA], projects: seedProjects(), entries: seedEntries(), comparisons: seedComparisons(), requests: seedRequests() };
+      return { version: 1, seedVersion: 1, repos: [PP, CA], projects: seedProjects(), entries: seedEntries(), comparisons: seedComparisons(), requests: seedRequests(), ideas: [] };
     }
 
     let state = readJSON(LS_KEY, null);
     if (!state || typeof state !== "object" || !Array.isArray(state.projects)) state = defaultState();
-    ["entries", "comparisons", "requests", "repos"].forEach((k) => { if (!Array.isArray(state[k])) state[k] = k === "repos" ? [PP, CA] : []; });
+    ["entries", "comparisons", "requests", "ideas", "repos"].forEach((k) => { if (!Array.isArray(state[k])) state[k] = k === "repos" ? [PP, CA] : []; });
     const save = () => writeJSON(LS_KEY, state);
     save();
 
@@ -409,6 +455,8 @@
     let ui = readJSON(UI_KEY, { view: "feed" });
     let token = localStorage.getItem(TOKEN_KEY) || "";
     let filters = { text: "", project: "", repo: "", types: TYPES.map((t) => t[0]), from: "", to: "" };
+    let ideaFilter = "all";
+    let ideaEditing = "";
     let feedStatus = { msg: "", warn: false, loading: false };
 
     // ---------- toast / clipboard ----------
@@ -758,6 +806,100 @@
       if (r.from === r.to) { toast("Pick two different projects"); return false; }
       return true;
     }
+    // ---------- ideas ----------
+    function ideaVisibility(idea) { return idea.visibility === "private" ? "private" : "project"; }
+    function formatIdeaTime(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return isNaN(d) ? String(iso).slice(0, 16) : d.toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+    function buildIdeaPrompt(idea) {
+      const vis = ideaVisibility(idea);
+      if (vis === "private") return "";
+      const out = [];
+      out.push("Project idea (from Project Hub — paste into Cursor Project chat):");
+      out.push("");
+      out.push("Title: " + idea.title);
+      if (idea.project) out.push("Related project: " + projName(idea.project) + " (`" + idea.project + "`)");
+      out.push("");
+      out.push(idea.body || "(no details)");
+      out.push("");
+      out.push("---");
+      out.push("Captured " + formatIdeaTime(idea.createdAt) + " · visibility: for project");
+      return out.join("\n");
+    }
+    function buildAgentBundle() {
+      const shared = (state.ideas || []).filter((i) => ideaVisibility(i) === "project").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      if (!shared.length) return "No For Project ideas yet. Mark an idea “For Project” on the Ideas tab, then copy again.";
+      const out = ["Project Hub — ideas for agents (For Project only; private ideas omitted)", "Exported " + new Date().toISOString(), ""];
+      shared.forEach((idea, n) => {
+        out.push("## " + (n + 1) + ". " + idea.title);
+        if (idea.project) out.push("Project: " + projName(idea.project));
+        out.push("");
+        out.push(idea.body || "");
+        out.push("");
+      });
+      out.push("---");
+      out.push("Paste this block into your Cursor Project chat so the coordinator and agents can use it.");
+      return out.join("\n");
+    }
+    function readIdeaForm() {
+      const visEl = document.querySelector('#iVisChips input[name="iVis"]:checked');
+      return {
+        title: $("iTitle").value.trim(),
+        body: $("iBody").value.trim(),
+        project: $("iProject").value || "",
+        visibility: visEl ? visEl.value : "project"
+      };
+    }
+    function resetIdeaForm() {
+      ideaEditing = "";
+      $("iTitle").value = "";
+      $("iBody").value = "";
+      $("iProject").value = "";
+      document.querySelectorAll("#iVisChips .chip").forEach((c) => c.classList.toggle("on", c.dataset.vis === "project"));
+      const r = document.querySelector('#iVisChips input[value="project"]');
+      if (r) r.checked = true;
+      $("iCancelEdit").hidden = true;
+      $("iSave").textContent = "Save idea";
+    }
+    function setIdeaVisUI(vis) {
+      document.querySelectorAll("#iVisChips .chip").forEach((c) => c.classList.toggle("on", c.dataset.vis === vis));
+      const r = document.querySelector('#iVisChips input[value="' + vis + '"]');
+      if (r) r.checked = true;
+    }
+    function renderIdeas() {
+      projectOptions($("iProject"), true, "No project tag");
+      const list = (state.ideas || []).filter((i) => ideaFilter === "all" || ideaVisibility(i) === ideaFilter)
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+      $("cIdeas").textContent = String((state.ideas || []).length || "");
+      $("ideaCount").textContent = list.length + " shown";
+      document.querySelectorAll("#ideaFilter .chip").forEach((c) => c.classList.toggle("on", c.dataset.ifilter === ideaFilter));
+      if (!list.length) {
+        $("ideaList").innerHTML = '<div class="empty">' + ((state.ideas || []).length ? "Nothing in this filter." : "No ideas yet — capture one above.") + "</div>";
+        return;
+      }
+      $("ideaList").innerHTML = list.map((idea) => {
+        const vis = ideaVisibility(idea);
+        const visLabel = vis === "private" ? "Private" : "For Project";
+        const body = idea.body ? '<div class="idea-body">' + esc(idea.body) + "</div>" : "";
+        const projBtn = idea.project ? '<button class="projchip" data-idea-filter-proj="' + esc(idea.project) + '">' + esc(projName(idea.project)) + "</button>" : "";
+        const copyBtn = vis === "project"
+          ? '<button class="btn sm primary" data-copy-idea="' + esc(idea.id) + '">Copy for agent</button>'
+          : '<button class="btn sm" data-warn-private="' + esc(idea.id) + '">Copy for agent</button>';
+        return '<details class="box" id="idea-' + esc(idea.id) + '"><summary><div class="proj-sum"><div class="name">' + esc(idea.title) +
+          ' <span class="pill s-' + esc(vis) + '">' + esc(visLabel) + "</span></div>" +
+          '<div class="sub">' + esc(formatIdeaTime(idea.createdAt)) + (idea.project ? " · " + esc(projName(idea.project)) : "") + "</div></div></summary><div class=\"inner\">" +
+          '<div class="meta">' + projBtn + "</div>" + body +
+          '<label class="f">Visibility</label><div class="chips">' +
+          '<span class="chip' + (vis === "project" ? " on" : "") + '" data-set-vis="' + esc(idea.id) + '" data-vis="project">For Project</span>' +
+          '<span class="chip' + (vis === "private" ? " on" : "") + '" data-set-vis="' + esc(idea.id) + '" data-vis="private">Private</span></div>' +
+          '<div class="sp"></div><div class="row">' + copyBtn +
+          '<button class="btn sm" data-edit-idea="' + esc(idea.id) + '">Edit</button>' +
+          '<button class="btn sm ghost danger" data-del-idea="' + esc(idea.id) + '">Delete</button></div></div></details>";
+      }).join("");
+    }
+
     function renderRequests() {
       projectOptions($("rFrom"), false); projectOptions($("rTo"), false);
       const f = $("rQueueFilter").value;
@@ -786,7 +928,7 @@
       window.scrollTo(0, 0);
     }
     function renderAll() {
-      renderFilterControls(); renderFeed(); renderProjects(); renderCompare(); renderRequests();
+      renderFilterControls(); renderFeed(); renderProjects(); renderCompare(); renderRequests(); renderIdeas();
       $("repoList").value = state.repos.join("\n"); $("ghToken").value = token;
     }
 
@@ -794,6 +936,7 @@
     $("tabs").addEventListener("click", (e) => {
       const b = e.target.closest("button[data-view]"); if (!b) return;
       if (b.dataset.view === "projects" && ui.view !== "projects") renderProjects();
+      if (b.dataset.view === "ideas" && ui.view !== "ideas") renderIdeas();
       setView(b.dataset.view);
     });
 
@@ -913,14 +1056,71 @@
       const r = state.requests.find((x) => x.id === id); r[f] = e.target.value.trim(); save(); renderRequests(); renderFeed(); const d = $("req-" + id); if (d) d.open = true;
     });
 
+    // ideas
+    $("iVisChips").addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-vis]"); if (!chip) return;
+      setIdeaVisUI(chip.dataset.vis);
+    });
+    $("iSave").addEventListener("click", () => {
+      const f = readIdeaForm();
+      if (!f.title) { toast("Add a title"); $("iTitle").focus(); return; }
+      const now = new Date().toISOString();
+      if (ideaEditing) {
+        const idea = state.ideas.find((x) => x.id === ideaEditing);
+        if (idea) Object.assign(idea, f, { updatedAt: now });
+      } else {
+        state.ideas.push({ id: uid(), title: f.title, body: f.body, project: f.project, visibility: f.visibility, createdAt: now, updatedAt: now });
+      }
+      save(); toast(ideaEditing ? "Updated" : "Saved"); resetIdeaForm(); $("ideaAddBox").open = false; renderIdeas();
+    });
+    $("iCancelEdit").addEventListener("click", () => { resetIdeaForm(); $("ideaAddBox").open = true; });
+    $("ideaFilter").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-ifilter]"); if (!c) return;
+      ideaFilter = c.dataset.ifilter; renderIdeas();
+    });
+    $("ideaList").addEventListener("click", (e) => {
+      const cp = e.target.closest("[data-copy-idea]");
+      if (cp) { const idea = state.ideas.find((x) => x.id === cp.dataset.copyIdea); if (idea) copyText(buildIdeaPrompt(idea)); return; }
+      const wp = e.target.closest("[data-warn-private]");
+      if (wp) { toast("Switch to For Project to copy for agents"); const el = $("idea-" + wp.dataset.warnPrivate); if (el) el.open = true; return; }
+      const sv = e.target.closest("[data-set-vis]");
+      if (sv) {
+        const idea = state.ideas.find((x) => x.id === sv.dataset.setVis);
+        if (idea) { idea.visibility = sv.dataset.vis; idea.updatedAt = new Date().toISOString(); save(); renderIdeas(); const el = $("idea-" + idea.id); if (el) el.open = true; }
+        return;
+      }
+      const ed = e.target.closest("[data-edit-idea]");
+      if (ed) {
+        const idea = state.ideas.find((x) => x.id === ed.dataset.editIdea); if (!idea) return;
+        ideaEditing = idea.id;
+        $("iTitle").value = idea.title; $("iBody").value = idea.body || ""; $("iProject").value = idea.project || "";
+        setIdeaVisUI(ideaVisibility(idea));
+        $("iSave").textContent = "Update idea";
+        $("iCancelEdit").hidden = false;
+        $("ideaAddBox").open = true;
+        window.scrollTo(0, 0);
+        return;
+      }
+      const dl = e.target.closest("[data-del-idea]");
+      if (dl && confirm("Delete this idea?")) { state.ideas = state.ideas.filter((x) => x.id !== dl.dataset.delIdea); save(); renderIdeas(); }
+    });
+
     // data
-    function exportPayload() { return JSON.stringify({ format: "project-hub-backup", version: 1, app: "Project Hub v" + APP_VERSION, exportedAt: new Date().toISOString(), data: state }, null, 2); }
+    function exportPayload() {
+      const ideas = (state.ideas || []).map((i) => ({
+        id: i.id, title: i.title, body: i.body || "", project: i.project || "",
+        visibility: ideaVisibility(i), createdAt: i.createdAt, updatedAt: i.updatedAt
+      }));
+      const data = Object.assign({}, state, { ideas: ideas });
+      return JSON.stringify({ format: "project-hub-backup", version: 1, app: "Project Hub v" + APP_VERSION, exportedAt: new Date().toISOString(), ideas: ideas, data: data }, null, 2);
+    }
     $("exDownload").addEventListener("click", () => {
       const blob = new Blob([exportPayload()], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "project-hub-backup-" + todayISO() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     });
     $("exCopy").addEventListener("click", () => copyText(exportPayload()));
+    $("exAgent").addEventListener("click", () => copyText(buildAgentBundle()));
     $("imFile").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $("imText").value = rd.result; toast("File loaded — choose merge or replace"); }; rd.readAsText(f); });
     function parseImport() {
       try {
@@ -932,7 +1132,7 @@
     function mergeById(cur, inc) { const map = {}; cur.forEach((x) => (map[x.id] = x)); (inc || []).forEach((x) => { if (x && x.id) map[x.id] = x; }); return Object.keys(map).map((k) => map[k]); }
     $("imMerge").addEventListener("click", () => {
       const d = parseImport(); if (!d) return;
-      ["projects", "entries", "comparisons", "requests"].forEach((k) => (state[k] = mergeById(state[k], d[k])));
+      ["projects", "entries", "comparisons", "requests", "ideas"].forEach((k) => (state[k] = mergeById(state[k], d[k])));
       if (Array.isArray(d.repos)) state.repos = state.repos.concat(d.repos.filter((r) => state.repos.indexOf(r) < 0));
       save(); $("imText").value = ""; toast("Merged"); renderAll(); refreshFeed(false);
     });
@@ -947,12 +1147,12 @@
     });
     $("reseed").addEventListener("click", () => {
       const d = defaultState();
-      ["projects", "entries", "comparisons", "requests"].forEach((k) => { const ids = state[k].map((x) => x.id); d[k].forEach((x) => { if (ids.indexOf(x.id) < 0) state[k].push(x); }); });
+      ["projects", "entries", "comparisons", "requests", "ideas"].forEach((k) => { const ids = state[k].map((x) => x.id); d[k].forEach((x) => { if (ids.indexOf(x.id) < 0) state[k].push(x); }); });
       save(); renderAll(); toast("Starter notes re-added");
     });
     $("clearCache").addEventListener("click", () => { feedCache = {}; localStorage.removeItem(FEED_KEY); refreshFeed(true); });
     $("wipe").addEventListener("click", () => {
-      if (!confirm("Erase all notes, projects, comparisons and requests on this device?")) return;
+      if (!confirm("Erase all notes, projects, comparisons, requests, and ideas on this device?")) return;
       [LS_KEY, FEED_KEY, APPS_KEY, UI_KEY].forEach((k) => localStorage.removeItem(k));
       state = defaultState(); feedCache = {}; save(); renderAll(); refreshFeed(true);
     });
