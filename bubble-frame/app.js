@@ -1,4 +1,5 @@
 import {
+  APP_VERSION,
   PRESETS,
   applyTargetOverlap,
   clampParams,
@@ -16,6 +17,7 @@ import {
   toggleDisabled,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
+import { createParamUndo } from "./param-undo.js";
 import {
   buildBackPlateStl,
   buildFrameMesh,
@@ -29,6 +31,14 @@ const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
 let preview;
+const paramHistory = createParamUndo();
+
+function updateHistoryButtons() {
+  const undoBtn = $("undoBtn");
+  const redoBtn = $("redoBtn");
+  if (undoBtn) undoBtn.disabled = !paramHistory.canUndo();
+  if (redoBtn) redoBtn.disabled = !paramHistory.canRedo();
+}
 
 function roundForInput(mm, units) {
   const v = mmToDisplay(mm, units);
@@ -40,6 +50,10 @@ function fmtMm(v) {
 }
 
 function renderForm() {
+  const active = document.activeElement;
+  const skipCorner =
+    active === $("outerCornerRadiusRange") || active === $("outerCornerRadius");
+
   $("units").value = params.units;
   $("photoW").value = roundForInput(params.photoW, params.units);
   $("photoH").value = roundForInput(params.photoH, params.units);
@@ -93,6 +107,13 @@ function renderForm() {
       Math.abs(preset.h - params.photoH) < 0.05;
     btn.classList.toggle("active", Boolean(on));
   }
+
+  if (!skipCorner) {
+    $("outerCornerRadius").value = params.outerCornerRadius.toFixed(1);
+    $("outerCornerRadiusRange").value = params.outerCornerRadius;
+  }
+  const maxCorner = Math.min(params.ballDiameter, Math.min(params.photoW, params.photoH) / 2);
+  $("outerCornerRadiusRange").max = String(Math.max(0, maxCorner).toFixed(1));
 }
 
 function renderReadout(layout) {
@@ -116,6 +137,8 @@ function renderReadout(layout) {
 
 function refresh(opts = {}) {
   params = pruneDisabled(clampParams(params));
+  if (!opts.skipHistory) paramHistory.record(params);
+  updateHistoryButtons();
   renderForm();
   const layout = preview.update(params);
   renderReadout(layout);
@@ -177,6 +200,7 @@ function bind() {
   };
   bindRange("ballDiameterRange", "ballDiameter", "ballDiameter", true);
   bindRange("imageOverlapRange", "imageOverlap", "imageOverlap", true);
+  bindRange("outerCornerRadiusRange", "outerCornerRadius", "outerCornerRadius", false);
   $("ballOverlapRange").addEventListener("input", () => {
     params.targetBallOverlap = Number($("ballOverlapRange").value);
     params = applyTargetOverlap(params);
@@ -267,6 +291,19 @@ function bind() {
   $("restore").addEventListener("click", () => {
     params.disabled = [];
     refresh();
+  });
+
+  $("undoBtn")?.addEventListener("click", () => {
+    const prev = paramHistory.undo(params);
+    if (!prev) return;
+    params = prev;
+    refresh({ skipHistory: true });
+  });
+  $("redoBtn")?.addEventListener("click", () => {
+    const next = paramHistory.redo(params);
+    if (!next) return;
+    params = next;
+    refresh({ skipHistory: true });
   });
 
   $("resetView").addEventListener("click", () => preview.fit());
@@ -366,8 +403,13 @@ function init() {
       refresh();
     },
   });
+  paramHistory.seed(params);
   bind();
-  refresh({ fit: true });
+  refresh({ fit: true, skipHistory: true });
+  paramHistory.seed(params);
+  updateHistoryButtons();
+  const versionEl = $("app-version");
+  if (versionEl) versionEl.textContent = `Bubble frame v${APP_VERSION}`;
   preview.resize();
   window.addEventListener("resize", () => preview.resize());
 }

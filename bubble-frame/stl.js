@@ -40,6 +40,37 @@ function deleteAll(items) {
   }
 }
 
+/** Subtract outer-corner square−quarter-cylinder cutters (radius 0 = no-op). */
+function roundOuterCorners(Manifold, solid, outerW, outerH, radius, height, temps) {
+  const R = radius;
+  if (R < 0.05) return solid;
+  const H = Math.max(height, 0.5) + 2;
+  let out = solid;
+  const corners = [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
+  ];
+  for (const [sx, sy] of corners) {
+    const ox = (sx * outerW) / 2;
+    const oy = (sy * outerH) / 2;
+    const cx = ox - sx * R;
+    const cy = oy - sy * R;
+    const box = Manifold.cube([R, R, H], true).translate(ox - (sx * R) / 2, oy - (sy * R) / 2, H / 2 - 1);
+    temps.push(box);
+    const cyl = Manifold.cylinder(H + 2, R, R, 48, true).translate(cx, cy, H / 2 - 1);
+    temps.push(cyl);
+    const keep = box.intersect(cyl);
+    temps.push(keep);
+    const cutter = box.subtract(keep);
+    temps.push(cutter);
+    out = out.subtract(cutter);
+    temps.push(out);
+  }
+  return out;
+}
+
 export async function buildFrameMesh(params) {
   const layout = layoutBeads(params);
   const enabled = layout.enabled;
@@ -83,13 +114,25 @@ export async function buildFrameMesh(params) {
     const solid = parts.length === 1 ? parts[0] : Manifold.union(parts);
     if (solid !== parts[0]) temps.push(solid);
 
-    const status = solid.status ? solid.status() : "NoError";
+    const maxH = r * 2 + webThickness;
+    const rounded = roundOuterCorners(
+      Manifold,
+      solid,
+      layout.outer.w,
+      layout.outer.h,
+      layout.params.outerCornerRadius,
+      maxH,
+      temps
+    );
+    if (rounded !== solid) temps.push(rounded);
+
+    const status = rounded.status ? rounded.status() : "NoError";
     if (status && status !== "NoError") {
       throw new Error(`Manifold error: ${status}`);
     }
 
-    const mesh = solid.getMesh();
-    const volume = solid.volume();
+    const mesh = rounded.getMesh();
+    const volume = rounded.volume();
     const stl = meshToStl(mesh, "bubble-frame");
     return { stl, volume, layout };
   } finally {

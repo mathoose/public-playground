@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { hangHoleLayout, layoutBeads, standPolygon, standSlotLayout } from "./geometry.js";
+import { hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon, standSlotLayout } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -498,6 +498,22 @@ export class FramePreview {
       ctx.fillStyle = "#a8a29e";
       ctx.fill();
     }
+
+    const outerPoly = outerPerimeterPoly(
+      this.layout.outer.w,
+      this.layout.outer.h,
+      params.outerCornerRadius,
+      12
+    );
+    ctx.beginPath();
+    ctx.moveTo(toX(outerPoly[0][0]), toY(outerPoly[0][1]));
+    for (let i = 1; i < outerPoly.length; i++) {
+      ctx.lineTo(toX(outerPoly[i][0]), toY(outerPoly[i][1]));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(124, 45, 18, 0.35)";
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
 
     ctx.fillStyle = "#78716c";
     ctx.font = "11px system-ui, sans-serif";

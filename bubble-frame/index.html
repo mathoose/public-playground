@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+<!-- build: bubble-frame-v1 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bubble frame STL</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -12,6 +13,11 @@
       <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
       <h1>Bubble frame</h1>
       <p class="lead">Print a flat-backed bead frame around a photo. Sizes are the photo; the balls overlap inward over the picture.</p>
+
+      <div class="history-row">
+        <button class="btn ghost" id="undoBtn" type="button" disabled>Undo</button>
+        <button class="btn ghost" id="redoBtn" type="button" disabled>Redo</button>
+      </div>
 
       <div class="presets">
         <button class="chip" data-preset="4x6" type="button">4×6</button>
@@ -94,6 +100,18 @@
         </div>
       </div>
       <button class="chip" id="restore" type="button" hidden>Restore hidden beads</button>
+
+      <details class="settings-group" open>
+        <summary>Corners</summary>
+        <div class="group-body">
+          <div class="field">
+            <label>Outer corner radius <span class="val">mm</span></label>
+            <input id="outerCornerRadiusRange" type="range" min="0" max="20" step="0.5" />
+            <input id="outerCornerRadius" type="number" min="0" max="40" step="0.5" />
+            <div class="hint">Rounds the outer silhouette of the bead union. 0 = sharp corners.</div>
+          </div>
+        </div>
+      </details>
 
       <div class="row">
         <div class="field">
@@ -180,6 +198,7 @@
         the pocket on the back of the plate — from the front you only see the beads. STL units
         are millimeters.
       </p>
+      <p class="foot" id="app-version">Bubble frame v1 · Oct 6, 2026</p>
     </aside>
 
     <main class="stage">
