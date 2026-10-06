@@ -361,8 +361,7 @@
         pp("bubble-frame", "Bubble frame", "live", { aliases: ["bubble"], notes: "Hemisphere bead frame + back plate + hidden stand (#9). Retrofit collapsible settings groups from Striped frame when convenient." }),
         pp("postit-wall-clip", "Post-it clip", "live", { aliases: ["post-it", "postit", "wall clip"], notes: "Best phone model viewer (OrbitControls + live param rebuild) — reference shell for new STL apps." }),
         pp("striped-frame", "Striped frame", "live", { aliases: ["striped", "stripe"], notes: "Alternating color bands along the moulding path (2–4 colors). Reference implementation for collapsible <details> settings groups. Corner radius + front-face round/chamfer (#11)." }),
-        pp("photive-snap-box", "Photive snap box", "in-pr", { aliases: ["snap box", "snap-box", "photive snap", "usb spacer", "spacer comb"], branch: "cursor/photive-lid-fit-usb-spacers-95fb", notes: "v3 on branch cursor/photive-lid-fit-usb-spacers-95fb: outside-cap lid that clears the brick + per-port USB spacer comb; Closed/Spacer/Section views." }),
-        pp("usb-charger-travel-case", "Photive travel case", "live", { aliases: ["travel case", "travel-case", "usb-charger"], notes: "1×6 USB row travel case designer (#13). Not the same as the snap box." }),
+        pp("photive-snap-box", "Photive snap box", "live", { aliases: ["snap box", "snap-box", "photive snap", "usb spacer", "spacer comb", "photive", "usb charger"], notes: "Canonical Photive 6-port designer on main (v3): open tray + outside-cap snap lid + per-port USB spacer comb. Retired usb-charger-travel-case (wrap / organizer) — use this app instead." }),
         pp("henson-razor-tool", "Henson razor tool", "in-pr", { aliases: ["henson", "razor"], branch: "cursor/henson-razor-tool-67bf", notes: "Blade-change cradle + handle grip designer (open PR #17)." }),
         pp("power-bank-wrap", "Power bank wrap", "in-pr", { aliases: ["power bank", "power-bank"], branch: "cursor/power-bank-wrap-9c5d", notes: "v4 — wraps around the band, side clips (open PR #16)." }),
         pp("3d-printing", "3D printing library", "live", { aliases: ["library", "3d printing"], notes: "Thin hub of cards linking each STL app folder. Add a card for every new print app." }),
@@ -376,7 +375,7 @@
     }
     function seedEntries() {
       return [
-        { id: "seed-photive-v3", type: "note", project: "photive-snap-box", date: "2026-10-05", text: "Snap box v3: lid is now an outside cap that clears the brick, plus a per-port USB spacer comb. New Closed / Spacer / Section views and v3 STLs.", link: treeUrl(PP, "photive-snap-box", "cursor/photive-lid-fit-usb-spacers-95fb"), seed: true },
+        { id: "seed-photive-v3", type: "note", project: "photive-snap-box", date: "2026-10-05", text: "Snap box v3 on main: outside-cap lid + per-port USB spacer comb. Retired usb-charger-travel-case designer.", link: treeUrl(PP, "photive-snap-box"), seed: true },
         { id: "seed-striped", type: "note", project: "striped-frame", date: "2026-10-01", text: "Striped frame shipped with corner radius + inside/outside front-face round or chamfer. Its collapsible settings groups are the pattern to copy.", link: treeUrl(PP, "striped-frame"), seed: true },
         { id: "seed-bubble", type: "note", project: "bubble-frame", date: "2026-09-26", text: "Bubble frame stand now hides behind a back-plate insert. Still on flat (non-collapsible) settings.", link: treeUrl(PP, "bubble-frame"), seed: true },
         { id: "seed-postit", type: "note", project: "postit-wall-clip", date: "2026-09-25", text: "Post-it clip v3 — chamfered putty slot slides along the back. Its phone 3D viewer is the one to preserve in new apps.", link: treeUrl(PP, "postit-wall-clip"), seed: true },
