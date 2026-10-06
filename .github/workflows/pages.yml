@@ -26,7 +26,7 @@ jobs:
       - name: Assemble 3D printing library
         run: |
           set -e
-          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/henson-razor-tool _site/power-bank-wrap _site/drive-briefing
+          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/henson-razor-tool _site/power-bank-wrap _site/poop-bag-holder _site/drive-briefing
           cp 3d-printing/index.html 3d-printing/styles.css _site/
           # Apps
           tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
@@ -41,6 +41,8 @@ jobs:
             | tar -C _site/henson-razor-tool -xf -
           tar -C power-bank-wrap --exclude=node_modules -cf - . \
             | tar -C _site/power-bank-wrap -xf -
+          tar -C poop-bag-holder --exclude=node_modules -cf - . \
+            | tar -C _site/poop-bag-holder -xf -
           tar -C drive-briefing -cf - . \
             | tar -C _site/drive-briefing -xf -
       - uses: actions/upload-pages-artifact@v3
