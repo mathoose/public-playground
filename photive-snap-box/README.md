@@ -4,7 +4,7 @@ Live **open tray + snap-over lid + USB spacer comb** designer for Mattheus’s *
 
 **Photive snap box v3 · Oct 5, 2026**
 
-Not the travel case (wrap / six organizer slots / USB cap). Those stay on hold in [PR #13](https://github.com/mathoose/public-playground/pull/13).
+This is the **canonical** Photive 6-port designer. The separate **travel-case** app (`usb-charger-travel-case/`, wrap / six organizer slots) was retired and removed from the repo in Oct 2026.
 
 ## Open the designer
 
