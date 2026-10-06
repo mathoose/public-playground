@@ -1,7 +1,7 @@
 /** SYJ-F37F slide-on sleeve — wrap around the band, not toward USB. */
 
-export const APP_VERSION = "6 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v6";
+export const APP_VERSION = "7 · Oct 6, 2026";
+export const APP_VERSION_TAG = "v7";
 export const APP_NAME = "Power bank wrap";
 
 export const PRESETS = {
@@ -43,7 +43,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   sleeveLen: 72,
   wall: 2.2,
   wrapStick: 7,
-  wrapLane: 11,
+  wrapLane: 17,
   wrapGap: 12,
   wrapFlange: 2.2,
   wrapInset: 6,
@@ -64,7 +64,7 @@ export const SLIDERS = [
   { key: "sleeveLen", min: 28, max: 140, step: 0.5, unit: "mm" },
   { key: "wall", min: 1.6, max: 3.6, step: 0.1, unit: "mm" },
   { key: "wrapStick", min: 4, max: 14, step: 0.1, unit: "mm" },
-  { key: "wrapLane", min: 8, max: 22, step: 0.1, unit: "mm" },
+  { key: "wrapLane", min: 8, max: 28, step: 0.1, unit: "mm" },
   { key: "wrapGap", min: 6, max: 40, step: 0.5, unit: "mm" },
   { key: "wrapFlange", min: 1.4, max: 4.5, step: 0.1, unit: "mm" },
   { key: "wrapInset", min: 2, max: 24, step: 0.5, unit: "mm" },
@@ -114,8 +114,10 @@ export function clampParams(raw = {}) {
   if (p.slotH > maxSlot) p.slotH = Number(Math.max(5, maxSlot).toFixed(1));
   const need = 2 * p.wrapLane + p.wrapGap + 2 * p.wrapInset;
   if (need > p.sleeveLen) {
-    const extra = need - p.sleeveLen;
-    p.wrapGap = Number(Math.max(6, p.wrapGap - extra).toFixed(1));
+    p.sleeveLen = Number(clamp(need, 28, 140).toFixed(1));
+  }
+  if (2 * p.wrapLane + p.wrapGap + 2 * p.wrapInset > p.sleeveLen) {
+    p.wrapGap = Number(Math.max(6, p.sleeveLen - 2 * p.wrapLane - 2 * p.wrapInset).toFixed(1));
   }
   if (p.wrapFlange * 2 + 3.2 > p.wrapLane) {
     p.wrapFlange = Number(Math.max(1.4, (p.wrapLane - 3.2) / 2).toFixed(1));
@@ -153,7 +155,7 @@ export function derive(raw = {}) {
   const clipWall = 1.3;
   const clipHoleR = p.cordD / 2;
   const clipOuterR = clipHoleR + clipWall;
-  const clipWidth = Math.min(clipOuterR * 2, Math.max(4.2, p.wrapGap - 1.8));
+  const clipWidth = clipOuterR * 2;
   const clipLen = Math.max(6.4, p.cordD + 4.8);
   const clipH = clipOuterR * 2;
   const clipOverlap = 1.4;
@@ -161,10 +163,12 @@ export function derive(raw = {}) {
   const clipDepth = p.clipOn ? clipHang : 0;
   const bboxW = outerW;
   const bboxH = outerH + Math.max(0, clipDepth - p.wrapStick);
-  const clipX = (wrapX1 + wrapX2) / 2;
-  const clipSpread = Math.min(32, Math.max(16, bodyW * 0.38));
-  const clipY0 = cy - clipSpread / 2;
-  const clipY1 = cy + clipSpread / 2;
+  const clipPad = clipOuterR + 0.5;
+  const clipXA = Number(Math.max(clipPad, wrapX0 - clipPad).toFixed(2));
+  const clipXB = Number(Math.min(p.sleeveLen - clipPad, wrapX3 + clipPad).toFixed(2));
+  const clipYA = cy;
+  const clipYB = cy;
+  const clipMidX = Number(((clipXA + clipXB) / 2).toFixed(2));
   const clipHoleZ = p.wrapStick + 0.9 - clipOuterR;
   const beltMidA = wrapX0 + p.wrapLane / 2;
   const beltMidB = wrapX2 + p.wrapLane / 2;
@@ -195,9 +199,11 @@ export function derive(raw = {}) {
     zMid,
     cy,
     cz,
-    clipX,
-    clipY0,
-    clipY1,
+    clipXA,
+    clipXB,
+    clipYA,
+    clipYB,
+    clipMidX,
     clipLen,
     clipWidth,
     clipH,

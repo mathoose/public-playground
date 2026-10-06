@@ -124,25 +124,6 @@ body.capture .stage {
   min-height: 0;
 }
 
-.history-bar {
-  display: flex;
-  gap: 8px;
-  margin: 0 0 10px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--panel);
-  padding-bottom: 2px;
-}
-.history-bar button {
-  flex: 1;
-  min-height: 40px;
-}
-.history-bar button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
 .settings-group {
   border: 1px solid var(--line);
   border-radius: var(--radius);
