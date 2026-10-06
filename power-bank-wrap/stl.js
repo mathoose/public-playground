@@ -103,6 +103,12 @@ function roundedFrameX(CrossSection, Manifold, outerW, outerH, innerW, innerH, r
   return frame;
 }
 
+function alongY(solid, temps) {
+  const rot = solid.rotate(90, 0, 0);
+  temps.push(rot);
+  return rot;
+}
+
 function wrapBelts(Manifold, CrossSection, d, temps) {
   const p = d.p;
   const stick = p.wrapStick;
@@ -150,50 +156,80 @@ function wrapBelts(Manifold, CrossSection, d, temps) {
   return unionAll(Manifold, belts, temps);
 }
 
-/** Elastic omega snap on the underside, one per wrap-lane end. */
-function cordClip(Manifold, d, x, y, segs, temps) {
+/** Elastic omega snap on a long side, flared root so it won't snap off. */
+function cordClip(Manifold, CrossSection, d, place, segs, temps) {
   const holeR = d.clipHoleR;
   const outerR = d.clipOuterR;
+  const rootR = d.clipRootR;
   const grip = d.grip;
   const len = d.clipLen;
-  const zHole = d.clipHoleZ;
-  const y0 = y - len / 2;
-  const outer = Manifold.cylinder(len, outerR, outerR, segs, false)
-    .rotate(90, 0, 0)
-    .translate(x, y0 + len, zHole);
+  const overlap = d.clipOverlap;
+  const { x, yWall, yHole, z, outward } = place;
+
+  const outer = Manifold.cylinder(len, outerR, outerR, segs, false).translate(
+    x,
+    yHole,
+    z - len / 2
+  );
   temps.push(outer);
-  const hole = Manifold.cylinder(len + 3.2, holeR, holeR, segs, false)
+
+  const yInner = yWall - overlap * outward;
+  const yLo = Math.min(yHole, yInner);
+  const yHi = Math.max(yHole, yInner);
+  const rootLen = Math.max(0.8, yHi - yLo);
+  const rAtLo = yLo === yHole ? outerR : rootR;
+  const rAtHi = yHi === yHole ? outerR : rootR;
+  const root = Manifold.cylinder(rootLen, rAtLo, rAtHi, segs, false)
     .rotate(90, 0, 0)
-    .translate(x, y0 + len + 1.6, zHole);
+    .translate(x, yLo + rootLen, z);
+  temps.push(root);
+
+  const padW = 2 * rootR;
+  const padH = 2 * rootR;
+  const padTh = overlap + 1.1;
+  const pad = extrudedRounded(
+    CrossSection,
+    padW,
+    padH,
+    padTh,
+    Math.min(rootR - 0.15, padW / 2 - 0.15),
+    temps
+  );
+  const padTy = outward < 0 ? yWall + overlap : yWall + 1.1;
+  const padY = alongY(pad, temps).translate(x, padTy, z);
+  temps.push(padY);
+
+  let body = root.add(outer);
+  temps.push(body);
+  body = body.add(padY);
+  temps.push(body);
+
+  const hole = Manifold.cylinder(len + 3.2, holeR, holeR, segs, false).translate(
+    x,
+    yHole,
+    z - len / 2 - 1.6
+  );
   temps.push(hole);
-  const mouthH = outerR + 2.2;
-  const mouth = Manifold.cube([grip, len + 3.2, mouthH], false).translate(
+  body = body.subtract(hole);
+  temps.push(body);
+
+  const mouthY0 = outward < 0 ? yHole - outerR - 2.4 : yHole - 0.15;
+  const mouthY1 = outward < 0 ? yHole + 0.15 : yHole + outerR + 2.4;
+  const mouth = Manifold.cube([grip, Math.max(0.8, mouthY1 - mouthY0), len + 3.2], false).translate(
     x - grip / 2,
-    y0 - 1.6,
-    zHole - outerR - 0.3
+    mouthY0,
+    z - len / 2 - 1.6
   );
   temps.push(mouth);
-  let clip = outer.subtract(hole);
-  temps.push(clip);
-  clip = clip.subtract(mouth);
-  temps.push(clip);
-  const padW = Math.min(d.clipWidth, outerR * 2);
-  const pad = Manifold.cube([padW, len, 2.2], false).translate(
-    x - padW / 2,
-    y0,
-    d.p.wrapStick - 0.5
-  );
-  temps.push(pad);
-  clip = clip.add(pad);
-  temps.push(clip);
-  return clip;
+  body = body.subtract(mouth);
+  temps.push(body);
+  return body;
 }
 
-function cordClips(Manifold, d, segs, temps) {
-  if (!d.p.clipOn) return null;
-  const a = cordClip(Manifold, d, d.clipXA, d.clipYA, segs, temps);
-  const b = cordClip(Manifold, d, d.clipXB, d.clipYB, segs, temps);
-  return unionAll(Manifold, [a, b], temps);
+function cordClips(Manifold, CrossSection, d, segs, temps) {
+  if (!d.clips.length) return null;
+  const parts = d.clips.map((place) => cordClip(Manifold, CrossSection, d, place, segs, temps));
+  return unionAll(Manifold, parts, temps);
 }
 
 function sideSlots(Manifold, d, temps) {
@@ -252,7 +288,7 @@ export function buildCaseSolid(wasm, raw, temps, segs) {
     temps.push(solid);
   }
 
-  const clips = cordClips(Manifold, d, segs, temps);
+  const clips = cordClips(Manifold, CrossSection, d, segs, temps);
   if (clips) {
     solid = solid.add(clips);
     temps.push(solid);

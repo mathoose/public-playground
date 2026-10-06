@@ -30,7 +30,7 @@
       <details class="settings-group" open>
         <summary>Preset</summary>
         <div class="group-body">
-          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. One elastic clip at each wrap-lane end holds a cord end.</p>
+          <p class="group-note">Slide-on band for Mattheus’s mint SYJ-F37F (143 × 68 × 16 mm). Cord wraps around the sleeve’s own perimeter — never over the USB end. Two elastic clips on each long side (four total), spaced apart, with flared roots so they don’t snap off.</p>
           <div class="seg">
             <button class="chip active" type="button" data-preset="syj">SYJ-F37F</button>
             <button class="chip" type="button" data-preset="j159">HOCO J159</button>
@@ -133,16 +133,26 @@
       <details class="settings-group" open>
         <summary>Cord clips</summary>
         <div class="group-body">
-          <p class="group-note">Two elastic omega snaps on the underside — one at the USB-end of the wrap zone, one at the tight end — so each cord end has its own anchor. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
+          <p class="group-note">Four elastic omega snaps — two on each long side of the sleeve, in the end insets so they miss the wrap channels and the inner hole. Flared filleted roots join the wall. Mouth is ~58% of the cord so PETG flexes and holds tight.</p>
           <div class="row">
             <label for="cordD">Cord diameter</label>
             <output id="cordD-out"></output>
             <input id="cordD" type="range" min="2.4" max="6" step="0.1" value="3.6" />
           </div>
           <div class="row">
-            <label for="clipOn">Bottom clips</label>
-            <output id="clipOn-out"></output>
-            <input id="clipOn" type="range" min="0" max="1" step="1" value="1" />
+            <label for="clipCount">Clips</label>
+            <output id="clipCount-out"></output>
+            <input id="clipCount" type="range" min="0" max="4" step="2" value="4" />
+          </div>
+          <div class="row">
+            <label for="clipSpacing">Clip spacing</label>
+            <output id="clipSpacing-out"></output>
+            <input id="clipSpacing" type="range" min="14" max="70" step="0.5" value="58" />
+          </div>
+          <div class="row">
+            <label for="clipFillet">Root fillet</label>
+            <output id="clipFillet-out"></output>
+            <input id="clipFillet" type="range" min="0.8" max="5" step="0.1" value="2.4" />
           </div>
           <div class="row">
             <label for="slotOn">Side slots (button / micro)</label>
@@ -172,7 +182,7 @@
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>PETG</b>, 0.2 mm layers, 4 walls, <b>standing on the tight end</b> (hole pointing up).
-            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap both ends into the bottom clips.
+            No supports. Slide the 10+ end in first so USB / LEDs stay out. Wind the cord around the band, snap each end into a side clip.
           </p>
         </div>
       </details>

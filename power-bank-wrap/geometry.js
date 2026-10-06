@@ -50,7 +50,9 @@ export const DEFAULT_PARAMS = Object.freeze({
   slotOn: 0,
   slotH: 9,
   cordD: 3.6,
-  clipOn: 1,
+  clipCount: 4,
+  clipSpacing: 58,
+  clipFillet: 2.4,
 });
 
 export const SLIDERS = [
@@ -71,7 +73,9 @@ export const SLIDERS = [
   { key: "slotOn", min: 0, max: 1, step: 1, unit: "" },
   { key: "slotH", min: 5, max: 14, step: 0.1, unit: "mm" },
   { key: "cordD", min: 2.4, max: 6, step: 0.1, unit: "mm" },
-  { key: "clipOn", min: 0, max: 1, step: 1, unit: "" },
+  { key: "clipCount", min: 0, max: 4, step: 2, unit: "" },
+  { key: "clipSpacing", min: 14, max: 70, step: 0.5, unit: "mm" },
+  { key: "clipFillet", min: 0.8, max: 5, step: 0.1, unit: "mm" },
 ];
 
 export function clamp(v, lo, hi) {
@@ -107,7 +111,9 @@ export function clampParams(raw = {}) {
     p[s.key] = Number(v.toFixed(decimals));
   }
   p.slotOn = p.slotOn >= 0.5 ? 1 : 0;
-  p.clipOn = p.clipOn >= 0.5 ? 1 : 0;
+  p.clipCount = p.clipCount >= 3 ? 4 : p.clipCount >= 1 ? 2 : 0;
+  const minSpace = Number((2 * (p.cordD / 2 + 1.3 + p.clipFillet) + 2.4).toFixed(1));
+  if (p.clipSpacing < minSpace) p.clipSpacing = Number(clamp(minSpace, 14, 70).toFixed(1));
   const maxTaper = Math.min(p.clearXY + 0.35, p.clearZ + 0.35, p.bankW / 8, p.bankH / 4);
   if (p.taper > maxTaper) p.taper = Number(Math.max(0, maxTaper).toFixed(2));
   const maxSlot = p.bankH + 2 * p.clearZ - 1.2;
@@ -123,6 +129,40 @@ export function clampParams(raw = {}) {
     p.wrapFlange = Number(Math.max(1.4, (p.wrapLane - 3.2) / 2).toFixed(1));
   }
   return p;
+}
+
+function minClipSpan(rootR) {
+  return 2 * rootR + 2.4;
+}
+
+function snapXToInsets(x, wrapX0, wrapX3, pad, sleeveLen, fallback) {
+  const bands = [
+    [pad, wrapX0 - pad],
+    [wrapX3 + pad, sleeveLen - pad],
+  ].filter(([a, b]) => b - a >= 0.2);
+  if (!bands.length) return Number(fallback.toFixed(2));
+  let best = fallback;
+  let bestDist = Infinity;
+  for (const [a, b] of bands) {
+    const c = clamp(x, a, b);
+    const dist = Math.abs(c - x);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = c;
+    }
+  }
+  return Number(best.toFixed(2));
+}
+
+function buildClipPlacements({ count, clipXA, clipXB, clipMidX, yWallL, yWallR, yHoleL, yHoleR, z }) {
+  if (count <= 0) return [];
+  const xs = count >= 4 ? [clipXA, clipXB] : [clipMidX];
+  const out = [];
+  for (const x of xs) {
+    out.push({ x, side: "L", outward: -1, yWall: yWallL, yHole: yHoleL, z });
+    out.push({ x, side: "R", outward: 1, yWall: yWallR, yHole: yHoleR, z });
+  }
+  return out;
 }
 
 export function derive(raw = {}) {
@@ -155,21 +195,50 @@ export function derive(raw = {}) {
   const clipWall = 1.3;
   const clipHoleR = p.cordD / 2;
   const clipOuterR = clipHoleR + clipWall;
-  const clipWidth = clipOuterR * 2;
+  const clipFillet = p.clipFillet;
+  const clipRootR = clipOuterR + clipFillet;
+  const clipWidth = clipRootR * 2;
   const clipLen = Math.max(6.4, p.cordD + 4.8);
   const clipH = clipOuterR * 2;
-  const clipOverlap = 1.4;
-  const clipHang = Math.max(0, clipH - clipOverlap);
-  const clipDepth = p.clipOn ? clipHang : 0;
-  const bboxW = outerW;
-  const bboxH = outerH + Math.max(0, clipDepth - p.wrapStick);
-  const clipPad = clipOuterR + 0.5;
-  const clipXA = Number(Math.max(clipPad, wrapX0 - clipPad).toFixed(2));
-  const clipXB = Number(Math.min(p.sleeveLen - clipPad, wrapX3 + clipPad).toFixed(2));
-  const clipYA = cy;
-  const clipYB = cy;
+  const clipOverlap = 1.2;
+  const clipHang = clipOuterR + 0.35;
+  const yWallL = p.wrapStick;
+  const yWallR = p.wrapStick + bodyW;
+  const yHoleL = yWallL - clipHang;
+  const yHoleR = yWallR + clipHang;
+  const mouthExtra = 2.2;
+  const yMin = p.clipCount ? yHoleL - clipOuterR - mouthExtra : 0;
+  const yMax = p.clipCount ? yHoleR + clipOuterR + mouthExtra : outerW;
+  const clipDepth = p.clipCount ? Math.max(0, -yMin, yMax - outerW) : 0;
+  const bboxW = outerW + 2 * clipDepth;
+  const bboxH = outerH;
+  const lanePad = clipOuterR + 0.8;
+  const insetA = Number(clamp(wrapX0 / 2, lanePad, Math.max(lanePad, wrapX0 - lanePad)).toFixed(2));
+  const insetB = Number(
+    clamp((wrapX3 + p.sleeveLen) / 2, wrapX3 + lanePad, p.sleeveLen - lanePad).toFixed(2)
+  );
+  const midX = p.sleeveLen / 2;
+  let clipXA = Number((midX - p.clipSpacing / 2).toFixed(2));
+  let clipXB = Number((midX + p.clipSpacing / 2).toFixed(2));
+  clipXA = snapXToInsets(clipXA, wrapX0, wrapX3, lanePad, p.sleeveLen, insetA);
+  clipXB = snapXToInsets(clipXB, wrapX0, wrapX3, lanePad, p.sleeveLen, insetB);
+  if (p.clipCount >= 4 && clipXB - clipXA < minClipSpan(clipRootR)) {
+    clipXA = insetA;
+    clipXB = insetB;
+  }
   const clipMidX = Number(((clipXA + clipXB) / 2).toFixed(2));
-  const clipHoleZ = p.wrapStick + 0.9 - clipOuterR;
+  const clipZ = cz;
+  const clips = buildClipPlacements({
+    count: p.clipCount,
+    clipXA,
+    clipXB,
+    clipMidX,
+    yWallL,
+    yWallR,
+    yHoleL,
+    yHoleR,
+    z: clipZ,
+  });
   const beltMidA = wrapX0 + p.wrapLane / 2;
   const beltMidB = wrapX2 + p.wrapLane / 2;
   const grip = Math.max(1.15, p.cordD * 0.58);
@@ -201,17 +270,23 @@ export function derive(raw = {}) {
     cz,
     clipXA,
     clipXB,
-    clipYA,
-    clipYB,
     clipMidX,
+    clipZ,
     clipLen,
     clipWidth,
     clipH,
     clipWall,
     clipHoleR,
     clipOuterR,
-    clipHoleZ,
+    clipFillet,
+    clipRootR,
     clipOverlap,
+    clipHang,
+    yWallL,
+    yWallR,
+    yHoleL,
+    yHoleR,
+    clips,
     beltMidA,
     beltMidB,
     grip,

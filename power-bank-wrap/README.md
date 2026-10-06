@@ -1,6 +1,6 @@
 # Power bank wrap
 
-Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Cord wraps **around the sleeve band** (the 68×16 cross-section), never over the USB end. Two **elastic omega clips** sit at **opposite ends of the wrap zone** (USB-end lane and tight-end lane), so each cord end has its own anchor.
+Live **slide-on cord-wrap sleeve** for Mattheus’s mint **SYJSHUANGXI SYJ-F37F** (143 × 68 × 16 mm). Cord wraps **around the sleeve band** (the 68×16 cross-section), never over the USB end. **Four elastic omega clips** — **two on each long side**, spaced apart in the end insets — with **flared filleted roots** so they don’t snap off.
 
 **Power bank wrap v7 · Oct 6, 2026**
 
@@ -20,15 +20,15 @@ An open-ended band the bank **slides into**. USB ports and LEDs stay out.
 
 - **Taper** (default **0.4 mm per side**) so it grips
 - **Two C-channels around the 68×16 perimeter**, default **17 mm** wide
-- **Two elastic omega clips** on the underside, one at each wrap-lane end (mouth ~58% of the cord)
+- **Four elastic omega clips** on the long sides (2 per side), flared roots, mouth ~58% of the cord
 
 ## Print (Snapmaker Luban / PETG)
 
 1. Stand it on the **tight end**, hole pointing up. **No supports.**
 2. **PETG**, 0.4 mm nozzle, **0.2 mm** layers, **4 walls**, 20–25% infill.
-3. Slide the **10+ end in first**. Wind the cord around the band; snap each end into its nearest clip.
+3. Slide the **10+ end in first**. Wind the cord around the band; snap each end into a side clip.
 
-Default outer size is **72.0 × 87.2 × 35.1 mm** — fits A150 / A250 / A350.
+Default outer size is **72.0 × 90.7 × 35.1 mm** — fits A150 / A250 / A350.
 
 ## Rebuild
 

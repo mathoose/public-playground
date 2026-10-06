@@ -200,17 +200,22 @@ export class CasePreview {
       this.camera.position.set(d.bankX0 - 55, d.cy - 95, d.cz + 58);
       this.controls.target.set(d.p.sleeveLen * 0.35, d.cy, d.cz);
     } else if (name === "clips") {
-      const midX = d.clipMidX ?? (d.clipXA + d.clipXB) / 2;
-      this.camera.position.set(midX - 6, d.cy - 78, -36);
-      this.controls.target.set(midX, d.cy, d.p.wrapStick * 0.35);
+      const c = d.clips.find((cl) => cl.outward < 0 && cl.x === d.clipXA) || d.clips[0];
+      if (c) {
+        this.camera.position.set(c.x - 16, c.yHole + c.outward * 28, c.z + 10);
+        this.controls.target.set(c.x, c.yHole, c.z);
+      } else {
+        this.camera.position.set(d.clipXA, -40, d.cz);
+        this.controls.target.set(d.clipXA, d.yWallL, d.clipZ);
+      }
     } else if (name === "side") {
       this.camera.position.set(d.p.sleeveLen * 0.2, -d.bboxW * 1.8, d.cz);
       this.controls.target.set(d.p.sleeveLen * 0.4, d.cy, d.cz);
     } else {
-      const span = Math.max(d.p.bankL, d.bboxW, 110);
-      const dist = span * 1.02;
-      this.camera.position.set(-dist * 0.7, -dist * 0.58, dist * 0.4);
-      this.controls.target.set((d.bankX0 + d.p.sleeveLen) * 0.42, d.cy, d.cz * 0.7);
+      const span = Math.max(d.p.bankL, d.bboxW, 120);
+      const dist = span * 1.12;
+      this.camera.position.set(-dist * 0.58, -dist * 0.74, dist * 0.4);
+      this.controls.target.set(d.p.sleeveLen * 0.12, d.cy * 0.38, d.cz * 0.68);
     }
     this.controls.update();
   }

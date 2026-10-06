@@ -28,7 +28,8 @@ let rebuildTimer = 0;
 let rebuildGen = 0;
 
 function fmtValue(key, n) {
-  if (key === "slotOn" || key === "clipOn") return n >= 0.5 ? "on" : "off";
+  if (key === "slotOn") return n >= 0.5 ? "on" : "off";
+  if (key === "clipCount") return `${Math.round(n)}`;
   const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
   const unit = UNITS[key] ? ` ${UNITS[key]}` : "";
@@ -87,9 +88,9 @@ function renderReadout(result) {
     · taper <b>${formatMm(d.p.taper)}</b> / side<br />
     Wrap around the <b>68×16 band</b> (not toward USB) in two C-channels
     <b>${formatMm(d.p.wrapLane)}</b> wide, gap <b>${formatMm(d.p.wrapGap)}</b><br />
-    Elastic clips at each wrap-lane end <b>${formatMm(d.p.cordD)}</b>
-    (mouth ${formatMm(d.grip)}) · USB-end X <b>${d.clipXA.toFixed(1)}</b>,
-    tight-end X <b>${d.clipXB.toFixed(1)}</b> mm<br />
+    Elastic clips <b>${d.p.clipCount}</b> (2 per long side)
+    · mouth ${formatMm(d.grip)} · fillet ${formatMm(d.clipFillet)}
+    · X <b>${d.clipXA.toFixed(1)}</b> / <b>${d.clipXB.toFixed(1)}</b> mm<br />
     PETG ~<b>${grams} g</b> · ${tris} tris
   `;
 }
