@@ -146,6 +146,10 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   line-height: 1.35;
 }
 
+.view-group .view-seg {
+  margin-top: 4px;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr auto;

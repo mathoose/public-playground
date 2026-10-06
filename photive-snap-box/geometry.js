@@ -1,6 +1,6 @@
 /** Photive 6-port snap box — outside-cap lid + per-port USB spacer comb (v3). */
 
-export const APP_VERSION = "4 · Oct 6, 2026";
+export const APP_VERSION = "5 · Oct 6, 2026";
 export const APP_VERSION_TAG = "v3";
 export const APP_NAME = "Photive snap box";
 
