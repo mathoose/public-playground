@@ -1,6 +1,6 @@
 /** Photive 6-port snap box — outside-cap lid + per-port USB spacer comb (v3). */
 
-export const APP_VERSION = "5 · Oct 6, 2026";
+export const APP_VERSION = "6 · Oct 6, 2026";
 export const APP_VERSION_TAG = "v3";
 export const APP_NAME = "Photive snap box";
 
@@ -52,15 +52,15 @@ export const DEFAULT_PARAMS = Object.freeze({
 
 export const SLIDERS = [
   { key: "lipClear", min: 0.15, max: 0.6, step: 0.01, unit: "mm" },
-  { key: "c8HoleD", min: 5, max: 14, step: 0.1, unit: "mm" },
-  { key: "usbHoleW", min: 3, max: 10, step: 0.1, unit: "mm" },
-  { key: "usbHoleH", min: 4, max: 14, step: 0.1, unit: "mm" },
-  { key: "usbPitch", min: 7, max: 16, step: 0.1, unit: "mm" },
-  { key: "innerWidth", min: 50, max: 110, step: 0.2, unit: "mm" },
-  { key: "innerLength", min: 110, max: 220, step: 0.2, unit: "mm" },
-  { key: "usbExtra", min: 8, max: 35, step: 0.5, unit: "mm" },
+  { key: "c8HoleD", min: 5, max: 25, absMax: 28, step: 0.1, unit: "mm" },
+  { key: "usbHoleW", min: 3, max: 12, absMax: 14, step: 0.1, unit: "mm" },
+  { key: "usbHoleH", min: 4, max: 18, absMax: 20, step: 0.1, unit: "mm" },
+  { key: "usbPitch", min: 7, max: 18, step: 0.1, unit: "mm" },
+  { key: "innerWidth", min: 50, max: 120, step: 0.2, unit: "mm" },
+  { key: "innerLength", min: 110, max: 260, step: 0.2, unit: "mm" },
+  { key: "usbExtra", min: 8, max: 45, step: 0.5, unit: "mm" },
   { key: "innerHeight", min: 20, max: 50, step: 0.2, unit: "mm" },
-  { key: "acExtra", min: 10, max: 45, step: 0.5, unit: "mm" },
+  { key: "acExtra", min: 10, max: 55, step: 0.5, unit: "mm" },
   { key: "wall", min: 1.6, max: 4, step: 0.1, unit: "mm" },
   { key: "floor", min: 1.2, max: 4, step: 0.1, unit: "mm" },
   { key: "cornerRadius", min: 0, max: 12, step: 0.1, unit: "mm" },
@@ -72,8 +72,12 @@ export const SLIDERS = [
   { key: "beadR", min: 0.3, max: 1.0, step: 0.05, unit: "mm" },
   { key: "spacerFit", min: 0.1, max: 0.6, step: 0.05, unit: "mm" },
   { key: "stopH", min: 0, max: 8, step: 0.5, unit: "mm" },
-  ...PLUG_KEYS.map((key) => ({ key, min: 0, max: 35, step: 0.5, unit: "mm" })),
+  ...PLUG_KEYS.map((key) => ({ key, min: 0, max: 40, absMax: 45, step: 0.5, unit: "mm" })),
 ];
+
+export function sliderAbsMax(spec) {
+  return spec.absMax ?? spec.max;
+}
 
 export function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
@@ -105,7 +109,7 @@ export function clampParams(raw = {}) {
   for (const s of SLIDERS) {
     let v = Number(p[s.key]);
     if (!Number.isFinite(v)) v = DEFAULT_PARAMS[s.key];
-    v = clamp(v, s.min, s.max);
+    v = clamp(v, s.min, sliderAbsMax(s));
     const decimals = s.step >= 1 ? 0 : (String(s.step).split(".")[1] || "").length;
     p[s.key] = Number(v.toFixed(decimals));
   }
@@ -231,8 +235,12 @@ export function warnings(raw = {}) {
   if (d.p.lipClear < 0.2) notes.push("Lid is tight — PETG helps; sand the nubs if it won’t close.");
   if (d.p.lipClear > 0.45) notes.push("Lid is loose — raise snap bead radius or it may pop off.");
   if (d.beadBite < 0.12) notes.push("Snap nubs barely grip — bead radius should be ≥ clearance + 0.15 mm.");
-  if (d.p.c8HoleD > 12) notes.push("Rear hole may let the figure-8 plug pull through.");
-  if (d.p.usbHoleW > 8) notes.push("USB holes are getting plug-sized; cables may not stay inside.");
+  if (d.p.c8HoleD > 25) {
+    notes.push("Rear cord gap is above the slider — verify against your C8 / figure-8 plug.");
+  } else if (d.p.c8HoleD > 20) {
+    notes.push("Rear hole may let the figure-8 plug pull through.");
+  }
+  if (d.p.usbHoleW > 11) notes.push("USB holes are getting plug-sized; cables may not stay inside.");
   if (d.brickL < 90) notes.push("Inner length leaves a short nest for a 100 mm brick.");
   if (d.brickW < 68) notes.push("Inner width is tighter than the 70 mm Photive brick.");
   if (d.p.usbCount > 1 && d.span + d.p.usbHoleW > d.innerW - 2) {

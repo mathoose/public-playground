@@ -158,10 +158,31 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   margin: 10px 0 0;
 }
 .row label { font-size: 0.9rem; }
-.row output {
+.row output,
+.row input.value-num {
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
   font-size: 0.85rem;
+}
+.row output {
+  color: var(--muted);
+}
+input.value-num {
+  width: 4.75rem;
+  justify-self: end;
+  text-align: right;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 6px;
+  background: #fff;
+  color: var(--ink);
+}
+input.value-num.over-slider {
+  border-color: var(--warn);
+  background: #fffaf5;
+}
+input.value-num:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.35);
+  outline-offset: 1px;
 }
 input[type="range"] {
   width: 100%;
