@@ -14,6 +14,7 @@ import {
 import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -195,6 +196,7 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BoxPreview({ canvas: $("view") });
 bind();
+pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: () => params,

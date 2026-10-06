@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { APP_VERSION, APP_VERSION_TAG, DEFAULT_PARAMS, facesToPositions, meshFor, stlBytes } from "./clip.js";
 import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const KEYS = [
   "thickness",
@@ -153,6 +154,7 @@ document.getElementById("preset-original").addEventListener("click", () => setPr
 document.getElementById("preset-wide").addEventListener("click", () => setPreset({ width: 76 }));
 document.getElementById("reset").addEventListener("click", () => setPreset({}));
 document.getElementById("download").addEventListener("click", downloadStl);
+pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: readParams,
