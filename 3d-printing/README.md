@@ -14,8 +14,9 @@ Browser apps for parts you can customize and download as STL.
 | [`../photive-snap-box/`](../photive-snap-box/) | Photive USB snap box (live tray + lid designer) |
 | [`../henson-razor-tool/`](../henson-razor-tool/) | Henson AL13 / Ti22 blade-change cradle + handle grip |
 | [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F slide-on sleeve, wrap around the band, elastic clips on the back |
+| [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
-On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, and `/power-bank-wrap/`.
+On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, and `/private/` (behind the small lock in the footer).
 
 ## Add another app
 
