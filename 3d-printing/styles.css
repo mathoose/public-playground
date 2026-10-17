@@ -130,3 +130,6 @@ footer {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+.private-link { text-decoration: none; opacity: 0.45; font-size: 0.9rem; }
+.private-link:hover { opacity: 0.9; }
