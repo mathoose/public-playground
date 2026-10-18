@@ -2,8 +2,8 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "3 · Oct 18, 2026";
-export const APP_VERSION_TAG = "v3";
+export const APP_VERSION = "4 · Oct 18, 2026";
+export const APP_VERSION_TAG = "v4";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -80,7 +80,17 @@ export function defaultParams() {
     standAngleDeg: 18,
     standThickness: 4,
     outerCornerRadius: 1.5,
+    alternate: true,
+    colorA: "#292524",
+    colorB: "#b45309",
   };
+}
+
+function normalizeHex(value, fallback) {
+  const s = String(value || "").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(s)) return `#${s.toLowerCase()}`;
+  return fallback;
 }
 
 export function clampParams(p) {
@@ -125,6 +135,9 @@ export function clampParams(p) {
     Math.min(next.photoW, next.photoH) / 2
   );
   next.outerCornerRadius = Math.min(maxCorner, Math.max(0, Number(p.outerCornerRadius) || 0));
+  next.alternate = p.alternate !== false;
+  next.colorA = normalizeHex(p.colorA, "#292524");
+  next.colorB = normalizeHex(p.colorB, "#b45309");
   return next;
 }
 
@@ -239,6 +252,25 @@ export function layoutBeads(p) {
     warnings.push("Large outer corner radius may cut deeply into the corner beads.");
   }
 
+  const byId = new Map(beads.map((b) => [b.id, b]));
+  const path = [];
+  const pushBead = (id) => {
+    const bead = byId.get(id);
+    if (bead) path.push(bead);
+  };
+  pushBead("corner-tl");
+  for (let i = 1; i < params.countTop - 1; i++) pushBead(`top-${i}`);
+  pushBead("corner-tr");
+  for (let i = params.countRight - 2; i >= 1; i--) pushBead(`right-${i}`);
+  pushBead("corner-br");
+  for (let i = params.countBottom - 2; i >= 1; i--) pushBead(`bottom-${i}`);
+  pushBead("corner-bl");
+  for (let i = 1; i < params.countLeft - 1; i++) pushBead(`left-${i}`);
+  path.forEach((bead, index) => {
+    bead.pathIndex = index;
+    bead.colorIndex = params.alternate ? index % 2 : 0;
+  });
+
   return {
     params,
     beads,
@@ -259,6 +291,7 @@ export function layoutBeads(p) {
     enabledCount: enabled.length,
     outerCornerRadius: params.outerCornerRadius,
     warnings,
+    path,
   };
 }
 
@@ -366,6 +399,8 @@ export function frameClipFor(layout) {
     outerW: layout.outer.w,
     outerH: layout.outer.h,
     border,
+    beadRadius: layout.radius,
+    coverHeight: layout.radius,
     plateT: p.plateThickness,
     cornerRadius: p.outerCornerRadius,
     standWidth: p.standWidth,

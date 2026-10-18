@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: bubble-frame-v3 -->
+<!-- build: bubble-frame-v4 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -23,6 +23,24 @@
             <button class="chip" type="button" data-part="cover">Cover</button>
             <button class="chip" type="button" data-part="back">Back</button>
           </div>
+        </div>
+      </details>
+
+      <details class="settings-group" id="colorSettings" open>
+        <summary>Colors</summary>
+        <div class="group-body">
+          <label class="check"><input id="alternate" type="checkbox" checked /> Alternate two colors around the frame</label>
+          <div class="row">
+            <div class="field">
+              <label for="colorA">Color 1</label>
+              <input id="colorA" type="color" value="#292524" />
+            </div>
+            <div class="field">
+              <label for="colorB">Color 2</label>
+              <input id="colorB" type="color" value="#b45309" />
+            </div>
+          </div>
+          <div class="hint">Neighbors along the bead path swap colors. Adding or removing circles keeps that order.</div>
         </div>
       </details>
 
@@ -200,12 +218,13 @@
 
       <p class="notes">
         Print the cover and the back <b>flat on the bed</b>, no supports, 0.2 mm layers.
+        The back is smaller than the beads, so it hides behind the frame.
         Print the stand on its <b>side profile</b>. Drop the photo on the back, then
         <b>slide the cover down</b> into the side rails until it hits the stops.
         Slide the stand up into the cleat under the back. Lift the cover out to change the photo.
         STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Bubble frame v3 · Oct 18, 2026</p>
+      <p class="foot" id="app-version">Bubble frame v4 · Oct 18, 2026</p>
     </aside>
 
     <main class="stage">

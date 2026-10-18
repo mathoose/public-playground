@@ -53,7 +53,8 @@ Put the photo on the back, then slide the cover **down** into the side rails unt
 - **Bead-to-bead overlap** — spacing; sets counts automatically
 - **Circles per side** — `+` / `−` (link opposite sides, or set each independently)
 - **Bed web** — thin connecting slab under the beads (0 = hemispheres only)
-- **Back plate** — thickness of the photo-sized plate
+- **Colors** — two bead colors, alternating along the path around the frame
+- **Back plate** — thickness of the plate. It sits behind the beads, with the slide rails tucked under the border
 - **Hanging holes** — 1 centered hole or 2 near the top; diameter and insets
 - **Easel stand** — lean angle; a tab slides into the cleat under the back plate
 - **Mesh quality** — sphere segments used only on export
