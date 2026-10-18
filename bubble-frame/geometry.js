@@ -1,7 +1,9 @@
 /** Layout math for a flat-backed bubble picture frame. Units are millimeters. */
 
-export const APP_VERSION = "2 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v2";
+import { frameClipLayout } from "../shared/frame-clip.js";
+
+export const APP_VERSION = "3 · Oct 18, 2026";
+export const APP_VERSION_TAG = "v3";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -356,69 +358,42 @@ export function ensureCcw(poly) {
   return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
 }
 
+/** Slide-rail mate for this bead layout. Shared with the striped frame. */
+export function frameClipFor(layout) {
+  const p = layout.params;
+  const border = (layout.outer.w - layout.photo.w) / 2;
+  return frameClipLayout({
+    outerW: layout.outer.w,
+    outerH: layout.outer.h,
+    border,
+    plateT: p.plateThickness,
+    cornerRadius: p.outerCornerRadius,
+    standWidth: p.standWidth,
+    standThickness: p.standThickness,
+    standEnabled: p.standEnabled,
+    standAngleDeg: p.standAngleDeg,
+    standHeight: p.standHeight,
+  });
+}
+
 /**
- * Back-plate pocket the stand tab slides into. Open at the bottom and the
- * back; the front of the plate stays solid so beads hide the joint.
+ * Bottom cleat the stand tab slides into. It hangs under the plate and is
+ * fused into the back so the export is one solid.
  */
 export function standSlotLayout(p) {
   const params = clampParams(p);
   if (!params.standEnabled) return null;
-  const wall = 2.4;
-  const clearance = 0.4;
-  const insertH = Math.min(24, Math.max(12, 0.12 * params.photoH));
-  const slotW = params.standWidth + clearance;
-  const slotD = params.standThickness + clearance;
-  const bossW = slotW + 2 * wall;
-  const bossH = insertH + 3.5;
-  const bossD = slotD + wall;
-  // Distance from the table (bead bottoms) to the plate’s bottom edge, so the
-  // tab meets the pocket mouth and nothing extra hangs in front of the beads.
-  const lift = Math.max(2.5, params.ballDiameter - params.imageOverlap);
-  return {
-    wall,
-    clearance,
-    insertH,
-    slotW,
-    slotD,
-    bossW,
-    bossH,
-    bossD,
-    lift,
-  };
+  return frameClipFor(layoutBeads(params)).socket;
 }
 
 /**
  * Easel stand side profile. Print this polygon on the bed and extrude
  * `standWidth` in Z. After printing, stand it on the y=0 edge.
- * +x is toward the front of the photo; +y is up.
- * The tab (x >= 0) slides up into the back-plate pocket. The kickstand stays
- * at x <= 0 so nothing reads from the front — only the beads.
+ * +x is toward the cover; +y is up. The tab slides up into the cleat.
  */
 export function standPolygon(p) {
   const params = clampParams(p);
-  const slot = standSlotLayout({ ...params, standEnabled: true });
-  const tabT = params.standThickness;
-  const insertH = slot.insertH - 0.7;
-  const lift = slot.lift;
-  // Short below-plate stub so the tab and kickstand share a real rectangle
-  // (a point joint would snap). It sits in the pocket’s open mouth, behind
-  // the plate, so it does not read from the front.
-  const join = Math.min(2.4, lift);
-  const tabBottom = lift - join;
-  const thick = params.standThickness;
-  const θ = (params.standAngleDeg * Math.PI) / 180;
-  const heelX = -params.standHeight * Math.tan(θ) - 10;
-  const poly = [
-    [tabT, tabBottom],
-    [tabT, lift + insertH],
-    [0, lift + insertH],
-    [0, lift],
-    [-thick, tabBottom],
-    [heelX - thick, 0],
-    [heelX, 0],
-    [0, tabBottom],
-  ];
-  return ensureCcw(poly);
+  return frameClipFor(layoutBeads({ ...params, standEnabled: true })).standPoly;
 }
 
 export function standBounds(poly) {

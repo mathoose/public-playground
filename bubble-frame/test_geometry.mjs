@@ -15,11 +15,13 @@ import {
   layoutBeads,
   outerPerimeterPoly,
   polygonArea,
+  frameClipFor,
   standBounds,
   standPolygon,
   standSlotLayout,
   toggleDisabled,
 } from "./geometry.js";
+import { aabbOverlapVolume, frameClipLayout } from "../shared/frame-clip.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
 
 let failed = 0;
@@ -88,7 +90,7 @@ const roundedLayout = layoutBeads(roundedP);
 assert(roundedLayout.outerCornerRadius === 8, "layout exposes corner radius");
 const poly = outerPerimeterPoly(roundedLayout.outer.w, roundedLayout.outer.h, 8, 8);
 assert(poly.length > 8, "rounded outer perimeter has arc points");
-assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
+assert(APP_VERSION.includes("Oct 18, 2026"), "version date");
 
 const topEdge = layout.beads.filter((b) => b.id.startsWith("top-") || b.id === "corner-tl" || b.id === "corner-tr");
 assert(topEdge.length === 8, "top side includes corners");
@@ -139,18 +141,91 @@ assert(stand.length >= 4, "stand has a tab and a foot");
 assert(polygonArea(stand) > 50, "stand profile has positive area");
 const sb = standBounds(stand);
 assert(sb.minY >= -1e-6, "stand sits on y=0 for a flat print");
-assert(sb.maxX <= p.standThickness + 0.05, "tab does not stick in front of the plate");
-assert(sb.minX < 0, "foot stays behind the beads");
+assert(sb.maxX <= p.standThickness + 0.05, "tab faces the cover");
+assert(sb.minX < 0, "foot stays behind the plate");
 assert(sb.h > 20, "stand is tall enough to prop the frame");
 const slot = standSlotLayout(p);
-assert(slot && slot.insertH >= 12, "back plate has an insert pocket");
-assert(slot.bossH > slot.insertH, "pocket is taller than the tab");
-assert(slot.slotW > p.standWidth, "slot is wider than the tab for clearance");
-assert(stand.every((pt) => pt[0] <= p.standThickness + 0.05), "no stand geometry in front of the plate");
-const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
-assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
+assert(slot && slot.insertH >= 8, "back plate has a stand cleat");
+assert(slot.slotW > p.standWidth, "cleat is wider than the tab for clearance");
+assert(aabbOverlapVolume(slot.housing, frameClipFor(layout).slab) > 0, "cleat is fused into the plate");
+assert(slot.void.z0 >= frameClipFor(layout).plate.t - 1e-6, "cleat slot does not cut the plate in half");
 const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
 assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
+
+function assertMate(label, spec) {
+  const clip = frameClipLayout(spec);
+  const tongue = clip.tongues[0];
+  assert(tongue.y1 - tongue.y0 > 10, `${label} tongue is long enough to grip`);
+  const lip = clip.rails[0].lips[clip.rails[0].lips.length - 1];
+  const covered = clip.xTip - (clip.outerW / 2 + clip.clearance - clip.lip);
+  assert(covered > 1.1, `${label} lip still hooks the tongue (${covered.toFixed(2)} mm)`);
+  assert(Math.abs(clip.xWallIn - clip.xTip - clip.clearance) < 1e-6, `${label} wall clearance stays fixed`);
+  assert(clip.stopY1 <= clip.y0 - clip.clearance + 1e-6, `${label} stop sits under the tongue`);
+  assert(aabbOverlapVolume(clip.rails[0].wall, clip.slab) > 0, `${label} rail is fused to the plate`);
+  assert(aabbOverlapVolume(clip.rails[0].lips[0], clip.rails[0].wall) > 0, `${label} lip is fused to the wall`);
+}
+assertMate("default", {
+  outerW: layout.outer.w,
+  outerH: layout.outer.h,
+  border: (layout.outer.w - layout.photo.w) / 2,
+  plateT: p.plateThickness,
+  cornerRadius: p.outerCornerRadius,
+  standWidth: p.standWidth,
+  standThickness: p.standThickness,
+  standEnabled: true,
+  standAngleDeg: p.standAngleDeg,
+  standHeight: p.standHeight,
+});
+assertMate("wallet thin border", {
+  outerW: 70,
+  outerH: 90,
+  border: 2,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standWidth: 22,
+  standThickness: 3,
+  standEnabled: true,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+assertMate("large thick border", {
+  outerW: 280,
+  outerH: 340,
+  border: 22,
+  plateT: 4,
+  cornerRadius: 8,
+  standWidth: 50,
+  standThickness: 6,
+  standEnabled: true,
+  standAngleDeg: 24,
+  standHeight: 90,
+});
+const thin = frameClipLayout({
+  outerW: 70,
+  outerH: 90,
+  border: 2,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standEnabled: true,
+  standWidth: 22,
+  standThickness: 3,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+const thick = frameClipLayout({
+  outerW: 70,
+  outerH: 90,
+  border: 22,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standEnabled: true,
+  standWidth: 22,
+  standThickness: 3,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+assert(thick.tongueW > thin.tongueW, "a thicker border gets a deeper tongue");
+assert(thick.lip === thin.lip, "lip angle reach stays printable when the border changes");
 
 const here = dirname(fileURLToPath(import.meta.url));
 for (const [name, minTris] of [

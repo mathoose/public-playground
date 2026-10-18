@@ -497,8 +497,15 @@ function init() {
   bind();
   refresh({ fit: true });
   pairSlidersWithNumbers(document.querySelector(".panel"));
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      preview.setPartView(btn.getAttribute("data-part"));
+      document.querySelectorAll("[data-part]").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
   installUndo({
     panel: document.querySelector(".panel"),
+    before: document.getElementById("viewSettings"),
     read: () => params,
     apply: (snapshot) => {
       params = snapshot;

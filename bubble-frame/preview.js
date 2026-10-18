@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon, standSlotLayout } from "./geometry.js";
+import { socketShellBoxes } from "../shared/frame-clip.js";
+import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -96,6 +97,7 @@ export class FramePreview {
     this.beadMeshes = [];
     this.photoMesh = null;
     this.plateMesh = null;
+    this.partView = "assembled";
     this.tempGeoms = [];
     this.geomCache = new Map();
     this.running = true;
@@ -140,6 +142,21 @@ export class FramePreview {
     return this.layout;
   }
 
+  setPartView(mode) {
+    this.partView = mode === "cover" || mode === "back" ? mode : "assembled";
+    this._applyPartView();
+    this.fit();
+  }
+
+  _applyPartView() {
+    if (!this.coverGroup) return;
+    const mode = this.partView;
+    this.coverGroup.visible = mode !== "back";
+    this.photoGroup.visible = mode === "assembled" || mode === "cover";
+    this.backGroup.visible = mode !== "cover";
+    this.standGroup.visible = mode !== "cover";
+  }
+
   resize() {
     const canvas = this.canvas3d;
     const parent = canvas.parentElement || canvas;
@@ -157,8 +174,13 @@ export class FramePreview {
     const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
     const dist = span * 1.85;
     this.camera.up.set(0, 1, 0);
-    this.camera.position.set(dist * 0.12, dist * 0.08, dist * 1.05);
-    this.controls.target.set(0, 0, this.layout.radius * 0.35);
+    const back = this.partView === "back";
+    this.camera.position.set(
+      back ? dist * 0.15 : dist * 0.48,
+      back ? -dist * 0.28 : -dist * 0.2,
+      dist * (back ? 0.95 : 0.88)
+    );
+    this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.radius * 0.2);
     this.controls.update();
   }
 
@@ -187,6 +209,16 @@ export class FramePreview {
     return this.geomCache.get(key);
   }
 
+  _addBox(parent, b, material) {
+    const w = b.x1 - b.x0;
+    const h = b.y1 - b.y0;
+    const d = b.z1 - b.z0;
+    if (w < 1e-4 || h < 1e-4 || d < 1e-4) return;
+    const mesh = new THREE.Mesh(this._trackGeom(new THREE.BoxGeometry(w, h, d)), material);
+    mesh.position.set((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2);
+    parent.add(mesh);
+  }
+
   _rebuild3d() {
     const layout = this.layout;
     while (this.group.children.length) {
@@ -194,101 +226,64 @@ export class FramePreview {
     }
     this._clearTemps();
     this.beadMeshes = [];
+    const clip = frameClipFor(layout);
+
+    this.coverGroup = new THREE.Group();
+    this.coverGroup.position.z = clip.frameBackZ;
+    this.backGroup = new THREE.Group();
+    this.standGroup = new THREE.Group();
+    this.photoGroup = new THREE.Group();
+    this.group.add(this.backGroup);
+    this.group.add(this.standGroup);
+    this.group.add(this.photoGroup);
+    this.group.add(this.coverGroup);
+
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
-
     for (const bead of layout.beads) {
       const mesh = new THREE.Mesh(geom, bead.enabled ? this.beadMat : this.ghostMat);
       mesh.position.set(bead.x, bead.y, 0);
       mesh.userData.id = bead.id;
-      this.group.add(mesh);
+      this.coverGroup.add(mesh);
       this.beadMeshes.push(mesh);
     }
+    for (const tongue of clip.tongues) this._addBox(this.coverGroup, tongue, this.slotMat);
 
-    const plateZ = -layout.params.plateThickness - 1.2;
-    const plateGeom = this._plateGeom(layout);
-    this.plateMesh = new THREE.Mesh(plateGeom, this.plateMat);
-    this.plateMesh.position.set(0, 0, plateZ);
-    this.group.add(this.plateMesh);
-
-    const slot = standSlotLayout(layout.params);
-    if (slot) {
-      this._addStandPocket(layout, slot, plateZ);
-
+    this.plateMesh = new THREE.Mesh(this._plateGeom(layout, clip), this.plateMat);
+    this.backGroup.add(this.plateMesh);
+    for (const rail of clip.rails) {
+      this._addBox(this.backGroup, rail.wall, this.slotMat);
+      this._addBox(this.backGroup, rail.stop, this.slotMat);
+      for (const lip of rail.lips) this._addBox(this.backGroup, lip, this.slotMat);
+    }
+    if (clip.socket) {
+      for (const part of socketShellBoxes(clip.socket)) this._addBox(this.backGroup, part, this.slotMat);
       const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
       stand.rotation.y = -Math.PI / 2;
-      stand.position.set(
-        0,
-        -layout.outer.h / 2,
-        plateZ - layout.params.standThickness
-      );
-      this.group.add(stand);
+      stand.position.set(0, clip.socket.standPlace.py, clip.socket.standPlace.pz);
+      this.standGroup.add(stand);
     }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
     this.photoMesh = new THREE.Mesh(photoGeom, this.photoMat);
-    this.photoMesh.position.set(0, 0, -0.25);
-    this.group.add(this.photoMesh);
+    this.photoMesh.position.set(0, 0, clip.frameBackZ - clip.photoGap * 0.45);
+    this.photoGroup.add(this.photoMesh);
 
     for (const hole of hangHoleLayout(layout.params)) {
       const ring = new THREE.Mesh(
         this._trackGeom(new THREE.RingGeometry(Math.max(1.2, hole.r * 0.45), hole.r, 28)),
         this.holeMat
       );
-      ring.position.set(hole.x, hole.y, 0.12);
-      this.group.add(ring);
+      ring.position.set(hole.x, hole.y, clip.plate.t + 0.05);
+      this.backGroup.add(ring);
     }
+    this._applyPartView();
   }
 
-  _addStandPocket(layout, slot, plateZ) {
-    const y0 = -layout.photo.h / 2;
-    const wall = slot.wall;
-    const capH = slot.bossH - slot.insertH;
-    const addBox = (w, h, d, x, y, z) => {
-      const mesh = new THREE.Mesh(this._trackGeom(new THREE.BoxGeometry(w, h, d)), this.slotMat);
-      mesh.position.set(x, y, z);
-      this.group.add(mesh);
-    };
-    addBox(
-      wall,
-      slot.bossH,
-      slot.bossD,
-      -slot.bossW / 2 + wall / 2,
-      y0 + slot.bossH / 2,
-      plateZ - slot.bossD / 2
-    );
-    addBox(
-      wall,
-      slot.bossH,
-      slot.bossD,
-      slot.bossW / 2 - wall / 2,
-      y0 + slot.bossH / 2,
-      plateZ - slot.bossD / 2
-    );
-    addBox(
-      slot.slotW,
-      slot.bossH,
-      wall,
-      0,
-      y0 + slot.bossH / 2,
-      plateZ - slot.bossD + wall / 2
-    );
-    if (capH > 0.2) {
-      addBox(
-        slot.slotW,
-        capH,
-        slot.slotD,
-        0,
-        y0 + slot.insertH + capH / 2,
-        plateZ - slot.slotD / 2
-      );
-    }
-  }
-
-  _plateGeom(layout) {
-    const w = layout.photo.w;
-    const h = layout.photo.h;
-    const t = layout.params.plateThickness;
+  _plateGeom(layout, clip) {
+    const w = clip.plate.w;
+    const h = clip.plate.h;
+    const t = clip.plate.t;
     const holes = hangHoleLayout(layout.params);
     const shape = new THREE.Shape();
     shape.moveTo(-w / 2, -h / 2);
