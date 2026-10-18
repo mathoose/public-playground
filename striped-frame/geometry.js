@@ -2,8 +2,8 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "5 · Oct 18, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Oct 18, 2026";
+export const APP_VERSION_TAG = "v6";
 
 /** Front-face edge finish modes. */
 export const EDGE_MODES = [
@@ -581,6 +581,7 @@ export function frameClipFor(layout) {
     outerW: layout.outer.w,
     outerH: layout.outer.h,
     border: p.mouldingWidth,
+    coverHeight: layout.maxHeight,
     plateT: p.plateThickness,
     cornerRadius: p.outerCornerRadius,
     standWidth: p.standWidth,

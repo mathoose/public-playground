@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { socketShellBoxes } from "../shared/frame-clip.js";
+import { plateLoop, socketShellBoxes } from "../shared/frame-clip.js";
 import {
   edgeFinishSizes,
   frameClipFor,
@@ -183,9 +183,9 @@ export class FramePreview {
     this.camera.up.set(0, 1, 0);
     const back = this.partView === "back";
     this.camera.position.set(
-      back ? dist * 0.15 : dist * 0.48,
-      back ? -dist * 0.28 : -dist * 0.2,
-      dist * (back ? 0.95 : 0.88)
+      back ? dist * 0.18 : dist * 0.16,
+      back ? -dist * 0.22 : -dist * 0.06,
+      dist * (back ? 0.95 : 1.02)
     );
     this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.maxHeight * 0.25);
     this.controls.update();
@@ -356,15 +356,12 @@ export class FramePreview {
   }
 
   _plateGeom(layout, clip) {
-    const w = clip.plate.w;
-    const h = clip.plate.h;
     const t = clip.plate.t;
     const holes = hangHoleLayout(layout.params);
+    const loop = plateLoop(clip);
     const shape = new THREE.Shape();
-    shape.moveTo(-w / 2, -h / 2);
-    shape.lineTo(w / 2, -h / 2);
-    shape.lineTo(w / 2, h / 2);
-    shape.lineTo(-w / 2, h / 2);
+    shape.moveTo(loop[0][0], loop[0][1]);
+    for (let i = 1; i < loop.length; i++) shape.lineTo(loop[i][0], loop[i][1]);
     shape.closePath();
     for (const hole of holes) {
       const path = new THREE.Path();

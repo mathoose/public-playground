@@ -83,6 +83,9 @@ function renderForm() {
   $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
   $("dlStand").hidden = !params.standEnabled;
   $("segments").value = params.segments;
+  $("alternate").checked = params.alternate !== false;
+  if (active !== $("colorA")) $("colorA").value = params.colorA;
+  if (active !== $("colorB")) $("colorB").value = params.colorB;
   $("countTop").textContent = params.countTop;
   $("countBottom").textContent = params.countBottom;
   $("countLeft").textContent = params.countLeft;
@@ -246,6 +249,18 @@ function bind() {
   });
   $("segments").addEventListener("change", () => {
     params.segments = num("segments");
+    refresh();
+  });
+  $("alternate").addEventListener("change", () => {
+    params.alternate = $("alternate").checked;
+    refresh();
+  });
+  $("colorA").addEventListener("input", () => {
+    params.colorA = $("colorA").value;
+    refresh();
+  });
+  $("colorB").addEventListener("input", () => {
+    params.colorB = $("colorB").value;
     refresh();
   });
 
