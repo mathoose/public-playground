@@ -33,8 +33,8 @@ function almost(a, b, eps, msg) {
   assert(Math.abs(a - b) <= eps, `${msg}: ${a} vs ${b}`);
 }
 
-assert(APP_VERSION_TAG === "v3", "version tag");
-assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
+assert(APP_VERSION_TAG === "v5", "version tag");
+assert(APP_VERSION.includes("Oct 18, 2026"), "version date");
 
 const p = defaultParams();
 assert(p.colorCount === 2, "default 2 colors");
@@ -87,7 +87,7 @@ assert(clamped.colorCount === 4, "color count clamp");
 assert(clamped.sharedHeight === 40, "height clamp");
 
 assert(hangHoleLayout(p).length === 2, "hang holes");
-assert(standSlotLayout(p).lift > 0, "stand slot");
+assert(standSlotLayout(p).housing.z1 > standSlotLayout(p).floorZ, "stand cleat");
 assert(Math.abs(polygonArea(standPolygon(p))) > 0, "stand area");
 assert(standBounds(standPolygon(p)).w > 0, "stand bounds");
 assert(stlTriangleCount(boxStl(10, 10, 2, "t")) === 12, "box tris");

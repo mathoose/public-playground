@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: bubble-frame-v2 -->
+<!-- build: bubble-frame-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,7 +12,19 @@
     <aside class="panel">
       <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
       <h1>Bubble frame</h1>
-      <p class="lead">Print a flat-backed bead frame around a photo. Sizes are the photo; the balls overlap inward over the picture.</p>
+      <p class="lead">Print a flat-backed bead frame around a photo. The back slides on and stays put when you change the size.</p>
+
+      <details class="settings-group view-group" id="viewSettings" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="hint">Preview only. Downloads are still separate STLs.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" data-part="assembled">Assembled</button>
+            <button class="chip" type="button" data-part="cover">Cover</button>
+            <button class="chip" type="button" data-part="back">Back</button>
+          </div>
+        </div>
+      </details>
 
       <div class="presets">
         <button class="chip" data-preset="4x6" type="button">4×6</button>
@@ -154,7 +166,7 @@
             <label>Lean angle <span class="val" id="standAngleLabel">18°</span></label>
             <input id="standAngleRange" type="range" min="8" max="32" step="1" />
             <input id="standAngleDeg" type="number" min="8" max="32" step="1" />
-            <div class="hint">Print the side profile flat. A tab slides up into a pocket on the back of the plate, so nothing shows in front of the beads.</div>
+            <div class="hint">Print the side profile flat. The tab slides up into the cleat under the back plate.</div>
           </div>
         </div>
       </div>
@@ -187,13 +199,13 @@
       </p>
 
       <p class="notes">
-        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers. Print the
-        stand on its <b>side profile</b> (also flat, no supports). Sandwich
-        <b>frame → photo → back plate</b> and glue the plate on. Slide the stand’s tab up into
-        the pocket on the back of the plate — from the front you only see the beads. STL units
-        are millimeters.
+        Print the cover and the back <b>flat on the bed</b>, no supports, 0.2 mm layers.
+        Print the stand on its <b>side profile</b>. Drop the photo on the back, then
+        <b>slide the cover down</b> into the side rails until it hits the stops.
+        Slide the stand up into the cleat under the back. Lift the cover out to change the photo.
+        STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Bubble frame v2 · Oct 6, 2026</p>
+      <p class="foot" id="app-version">Bubble frame v3 · Oct 18, 2026</p>
     </aside>
 
     <main class="stage">

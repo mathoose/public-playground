@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: striped-frame-v4 -->
+<!-- build: striped-frame-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,7 +12,19 @@
     <aside class="panel">
       <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/3d-printing/index.html">← 3D printing library</a>
       <h1>Striped frame</h1>
-      <p class="lead">Alternating color bands along the frame path — like an inlay pattern that follows the moulding. Live preview → download STL.</p>
+      <p class="lead">Alternating color bands along the frame path. The back slides onto the cover and stays engaged when you change the size.</p>
+
+      <details class="settings-group view-group" id="viewSettings" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="hint">Preview only. Downloads are still separate STLs.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" data-part="assembled">Assembled</button>
+            <button class="chip" type="button" data-part="cover">Cover</button>
+            <button class="chip" type="button" data-part="back">Back</button>
+          </div>
+        </div>
+      </details>
 
       <details class="settings-group" open>
         <summary>Photo size</summary>
@@ -204,11 +216,12 @@
         <a href="https://github.com/mathoose/public-playground/tree/main/striped-frame">github.com/mathoose/public-playground/tree/main/striped-frame</a>
       </p>
       <p class="notes">
-        Print the frame and plate <b>flat on the bed</b>, no supports, 0.2 mm layers.
-        Use <b>Download by color</b> for multi-material / filament-change prints.
-        Sandwich <b>frame → photo → back plate</b>. STL units are millimeters.
+        Print the cover and the back <b>flat on the bed</b>, no supports, 0.2 mm layers.
+        The slide rails are on the full cover STL (not the per-color split).
+        Drop the photo on the back, then <b>slide the cover down</b> into the side rails until it hits the stops.
+        Slide the stand up into the cleat under the back. STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Striped frame v4 · Oct 6, 2026</p>
+      <p class="foot" id="app-version">Striped frame v5 · Oct 18, 2026</p>
     </aside>
 
     <main class="stage">

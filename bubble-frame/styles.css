@@ -183,6 +183,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   margin-bottom: 10px;
 }
 .seg button { flex: 1; text-align: center; }
+.view-seg { flex-wrap: wrap; }
+.view-group .group-body { padding-top: 8px; }
 
 .readout {
   background: #f7f3ec;
