@@ -7,6 +7,7 @@ import {
   clampParams,
   defaultParams,
   edgeFinishSizes,
+  frameClipFor,
   hangHoleLayout,
   layoutStripes,
   outerPerimeterPoly,
@@ -33,7 +34,7 @@ function almost(a, b, eps, msg) {
   assert(Math.abs(a - b) <= eps, `${msg}: ${a} vs ${b}`);
 }
 
-assert(APP_VERSION_TAG === "v5", "version tag");
+assert(APP_VERSION_TAG === "v6", "version tag");
 assert(APP_VERSION.includes("Oct 18, 2026"), "version date");
 
 const p = defaultParams();
@@ -86,8 +87,12 @@ const clamped = clampParams({ ...defaultParams(), colorCount: 9, sharedHeight: 1
 assert(clamped.colorCount === 4, "color count clamp");
 assert(clamped.sharedHeight === 40, "height clamp");
 
+const clip = frameClipFor(layout);
+assert(clip.plate.w < layout.outer.w - 0.5, "back is narrower than the front");
+assert(clip.plate.h < layout.outer.h - 0.5, "back is shorter than the front");
+assert(clip.xWallOut < layout.outer.w / 2 - 0.3, "rails stay inside the moulding");
 assert(hangHoleLayout(p).length === 2, "hang holes");
-assert(standSlotLayout(p).housing.z1 > standSlotLayout(p).floorZ, "stand cleat");
+assert(standSlotLayout(p).tower.z1 > standSlotLayout(p).floorZ, "stand cleat");
 assert(Math.abs(polygonArea(standPolygon(p))) > 0, "stand area");
 assert(standBounds(standPolygon(p)).w > 0, "stand bounds");
 assert(stlTriangleCount(boxStl(10, 10, 2, "t")) === 12, "box tris");

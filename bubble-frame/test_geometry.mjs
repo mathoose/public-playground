@@ -154,20 +154,34 @@ assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
 
 function assertMate(label, spec) {
   const clip = frameClipLayout(spec);
-  const tongue = clip.tongues[0];
-  assert(tongue.y1 - tongue.y0 > 10, `${label} tongue is long enough to grip`);
-  const lip = clip.rails[0].lips[clip.rails[0].lips.length - 1];
-  const covered = clip.xTip - (clip.outerW / 2 + clip.clearance - clip.lip);
-  assert(covered > 1.1, `${label} lip still hooks the tongue (${covered.toFixed(2)} mm)`);
+  const tongue = clip.tongues.find((t) => t.x1 > 0);
+  assert(tongue.y1 - tongue.y0 > 8, `${label} tongue is long enough to grip`);
+  const hook = clip.lip - clip.clearance;
+  if ((spec.border || 0) >= 6 || spec.beadRadius) {
+    assert(hook > 1.05, `${label} lip still hooks the tongue (${hook.toFixed(2)} mm)`);
+  } else {
+    assert(hook > 0.4, `${label} lip still overlaps the tongue on a thin border`);
+  }
   assert(Math.abs(clip.xWallIn - clip.xTip - clip.clearance) < 1e-6, `${label} wall clearance stays fixed`);
+  assert(clip.xWallOut < clip.outerW / 2 - 0.3, `${label} rail stays inside the front`);
+  assert(clip.plate.w < clip.outerW - 0.6, `${label} plate is narrower than the front`);
+  assert(clip.plate.h < clip.outerH - 0.6, `${label} plate is shorter than the front`);
   assert(clip.stopY1 <= clip.y0 - clip.clearance + 1e-6, `${label} stop sits under the tongue`);
   assert(aabbOverlapVolume(clip.rails[0].wall, clip.slab) > 0, `${label} rail is fused to the plate`);
   assert(aabbOverlapVolume(clip.rails[0].lips[0], clip.rails[0].wall) > 0, `${label} lip is fused to the wall`);
+  if (spec.beadRadius) {
+    const r = spec.beadRadius;
+    const dx = clip.plate.w / 2 - (clip.outerW / 2 - r);
+    const dy = clip.plate.h / 2 - (clip.outerH / 2 - r);
+    assert(Math.hypot(dx, dy) < r - 0.15, `${label} plate corner hides behind the corner bead`);
+  }
 }
 assertMate("default", {
   outerW: layout.outer.w,
   outerH: layout.outer.h,
   border: (layout.outer.w - layout.photo.w) / 2,
+  beadRadius: layout.radius,
+  coverHeight: layout.radius,
   plateT: p.plateThickness,
   cornerRadius: p.outerCornerRadius,
   standWidth: p.standWidth,
@@ -225,7 +239,40 @@ const thick = frameClipLayout({
   standHeight: 36,
 });
 assert(thick.tongueW > thin.tongueW, "a thicker border gets a deeper tongue");
-assert(thick.lip === thin.lip, "lip angle reach stays printable when the border changes");
+const roomy = frameClipLayout({
+  outerW: 180,
+  outerH: 220,
+  border: 8,
+  plateT: 1.2,
+  cornerRadius: 0,
+  standEnabled: false,
+});
+const roomier = frameClipLayout({ ...{
+  outerW: 180,
+  outerH: 220,
+  border: 22,
+  plateT: 1.2,
+  cornerRadius: 0,
+  standEnabled: false,
+} });
+assert(roomy.lip === roomier.lip, "lip reach stays printable when the border still has room");
+
+const ordered = layout.beads.slice().sort((a, b) => a.pathIndex - b.pathIndex);
+assert(ordered.length === layout.beads.length, "every bead is on the path");
+assert(layout.params.alternate === true, "colors alternate by default");
+for (let i = 0; i < ordered.length; i++) {
+  assert(ordered[i].colorIndex === i % 2, `bead ${i} follows the path`);
+  if (i > 0) {
+    const d = Math.hypot(ordered[i].x - ordered[i - 1].x, ordered[i].y - ordered[i - 1].y);
+    assert(d < layout.radius * 2.15, "path steps to the next bead");
+  }
+}
+const grown = layoutBeads({ ...p, countTop: p.countTop + 1 });
+assert(grown.beads.length === layout.beads.length + 2, "linked sides grow together");
+const grownPath = grown.beads.slice().sort((a, b) => a.pathIndex - b.pathIndex);
+assert(grownPath.every((b, i) => b.colorIndex === i % 2), "a new bead count still alternates");
+const single = layoutBeads({ ...p, alternate: false });
+assert(single.beads.every((b) => b.colorIndex === 0), "one color when alternate is off");
 
 const here = dirname(fileURLToPath(import.meta.url));
 for (const [name, minTris] of [

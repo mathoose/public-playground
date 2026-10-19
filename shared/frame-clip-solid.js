@@ -30,9 +30,49 @@ function subBox(Manifold, solid, b, temps) {
   return next;
 }
 
-/** Tongues are in cover coordinates (z = 0 at the cover back). */
+function roundPlateCorners(Manifold, solid, clip, temps) {
+  const R = Math.min(clip.plateCorner || 0, clip.plate.w / 2 - 0.5, clip.plate.h / 2 - 0.5);
+  if (R < 0.2) return solid;
+  const H = clip.plate.t + 6;
+  const hw = clip.plate.w / 2;
+  const hh = clip.plate.h / 2;
+  let out = solid;
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const ox = sx * hw;
+    const oy = sy * hh;
+    const cx = ox - sx * R;
+    const cy = oy - sy * R;
+    const block = Manifold.cube([R + 0.6, R + 0.6, H], true).translate(
+      ox - (sx * R) / 2,
+      oy - (sy * R) / 2,
+      H / 2 - 1
+    );
+    temps.push(block);
+    const cyl = Manifold.cylinder(H + 2, R, R, 40, true).translate(cx, cy, H / 2 - 1);
+    temps.push(cyl);
+    const keep = block.intersect(cyl);
+    temps.push(keep);
+    const cutter = block.subtract(keep);
+    temps.push(cutter);
+    out = out.subtract(cutter);
+    temps.push(out);
+  }
+  return out;
+}
+
+/**
+ * Cut a channel in the cover's back layers for the rails and stops, then
+ * fuse the tongues. The face of the cover stays intact.
+ */
 export function addCoverTongues(Manifold, solid, clip, temps) {
   let out = solid;
+  const pockets = (clip.relief || []).map((b) => cubeFromBox(Manifold, b, temps)).filter(Boolean);
+  if (pockets.length) {
+    const cutter = pockets.length === 1 ? pockets[0] : Manifold.union(pockets);
+    if (cutter !== pockets[0]) temps.push(cutter);
+    out = out.subtract(cutter);
+    temps.push(out);
+  }
   for (const tongue of clip.tongues) out = addBox(Manifold, out, tongue, temps);
   return out;
 }
@@ -43,6 +83,7 @@ export function addCoverTongues(Manifold, solid, clip, temps) {
  */
 export function buildSlideBack(Manifold, clip, holes, temps) {
   let solid = cubeFromBox(Manifold, clip.slab, temps);
+  solid = roundPlateCorners(Manifold, solid, clip, temps);
   for (const rail of clip.rails) {
     solid = addBox(Manifold, solid, rail.wall, temps);
     for (const lip of rail.lips) solid = addBox(Manifold, solid, lip, temps);
@@ -50,6 +91,7 @@ export function buildSlideBack(Manifold, clip, holes, temps) {
   }
   if (clip.socket) {
     solid = addBox(Manifold, solid, clip.socket.housing, temps);
+    if (clip.socket.tower) solid = addBox(Manifold, solid, clip.socket.tower, temps);
     solid = subBox(Manifold, solid, clip.socket.void, temps);
     for (const lip of clip.socket.lips) solid = addBox(Manifold, solid, lip, temps);
   }

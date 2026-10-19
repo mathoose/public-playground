@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { socketShellBoxes } from "../shared/frame-clip.js";
+import { plateLoop, socketShellBoxes } from "../shared/frame-clip.js";
 import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
@@ -54,8 +54,14 @@ export class FramePreview {
     rim.position.set(-120, 90, 40);
     this.scene.add(rim);
 
-    this.beadMat = new THREE.MeshStandardMaterial({
+    this.beadMatA = new THREE.MeshStandardMaterial({
       color: 0x292524,
+      roughness: 0.32,
+      metalness: 0.12,
+      side: THREE.DoubleSide,
+    });
+    this.beadMatB = new THREE.MeshStandardMaterial({
+      color: 0xb45309,
       roughness: 0.32,
       metalness: 0.12,
       side: THREE.DoubleSide,
@@ -176,9 +182,9 @@ export class FramePreview {
     this.camera.up.set(0, 1, 0);
     const back = this.partView === "back";
     this.camera.position.set(
-      back ? dist * 0.15 : dist * 0.48,
-      back ? -dist * 0.28 : -dist * 0.2,
-      dist * (back ? 0.95 : 0.88)
+      back ? dist * 0.18 : dist * 0.16,
+      back ? -dist * 0.22 : -dist * 0.06,
+      dist * (back ? 0.95 : 1.02)
     );
     this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.radius * 0.2);
     this.controls.update();
@@ -240,8 +246,11 @@ export class FramePreview {
 
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
+    this.beadMatA.color.set(layout.params.colorA || "#292524");
+    this.beadMatB.color.set(layout.params.colorB || "#b45309");
     for (const bead of layout.beads) {
-      const mesh = new THREE.Mesh(geom, bead.enabled ? this.beadMat : this.ghostMat);
+      const mat = !bead.enabled ? this.ghostMat : bead.colorIndex === 1 ? this.beadMatB : this.beadMatA;
+      const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(bead.x, bead.y, 0);
       mesh.userData.id = bead.id;
       this.coverGroup.add(mesh);
@@ -281,15 +290,12 @@ export class FramePreview {
   }
 
   _plateGeom(layout, clip) {
-    const w = clip.plate.w;
-    const h = clip.plate.h;
     const t = clip.plate.t;
     const holes = hangHoleLayout(layout.params);
+    const loop = plateLoop(clip);
     const shape = new THREE.Shape();
-    shape.moveTo(-w / 2, -h / 2);
-    shape.lineTo(w / 2, -h / 2);
-    shape.lineTo(w / 2, h / 2);
-    shape.lineTo(-w / 2, h / 2);
+    shape.moveTo(loop[0][0], loop[0][1]);
+    for (let i = 1; i < loop.length; i++) shape.lineTo(loop[i][0], loop[i][1]);
     shape.closePath();
     for (const hole of holes) {
       const path = new THREE.Path();
@@ -462,7 +468,8 @@ export class FramePreview {
       ctx.beginPath();
       ctx.arc(toX(b.x), toY(b.y), radius * map.scale, 0, Math.PI * 2);
       if (b.enabled) {
-        ctx.fillStyle = hover ? "#292524" : "#1c1917";
+        const hex = b.colorIndex === 1 ? params.colorB : params.colorA;
+        ctx.fillStyle = hover ? "#44403c" : hex || "#292524";
         ctx.fill();
         ctx.strokeStyle = "rgba(255,255,255,0.18)";
         ctx.lineWidth = 1;
