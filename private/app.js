@@ -8,6 +8,9 @@ import { decodeMsh, stlFromIndexed, manifoldCheck, downloadArrayBuffer, bounds }
 import { unlockIndex, openBytes, vaultBase, WrongPinError } from "./vault.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { installModelPick } from "../shared/model-pick.js";
+import * as THREE from "three";
+import { inspectHolder, measureHolder } from "./pick-map.js";
 
 const $ = (id) => document.getElementById(id);
 const state = (window.__privateState = { unlocked: false, holderReady: false, pumpkinReady: false, error: "" });
@@ -114,6 +117,8 @@ function setTab(name) {
   $("pumpkinPanel").hidden = name !== "pumpkin";
   document.querySelectorAll("[data-holder-only]").forEach((el) => (el.hidden = name !== "holder"));
   $("title").textContent = name === "holder" ? "2-phone wall holder" : "Pumpkin fidget";
+  pick?.clear();
+  pick?.sync();
   if (name === "holder") showHolder();
   else showPumpkin();
 }
@@ -194,7 +199,10 @@ function applyStretch() {
   const attr = preview.flatPositions();
   stretchPositions(srcFlat, attr.array, params);
   preview.touch();
-  preview.setPhones(params, derive(params), $("showPhones").classList.contains("active"));
+  const phonesOn = pick ? pick.visibility().phones !== false : $("showPhones").classList.contains("active");
+  $("showPhones").classList.toggle("active", phonesOn);
+  preview.setPhones(params, derive(params), phonesOn);
+  if (pick) preview.model.visible = pick.visibility().holder !== false;
   renderReadout();
   scheduleCheck();
 }
@@ -283,6 +291,7 @@ function bindHolder() {
   });
   $("showPhones").addEventListener("click", (e) => {
     e.currentTarget.classList.toggle("active");
+    pick?.setVisible({ phones: e.currentTarget.classList.contains("active") }, { silent: true });
     applyStretch();
   });
   $("download").addEventListener("click", downloadHolder);
@@ -320,6 +329,7 @@ async function showPumpkin() {
     if (tab !== "pumpkin") return;
     preview.setPhones(params, null, false);
     preview.setFlat(pumpkinFlat.slice(), { pumpkin: true });
+    if (pick) preview.model.visible = pick.visibility().pumpkin !== false;
     setPumpkinScale(pumpkinScale);
     preview.fit();
     $("pumpkinStatus").textContent = "Ready";
@@ -350,11 +360,40 @@ function bindPumpkin() {
 
 /* ---------------- boot ---------------- */
 
+let pick;
+
 function startApp() {
   $("gate").hidden = true;
   $("privateApp").hidden = false;
   preview = new Preview({ canvas: $("view") });
   window.__preview = preview;
+  pick = installModelPick({
+    THREE,
+    panel: document.querySelector(".panel"),
+    canvas: $("view"),
+    camera: preview.camera,
+    scene: preview.scene,
+    getParts: () =>
+      tab === "pumpkin"
+        ? [{ id: "pumpkin", label: "Pumpkin", objects: [{ object: preview.model, hit: "pumpkin" }] }]
+        : [
+            { id: "holder", label: "Holder", objects: [{ object: preview.model, hit: "holder" }] },
+            { id: "phones", label: "Phones", preview: true, objects: [{ object: preview.phones, hit: "phone" }] },
+          ],
+    inspect: (hit) => inspectHolder(hit, params),
+    measure: (a, b) => measureHolder(a, b, params, derive(params)),
+    onVisible: (shown) => {
+      if (tab === "pumpkin") {
+        preview.model.visible = shown.pumpkin !== false;
+        return;
+      }
+      preview.model.visible = shown.holder !== false;
+      const phonesOn = shown.phones !== false;
+      $("showPhones").classList.toggle("active", phonesOn);
+      preview.phones.visible = phonesOn;
+    },
+  });
+  window.__pick = pick;
   bindHolder();
   bindPumpkin();
   document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));

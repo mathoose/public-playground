@@ -16,6 +16,9 @@ import { CasePreview } from "./preview.js";
 import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { installModelPick } from "../shared/model-pick.js";
+import * as THREE from "three";
+import { inspectPowerBank, measurePowerBank } from "./pick-map.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,6 +105,8 @@ async function rebuild() {
     if (gen !== rebuildGen) return;
     latest = result;
     preview.update(result);
+    preview.setUserParts(pick.visibility());
+    pick.refresh();
     renderReadout(result);
     setStatus("Live");
   } catch (err) {
@@ -168,6 +173,39 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new CasePreview({ canvas: $("view") });
 window.__wrapPreview = preview;
+const pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas: $("view"),
+  camera: preview.camera,
+  scene: preview.scene,
+  getParts: () => [
+    { id: "sleeve", label: "Sleeve", objects: [{ object: preview.caseMesh, hit: "sleeve" }] },
+    {
+      id: "bank",
+      label: "Power bank",
+      preview: true,
+      objects: [
+        { object: preview.bankMesh, hit: "bank" },
+        { object: preview.glassMesh, hit: "glass" },
+        { object: preview.portGroup, hit: "ports" },
+      ],
+    },
+    {
+      id: "cord",
+      label: "Cord",
+      preview: true,
+      objects: [
+        { object: preview.cordA, hit: "cord" },
+        { object: preview.cordB, hit: "cord" },
+      ],
+    },
+  ],
+  inspect: (hit) => inspectPowerBank(hit, preview.d || derive(params)),
+  measure: (a, b) => measurePowerBank(a, b, preview.d || derive(params)),
+  onVisible: (shown) => preview.setUserParts(shown),
+});
+window.__pick = pick;
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 window.__wrapHistory = installUndo({
