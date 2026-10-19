@@ -2,7 +2,7 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "5 · Oct 19, 2026";
+export const APP_VERSION = "6 · Oct 19, 2026";
 export const APP_VERSION_TAG = "v5";
 
 export const IN = 25.4;

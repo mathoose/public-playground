@@ -2,7 +2,7 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "7 · Oct 19, 2026";
+export const APP_VERSION = "8 · Oct 19, 2026";
 export const APP_VERSION_TAG = "v7";
 
 /** Front-face edge finish modes. */

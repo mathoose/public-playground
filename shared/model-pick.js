@@ -299,7 +299,7 @@ export function installModelPick({
     const rows = [];
     for (const key of keys || []) {
       const input = panel.querySelector(`#${CSS.escape(key)}`);
-      const row = input?.closest(".row");
+      const row = input?.closest(".row, .field, label.check, .color-card");
       if (!row || row.hidden || row.closest("[hidden]")) continue;
       row.classList.add("mp-hot");
       const details = row.closest("details");
