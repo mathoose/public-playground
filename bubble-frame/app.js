@@ -9,10 +9,10 @@ import {
   hangHoleLayout,
   mmToDisplay,
   plaGrams,
-  polygonArea,
   pruneDisabled,
   sizeLabel,
-  standPolygon,
+  standRows,
+  standVolume,
   syncTargetOverlapFromCounts,
   toggleDisabled,
 } from "./geometry.js";
@@ -24,6 +24,9 @@ import {
   stlTriangleCount,
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { installModelPick } from "../shared/model-pick.js";
+import { inspectBubble, measureBubble } from "./pick-map.js";
+import * as THREE from "three";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
 const lastExports = {};
@@ -31,6 +34,7 @@ const lastExports = {};
 const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
+let pick = null;
 let preview;
 
 function roundForInput(mm, units) {
@@ -78,9 +82,14 @@ function renderForm() {
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
-  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
-  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
-  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  const leanNames = ["Slight", "Medium", "More"];
+  const rows = standRows(params);
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    const i = Number(btn.dataset.stand);
+    btn.classList.toggle("active", i === params.standHole);
+    const row = rows[i];
+    if (row) btn.textContent = `${leanNames[i]} ${Math.round(row.angleDeg)}°`;
+  }
   $("dlStand").hidden = !params.standEnabled;
   $("segments").value = params.segments;
   $("alternate").checked = params.alternate !== false;
@@ -116,9 +125,7 @@ function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout, params.webThickness));
   const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
   const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
-  const standG = params.standEnabled
-    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
-    : 0;
+  const standG = params.standEnabled ? plaGrams(standVolume(params)) : 0;
   $("readout").innerHTML = `
     <div><b>${layout.enabledCount}</b> beads · outer <b>${fmtMm(layout.outer.w)} × ${fmtMm(layout.outer.h)}</b></div>
     <div>Window ~ <b>${fmtMm(layout.opening.w)} × ${fmtMm(layout.opening.h)}</b> (scalloped)</div>
@@ -136,8 +143,28 @@ function refresh(opts = {}) {
   renderForm();
   const layout = preview.update(params);
   renderReadout(layout);
+  if (pick) pick.refresh();
   if (opts.fit) preview.fit();
   return layout;
+}
+
+function presentPick(info) {
+  if (!info?.box) return info;
+  return { ...info, box: preview.worldBox(info.box) };
+}
+
+function syncViewChips(shown) {
+  const on = (key) => shown?.[key] !== false;
+  const all = on("cover") && on("back") && on("stand") && on("photo");
+  const cover = on("cover") && !on("back") && !on("stand") && on("photo");
+  const back = !on("cover") && on("back") && on("stand") && !on("photo");
+  let mode = null;
+  if (all) mode = preview.partView === "side" ? "side" : "assembled";
+  else if (cover) mode = "cover";
+  else if (back) mode = "back";
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    btn.classList.toggle("active", mode != null && btn.getAttribute("data-part") === mode);
+  });
 }
 
 function num(id) {
@@ -239,14 +266,12 @@ function bind() {
     params.standEnabled = $("standEnabled").checked;
     refresh({ fit: true });
   });
-  $("standAngleRange").addEventListener("input", () => {
-    params.standAngleDeg = Number($("standAngleRange").value);
-    refresh();
-  });
-  $("standAngleDeg").addEventListener("change", () => {
-    params.standAngleDeg = num("standAngleDeg");
-    refresh();
-  });
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    btn.addEventListener("click", () => {
+      params.standHole = Number(btn.dataset.stand);
+      refresh({ fit: preview.partView === "side" });
+    });
+  }
   $("segments").addEventListener("change", () => {
     params.segments = num("segments");
     refresh();
@@ -401,10 +426,33 @@ function init() {
   bind();
   refresh({ fit: true });
   pairSlidersWithNumbers(document.querySelector(".panel"));
+  const panel = document.querySelector(".panel");
+  pick = installModelPick({
+    THREE,
+    panel,
+    canvas: $("view3d"),
+    camera: preview.camera,
+    scene: preview.scene,
+    getParts: () => [
+      { id: "cover", label: "Cover", objects: [{ object: preview.coverGroup, hit: "cover" }] },
+      { id: "back", label: "Back", objects: [{ object: preview.backGroup, hit: "back" }] },
+      { id: "stand", label: "Stand", objects: [{ object: preview.standGroup, hit: "stand" }] },
+      { id: "photo", label: "Photo", preview: true, objects: [{ object: preview.photoGroup, hit: "photo" }] },
+    ],
+    inspect: (hit) => presentPick(inspectBubble(preview.toContent(hit), preview.layout)),
+    measure: (a, b) => measureBubble(preview.toContent(a), preview.toContent(b), preview.layout),
+    onVisible: (shown) => {
+      preview.setShown(shown);
+      syncViewChips(shown);
+    },
+  });
+  window.__framePick = pick;
+  window.__framePreview = preview;
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      preview.setPartView(btn.getAttribute("data-part"));
-      document.querySelectorAll("[data-part]").forEach((b) => b.classList.toggle("active", b === btn));
+      const shown = preview.setPartView(btn.getAttribute("data-part"));
+      pick.setVisible(shown, { silent: true });
+      syncViewChips(shown);
     });
   });
   installUndo({

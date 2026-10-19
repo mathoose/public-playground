@@ -2,8 +2,8 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "6 · Oct 18, 2026";
-export const APP_VERSION_TAG = "v6";
+export const APP_VERSION = "8 · Oct 19, 2026";
+export const APP_VERSION_TAG = "v7";
 
 /** Front-face edge finish modes. */
 export const EDGE_MODES = [
@@ -68,7 +68,7 @@ export function defaultParams() {
     hangInsetTop: 12,
     hangInsetSide: 18,
     standEnabled: true,
-    standAngleDeg: 18,
+    standHole: 1,
     standThickness: 4,
     outerCornerRadius: 0,
     insideEdgeMode: "none",
@@ -116,10 +116,9 @@ export function clampParams(p) {
     Math.max(minInset, Number(p.hangInsetSide) || 18)
   );
   next.standEnabled = p.standEnabled !== false;
-  next.standAngleDeg = Math.min(32, Math.max(8, Number(p.standAngleDeg) || 18));
+  const hole = Math.round(Number(p.standHole));
+  next.standHole = Number.isFinite(hole) ? Math.min(2, Math.max(0, hole)) : 1;
   next.standThickness = Math.min(10, Math.max(2.4, Number(p.standThickness) || 4));
-  next.standHeight = Math.min(120, Math.max(28, 0.4 * next.photoH));
-  next.standWidth = Math.min(60, Math.max(22, 0.32 * next.photoW));
 
   const src = Array.isArray(p.colors) ? p.colors : [];
   let colors = resizeColors(src, next.colorCount, next.sharedHeight).map((c, i) => {
@@ -584,36 +583,21 @@ export function frameClipFor(layout) {
     coverHeight: layout.maxHeight,
     plateT: p.plateThickness,
     cornerRadius: p.outerCornerRadius,
-    standWidth: p.standWidth,
     standThickness: p.standThickness,
     standEnabled: p.standEnabled,
-    standAngleDeg: p.standAngleDeg,
-    standHeight: p.standHeight,
+    standHole: p.standHole,
   });
 }
 
-export function standSlotLayout(p) {
-  const params = clampParams(p);
-  if (!params.standEnabled) return null;
-  return frameClipFor(layoutStripes(params)).socket;
+export function standRows(p) {
+  const params = clampParams({ ...p, standEnabled: true });
+  return frameClipFor(layoutStripes(params)).pegStand.rows;
 }
 
-export function standPolygon(p) {
+export function standVolume(p) {
   const params = clampParams(p);
-  return frameClipFor(layoutStripes({ ...params, standEnabled: true })).standPoly;
-}
-
-export function standBounds(poly) {
-  const xs = poly.map((pt) => pt[0]);
-  const ys = poly.map((pt) => pt[1]);
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-  };
+  if (!params.standEnabled) return 0;
+  return frameClipFor(layoutStripes(params)).pegStand.volume;
 }
 
 /**

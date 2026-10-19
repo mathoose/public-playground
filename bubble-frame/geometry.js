@@ -2,8 +2,8 @@
 
 import { frameClipLayout } from "../shared/frame-clip.js";
 
-export const APP_VERSION = "4 · Oct 18, 2026";
-export const APP_VERSION_TAG = "v4";
+export const APP_VERSION = "6 · Oct 19, 2026";
+export const APP_VERSION_TAG = "v5";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -77,7 +77,7 @@ export function defaultParams() {
     hangInsetTop: 12,
     hangInsetSide: 18,
     standEnabled: true,
-    standAngleDeg: 18,
+    standHole: 1,
     standThickness: 4,
     outerCornerRadius: 1.5,
     alternate: true,
@@ -120,10 +120,9 @@ export function clampParams(p) {
     Math.max(minInset, Number(p.hangInsetSide) || 18)
   );
   next.standEnabled = p.standEnabled !== false;
-  next.standAngleDeg = Math.min(32, Math.max(8, Number(p.standAngleDeg) || 18));
+  const hole = Math.round(Number(p.standHole));
+  next.standHole = Number.isFinite(hole) ? Math.min(2, Math.max(0, hole)) : 1;
   next.standThickness = Math.min(10, Math.max(2.4, Number(p.standThickness) || 4));
-  next.standHeight = Math.min(120, Math.max(28, 0.4 * next.photoH));
-  next.standWidth = Math.min(60, Math.max(22, 0.32 * next.photoW));
   for (const key of ["countTop", "countBottom", "countLeft", "countRight"]) {
     next[key] = Math.min(40, Math.max(2, Math.round(Number(p[key]) || 2)));
   }
@@ -403,43 +402,21 @@ export function frameClipFor(layout) {
     coverHeight: layout.radius,
     plateT: p.plateThickness,
     cornerRadius: p.outerCornerRadius,
-    standWidth: p.standWidth,
     standThickness: p.standThickness,
     standEnabled: p.standEnabled,
-    standAngleDeg: p.standAngleDeg,
-    standHeight: p.standHeight,
+    standHole: p.standHole,
   });
 }
 
-/**
- * Bottom cleat the stand tab slides into. It hangs under the plate and is
- * fused into the back so the export is one solid.
- */
-export function standSlotLayout(p) {
-  const params = clampParams(p);
-  if (!params.standEnabled) return null;
-  return frameClipFor(layoutBeads(params)).socket;
+/** Hole rows for the easel. Higher rows lean the frame back more. */
+export function standRows(p) {
+  const params = clampParams({ ...p, standEnabled: true });
+  return frameClipFor(layoutBeads(params)).pegStand.rows;
 }
 
-/**
- * Easel stand side profile. Print this polygon on the bed and extrude
- * `standWidth` in Z. After printing, stand it on the y=0 edge.
- * +x is toward the cover; +y is up. The tab slides up into the cleat.
- */
-export function standPolygon(p) {
+/** Cubic millimeters of the flat peg stand. */
+export function standVolume(p) {
   const params = clampParams(p);
-  return frameClipFor(layoutBeads({ ...params, standEnabled: true })).standPoly;
-}
-
-export function standBounds(poly) {
-  const xs = poly.map((p) => p[0]);
-  const ys = poly.map((p) => p[1]);
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-  };
+  if (!params.standEnabled) return 0;
+  return frameClipFor(layoutBeads(params)).pegStand.volume;
 }

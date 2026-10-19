@@ -9,14 +9,14 @@ import {
   hangHoleLayout,
   mmToDisplay,
   plaGrams,
-  polygonArea,
   setColorCount,
   setColorHeight,
   setColorSwatch,
   setColorThickness,
   setSharedHeight,
   sizeLabel,
-  standPolygon,
+  standRows,
+  standVolume,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
 import {
@@ -28,11 +28,15 @@ import {
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { installModelPick } from "../shared/model-pick.js";
+import { inspectStriped, measureStriped } from "./pick-map.js";
+import * as THREE from "three";
 
 const lastExports = {};
 const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
+let pick = null;
 let preview;
 let colorRowsBound = false;
 let lastColorCount = -1;
@@ -129,14 +133,14 @@ function renderColorRows(force) {
         <label>Thickness along path <span class="val">mm</span></label>
         <div class="dual">
           <input data-thick-range="${i}" type="range" min="2" max="60" step="0.5" value="${c.thickness}" />
-          <input data-thick-num="${i}" type="number" min="2" max="80" step="0.5" value="${c.thickness.toFixed(1)}" />
+          <input id="colorThick${i}" data-thick-num="${i}" type="number" min="2" max="80" step="0.5" value="${c.thickness.toFixed(1)}" />
         </div>
       </div>
       <div class="field" data-height-block="${i}" ${params.equalHeights ? "hidden" : ""}>
         <label>Layer height <span class="val">mm</span></label>
         <div class="dual">
           <input data-height-range="${i}" type="range" min="1" max="40" step="0.5" value="${c.height}" />
-          <input data-height-num="${i}" type="number" min="1" max="40" step="0.5" value="${c.height.toFixed(1)}" />
+          <input id="colorHeight${i}" data-height-num="${i}" type="number" min="1" max="40" step="0.5" value="${c.height.toFixed(1)}" />
         </div>
       </div>
     `;
@@ -192,9 +196,14 @@ function renderForm(opts = {}) {
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
-  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
-  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
-  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  const leanNames = ["Slight", "Medium", "More"];
+  const rows = standRows(params);
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    const i = Number(btn.dataset.stand);
+    btn.classList.toggle("active", i === params.standHole);
+    const row = rows[i];
+    if (row) btn.textContent = `${leanNames[i]} ${Math.round(row.angleDeg)}°`;
+  }
   $("dlStand").hidden = !params.standEnabled;
 
   for (const btn of document.querySelectorAll("[data-preset]")) {
@@ -213,9 +222,7 @@ function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout));
   const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
   const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
-  const standG = params.standEnabled
-    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
-    : 0;
+  const standG = params.standEnabled ? plaGrams(standVolume(params)) : 0;
   const pattern = layout.colors
     .map((c) => `${(c.thickness * layout.scale).toFixed(1)}`)
     .join(" / ");
@@ -235,8 +242,28 @@ function refresh(opts = {}) {
   renderForm(opts);
   const layout = preview.update(params);
   renderReadout(layout);
+  if (pick) pick.refresh();
   if (opts.fit) preview.fit();
   return layout;
+}
+
+function presentPick(info) {
+  if (!info?.box) return info;
+  return { ...info, box: preview.worldBox(info.box) };
+}
+
+function syncViewChips(shown) {
+  const on = (key) => shown?.[key] !== false;
+  const all = on("cover") && on("back") && on("stand") && on("photo");
+  const cover = on("cover") && !on("back") && !on("stand") && on("photo");
+  const back = !on("cover") && on("back") && on("stand") && !on("photo");
+  let mode = null;
+  if (all) mode = preview.partView === "side" ? "side" : "assembled";
+  else if (cover) mode = "cover";
+  else if (back) mode = "back";
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    btn.classList.toggle("active", mode != null && btn.getAttribute("data-part") === mode);
+  });
 }
 
 function num(id) {
@@ -385,14 +412,12 @@ function bind() {
     params.standEnabled = $("standEnabled").checked;
     refresh({ fit: true });
   });
-  $("standAngleRange").addEventListener("input", () => {
-    params.standAngleDeg = Number($("standAngleRange").value);
-    refresh({ skipColorRebuild: true });
-  });
-  $("standAngleDeg").addEventListener("change", () => {
-    params.standAngleDeg = num("standAngleDeg");
-    refresh();
-  });
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    btn.addEventListener("click", () => {
+      params.standHole = Number(btn.dataset.stand);
+      refresh({ fit: preview.partView === "side" });
+    });
+  }
 
   $("resetView").addEventListener("click", () => preview.fit());
   $("photoFile").addEventListener("change", async (e) => {
@@ -497,10 +522,33 @@ function init() {
   bind();
   refresh({ fit: true });
   pairSlidersWithNumbers(document.querySelector(".panel"));
+  const panel = document.querySelector(".panel");
+  pick = installModelPick({
+    THREE,
+    panel,
+    canvas: $("view3d"),
+    camera: preview.camera,
+    scene: preview.scene,
+    getParts: () => [
+      { id: "cover", label: "Cover", objects: [{ object: preview.coverGroup, hit: "cover" }] },
+      { id: "back", label: "Back", objects: [{ object: preview.backGroup, hit: "back" }] },
+      { id: "stand", label: "Stand", objects: [{ object: preview.standGroup, hit: "stand" }] },
+      { id: "photo", label: "Photo", preview: true, objects: [{ object: preview.photoGroup, hit: "photo" }] },
+    ],
+    inspect: (hit) => presentPick(inspectStriped(preview.toContent(hit), preview.layout)),
+    measure: (a, b) => measureStriped(preview.toContent(a), preview.toContent(b), preview.layout),
+    onVisible: (shown) => {
+      preview.setShown(shown);
+      syncViewChips(shown);
+    },
+  });
+  window.__framePick = pick;
+  window.__framePreview = preview;
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      preview.setPartView(btn.getAttribute("data-part"));
-      document.querySelectorAll("[data-part]").forEach((b) => b.classList.toggle("active", b === btn));
+      const shown = preview.setPartView(btn.getAttribute("data-part"));
+      pick.setVisible(shown, { silent: true });
+      syncViewChips(shown);
     });
   });
   installUndo({
