@@ -6,7 +6,7 @@ Parametric **path-stripe picture frame** STL designer — forked from [`bubble-f
 
 **GitHub:** [striped-frame](https://github.com/mathoose/public-playground/tree/main/striped-frame) (after merge)
 
-Footer / version: **Striped frame v4 · Oct 6, 2026** (`<!-- build: striped-frame-v4 -->`)
+Footer / version: **Striped frame v7 · Oct 19, 2026** (`<!-- build: striped-frame-v7 -->`)
 
 ## Open
 
@@ -17,8 +17,8 @@ Footer / version: **Striped frame v4 · Oct 6, 2026** (`<!-- build: striped-fram
 
 - Frame + back plate: **flat on the bed**, no supports, 0.2 mm layers.
 - **Download by color** for multi-material / filament-change prints (one STL per pattern color).
-- Stand: print the **side profile** flat; tab slides into the back-plate pocket.
-- Slide the cover **down** into the side rails on the back until it stops. The rails sit under the moulding, so the plate does not show past the front. The photo sits between them. The stand tab slides up into the cleat under the back.
+- Stand: print it **flat**; pegs press into a hole row on the back. Higher holes lean the frame more.
+- Slide the cover **down** into the side rails on the back until it stops. The rails sit under the moulding, so the plate does not show past the front. The photo sits between them.
 - STL units are millimeters.
 
 Defaults: 4×6 in photo, 14 mm moulding, 2-color repeating pattern (14 mm bands), 8 mm layer height, sharp corners / no edge finish.
