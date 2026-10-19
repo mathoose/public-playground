@@ -68,7 +68,7 @@ export class ToolPreview {
     const m = this.meshes;
     m.cradle.visible = this.show.cradle;
     m.grip.visible = this.show.grip;
-    m.ghost.visible = this.show.razor && this.show.cradle && this.hasGhost;
+    m.ghost.visible = this.show.razor && this.hasGhost;
     m.blade.visible = m.ghost.visible;
   }
 
