@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { plateLoop, socketShellBoxes } from "../shared/frame-clip.js";
+import { pegStandPlateBoxes, plateLoop } from "../shared/frame-clip.js";
 import {
   edgeFinishSizes,
   frameClipFor,
@@ -8,7 +8,6 @@ import {
   hangHoleLayout,
   layoutStripes,
   outerPerimeterPoly,
-  standPolygon,
 } from "./geometry.js";
 
 export class FramePreview {
@@ -53,8 +52,8 @@ export class FramePreview {
       metalness: 0.05,
     });
     this.standMat = new THREE.MeshStandardMaterial({
-      color: 0xa8a29e,
-      roughness: 0.62,
+      color: 0x44403c,
+      roughness: 0.55,
       metalness: 0.04,
     });
     this.holeMat = new THREE.MeshBasicMaterial({
@@ -140,8 +139,9 @@ export class FramePreview {
   }
 
   setPartView(mode) {
-    this.partView = mode === "cover" || mode === "back" ? mode : "assembled";
+    this.partView = mode === "cover" || mode === "back" || mode === "side" ? mode : "assembled";
     this._applyPartView();
+    this._applyPose();
     this.fit();
   }
 
@@ -149,9 +149,19 @@ export class FramePreview {
     if (!this.coverGroup) return;
     const mode = this.partView;
     this.coverGroup.visible = mode !== "back";
-    this.photoGroup.visible = mode === "assembled" || mode === "cover";
+    this.photoGroup.visible = mode === "assembled" || mode === "cover" || mode === "side";
     this.backGroup.visible = mode !== "cover";
-    this.standGroup.visible = mode !== "cover";
+    this.standGroup.visible = mode !== "cover" && Boolean(this._clip?.pegStand?.cut);
+  }
+
+  _applyPose() {
+    if (!this.pose || !this.layout) return;
+    const lean = this.partView === "assembled" || this.partView === "side";
+    const theta = lean && this._clip?.pegStand?.cut ? this._clip.pegStand.angleRad : 0;
+    const pivotY = -this.layout.outer.h / 2;
+    this.content.position.y = -pivotY;
+    this.pose.position.y = pivotY;
+    this.pose.rotation.x = -theta;
   }
 
   _addBox(parent, b, material) {
@@ -177,17 +187,20 @@ export class FramePreview {
 
   fit() {
     if (!this.layout) return;
-    const extra = this.layout.params.standEnabled ? this.layout.params.standHeight * 0.35 : 0;
-    const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
+    const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
     const dist = span * 1.85;
+    const leg = this._clip?.pegStand?.legReach || span * 0.3;
     this.camera.up.set(0, 1, 0);
-    const back = this.partView === "back";
-    this.camera.position.set(
-      back ? dist * 0.18 : dist * 0.16,
-      back ? -dist * 0.22 : -dist * 0.06,
-      dist * (back ? 0.95 : 1.02)
-    );
-    this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.maxHeight * 0.25);
+    if (this.partView === "side") {
+      this.camera.position.set(dist * 0.78, span * 0.04, -dist * 0.7);
+      this.controls.target.set(0, -span * 0.02, -leg * 0.22);
+    } else if (this.partView === "back") {
+      this.camera.position.set(dist * 0.14, -dist * 0.02, -dist);
+      this.controls.target.set(0, 0, -leg * 0.18);
+    } else {
+      this.camera.position.set(0, 0, dist);
+      this.controls.target.set(0, 0, this.partView === "cover" ? this.layout.maxHeight * 0.25 : 0);
+    }
     this.controls.update();
   }
 
@@ -217,15 +230,20 @@ export class FramePreview {
     }
     this._clearTemps();
     const clip = frameClipFor(layout);
+    this._clip = clip;
+    this.pose = new THREE.Group();
+    this.content = new THREE.Group();
+    this.pose.add(this.content);
+    this.group.add(this.pose);
     this.coverGroup = new THREE.Group();
     this.coverGroup.position.z = clip.frameBackZ;
     this.backGroup = new THREE.Group();
     this.standGroup = new THREE.Group();
     this.photoGroup = new THREE.Group();
-    this.group.add(this.backGroup);
-    this.group.add(this.standGroup);
-    this.group.add(this.photoGroup);
-    this.group.add(this.coverGroup);
+    this.content.add(this.backGroup);
+    this.content.add(this.standGroup);
+    this.content.add(this.photoGroup);
+    this.content.add(this.coverGroup);
 
     if (layout.params.bedThickness > 0.05) {
       const shape = this._ringShape(layout.outer.w, layout.outer.h, layout.opening.w, layout.opening.h, layout.outerCornerRadius);
@@ -264,12 +282,8 @@ export class FramePreview {
       this._addBox(this.backGroup, rail.stop, this.slotMat);
       for (const lip of rail.lips) this._addBox(this.backGroup, lip, this.slotMat);
     }
-    if (clip.socket) {
-      for (const part of socketShellBoxes(clip.socket)) this._addBox(this.backGroup, part, this.slotMat);
-      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      stand.rotation.y = -Math.PI / 2;
-      stand.position.set(0, clip.socket.standPlace.py, clip.socket.standPlace.pz);
-      this.standGroup.add(stand);
+    if (clip.pegStand?.cut) {
+      for (const part of pegStandPlateBoxes(clip.pegStand)) this._addBox(this.standGroup, part, this.standMat);
     }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
@@ -286,6 +300,7 @@ export class FramePreview {
       this.backGroup.add(ring);
     }
     this._applyPartView();
+    this._applyPose();
   }
 
   _ringShape(outerW, outerH, innerW, innerH, cornerR) {
@@ -368,6 +383,21 @@ export class FramePreview {
       path.absarc(hole.x, hole.y, hole.r, 0, Math.PI * 2, false);
       shape.holes.push(path);
     }
+    if (clip.pegStand?.cut) {
+      for (const hole of clip.pegStand.holes) {
+        const path = new THREE.Path();
+        const x0 = hole.x - hole.w / 2;
+        const x1 = hole.x + hole.w / 2;
+        const y0 = hole.y - hole.h / 2;
+        const y1 = hole.y + hole.h / 2;
+        path.moveTo(x0, y0);
+        path.lineTo(x1, y0);
+        path.lineTo(x1, y1);
+        path.lineTo(x0, y1);
+        path.closePath();
+        shape.holes.push(path);
+      }
+    }
     return this._trackGeom(
       new THREE.ExtrudeGeometry(shape, {
         depth: t,
@@ -375,20 +405,6 @@ export class FramePreview {
         curveSegments: 20,
       })
     );
-  }
-
-  _standGeom(params) {
-    const poly = standPolygon(params);
-    const shape = new THREE.Shape();
-    shape.moveTo(poly[0][0], poly[0][1]);
-    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
-    shape.closePath();
-    const geom = new THREE.ExtrudeGeometry(shape, {
-      depth: params.standWidth,
-      bevelEnabled: false,
-    });
-    geom.translate(0, 0, -params.standWidth / 2);
-    return this._trackGeom(geom);
   }
 
   _loop() {

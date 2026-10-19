@@ -14,11 +14,9 @@ import {
   hangHoleLayout,
   layoutBeads,
   outerPerimeterPoly,
-  polygonArea,
   frameClipFor,
-  standBounds,
-  standPolygon,
-  standSlotLayout,
+  standRows,
+  standVolume,
   toggleDisabled,
 } from "./geometry.js";
 import { aabbOverlapVolume, frameClipLayout } from "../shared/frame-clip.js";
@@ -90,7 +88,7 @@ const roundedLayout = layoutBeads(roundedP);
 assert(roundedLayout.outerCornerRadius === 8, "layout exposes corner radius");
 const poly = outerPerimeterPoly(roundedLayout.outer.w, roundedLayout.outer.h, 8, 8);
 assert(poly.length > 8, "rounded outer perimeter has arc points");
-assert(APP_VERSION.includes("Oct 18, 2026"), "version date");
+assert(APP_VERSION.includes("Oct 19, 2026"), "version date");
 
 const topEdge = layout.beads.filter((b) => b.id.startsWith("top-") || b.id === "corner-tl" || b.id === "corner-tr");
 assert(topEdge.length === 8, "top side includes corners");
@@ -136,21 +134,30 @@ const holes1 = hangHoleLayout({ ...p, hangHoles: true, hangHoleCount: 1 });
 assert(holes1.length === 1 && holes1[0].x === 0, "single centered hole");
 assert(hangHoleLayout({ ...p, hangHoles: false }).length === 0, "holes can be turned off");
 
-const stand = standPolygon(p);
-assert(stand.length >= 4, "stand has a tab and a foot");
-assert(polygonArea(stand) > 50, "stand profile has positive area");
-const sb = standBounds(stand);
-assert(sb.minY >= -1e-6, "stand sits on y=0 for a flat print");
-assert(sb.maxX <= p.standThickness + 0.05, "tab faces the cover");
-assert(sb.minX < 0, "foot stays behind the plate");
-assert(sb.h > 20, "stand is tall enough to prop the frame");
-const slot = standSlotLayout(p);
-assert(slot && slot.insertH >= 8, "back plate has a stand cleat");
-assert(slot.slotW > p.standWidth, "cleat is wider than the tab for clearance");
-assert(aabbOverlapVolume(slot.housing, frameClipFor(layout).slab) > 0, "cleat is fused into the plate");
-assert(slot.void.z0 >= frameClipFor(layout).plate.t - 1e-6, "cleat slot does not cut the plate in half");
-const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
-assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
+const peg = frameClipFor(layout).pegStand;
+assert(peg.cut, "stand holes are cut when the easel is on");
+assert(peg.holes.length === 6, "three rows of two peg holes");
+assert(peg.holeIndex === 1, "middle holes are the default lean");
+assert(peg.rows[0].angleDeg < peg.rows[1].angleDeg, "a higher hole leans more");
+assert(peg.rows[1].angleDeg < peg.rows[2].angleDeg, "the top hole leans the most");
+assert(peg.pegLen < peg.holes[0].box.z1 - 0.2, "pegs stop inside the plate");
+assert(peg.pegW + 0.2 < peg.holeW, "pegs are narrower than the holes");
+assert(peg.sheetT + 0.2 < peg.holeH, "the sheet is thinner than the holes");
+assert(standVolume(p) > 1000, "stand has volume");
+assert(standVolume({ ...p, standEnabled: false }) === 0, "stand volume is off with the easel");
+for (const hole of peg.holes) {
+  assert(hole.box.y0 >= -layout.outer.h / 2, "peg holes stay inside the front silhouette");
+  assert(Math.abs(hole.x) + hole.w / 2 < peg.halfSpan + peg.legW, "holes sit on the leg span");
+}
+const placed = peg.boxes;
+assert(placed[0].y0 >= -1e-6, "stand prints flat from the foot");
+const low = frameClipFor(layoutBeads({ ...p, standHole: 0 })).pegStand;
+const high = frameClipFor(layoutBeads({ ...p, standHole: 2 })).pegStand;
+assert(high.angleDeg > low.angleDeg + 2, "choosing a higher hole changes the lean");
+assert(Math.abs(standRows(p)[1].angleDeg - peg.angleDeg) < 1e-6, "stand rows match the active lean");
+const bigger = frameClipFor(layoutBeads({ ...p, photoW: 8 * IN, photoH: 10 * IN })).pegStand;
+assert(bigger.legReach > peg.legReach + 5, "a taller photo gets longer legs");
+assert(bigger.halfSpan > peg.halfSpan + 2, "a wider photo spreads the pegs");
 
 function assertMate(label, spec) {
   const clip = frameClipLayout(spec);
@@ -184,11 +191,9 @@ assertMate("default", {
   coverHeight: layout.radius,
   plateT: p.plateThickness,
   cornerRadius: p.outerCornerRadius,
-  standWidth: p.standWidth,
   standThickness: p.standThickness,
   standEnabled: true,
-  standAngleDeg: p.standAngleDeg,
-  standHeight: p.standHeight,
+  standHole: p.standHole,
 });
 assertMate("wallet thin border", {
   outerW: 70,

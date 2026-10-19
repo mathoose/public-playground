@@ -9,10 +9,10 @@ import {
   hangHoleLayout,
   mmToDisplay,
   plaGrams,
-  polygonArea,
   pruneDisabled,
   sizeLabel,
-  standPolygon,
+  standRows,
+  standVolume,
   syncTargetOverlapFromCounts,
   toggleDisabled,
 } from "./geometry.js";
@@ -78,9 +78,14 @@ function renderForm() {
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
-  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
-  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
-  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  const leanNames = ["Slight", "Medium", "More"];
+  const rows = standRows(params);
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    const i = Number(btn.dataset.stand);
+    btn.classList.toggle("active", i === params.standHole);
+    const row = rows[i];
+    if (row) btn.textContent = `${leanNames[i]} ${Math.round(row.angleDeg)}°`;
+  }
   $("dlStand").hidden = !params.standEnabled;
   $("segments").value = params.segments;
   $("alternate").checked = params.alternate !== false;
@@ -116,9 +121,7 @@ function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout, params.webThickness));
   const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
   const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
-  const standG = params.standEnabled
-    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
-    : 0;
+  const standG = params.standEnabled ? plaGrams(standVolume(params)) : 0;
   $("readout").innerHTML = `
     <div><b>${layout.enabledCount}</b> beads · outer <b>${fmtMm(layout.outer.w)} × ${fmtMm(layout.outer.h)}</b></div>
     <div>Window ~ <b>${fmtMm(layout.opening.w)} × ${fmtMm(layout.opening.h)}</b> (scalloped)</div>
@@ -239,14 +242,12 @@ function bind() {
     params.standEnabled = $("standEnabled").checked;
     refresh({ fit: true });
   });
-  $("standAngleRange").addEventListener("input", () => {
-    params.standAngleDeg = Number($("standAngleRange").value);
-    refresh();
-  });
-  $("standAngleDeg").addEventListener("change", () => {
-    params.standAngleDeg = num("standAngleDeg");
-    refresh();
-  });
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    btn.addEventListener("click", () => {
+      params.standHole = Number(btn.dataset.stand);
+      refresh({ fit: preview.partView === "side" });
+    });
+  }
   $("segments").addEventListener("change", () => {
     params.segments = num("segments");
     refresh();
