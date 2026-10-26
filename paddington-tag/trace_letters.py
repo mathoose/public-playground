@@ -2,8 +2,9 @@
 """Trace the Paddington tag's handwritten letters from the reference photo.
 
 The glyphs are the photo's marker ink, not a system font. Threshold the dark
-strokes, keep the counters (a, e, o, P, B, A, …), and simplify each outline
-just enough to drop pixel stairs. Coordinates in letters.js are millimeters
+strokes, keep the counters (a, e, o, P, B, A, …), then low-pass each closed
+outline so the pixel stairs print as a smooth marker edge. Coordinates in
+letters.js are millimeters
 for a 55 mm tall tag: origin at the bottom center, +Y toward the hole, +X to
 the right as in the photo (letters stay rotated the same way relative to the hole).
 """
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
-from scipy.ndimage import binary_fill_holes, label
+from scipy.ndimage import binary_fill_holes, gaussian_filter1d, label
 from skimage.measure import approximate_polygon, find_contours
 from skimage.morphology import closing, disk, erosion, remove_small_objects
 
@@ -53,16 +54,48 @@ def signed_area(pts: list[tuple[float, float]]) -> float:
     return 0.5 * a
 
 
-def chaikin(pts: list[tuple[float, float]]) -> list[tuple[float, float]]:
-    """One corner-cut so pixel stairs read as marker ink, without moving the glyph."""
-    out: list[tuple[float, float]] = []
-    n = len(pts)
-    for i in range(n):
-        x1, y1 = pts[i]
-        x2, y2 = pts[(i + 1) % n]
-        out.append((0.75 * x1 + 0.25 * x2, 0.75 * y1 + 0.25 * y2))
-        out.append((0.25 * x1 + 0.75 * x2, 0.25 * y1 + 0.75 * y2))
+def resample_closed(pts: list[tuple[float, float]], step: float) -> np.ndarray:
+    p = np.asarray(pts, dtype=float)
+    if len(p) < 3:
+        return p
+    nxt = np.vstack([p, p[0]])
+    seg = np.hypot(*(np.diff(nxt, axis=0).T))
+    total = float(seg.sum())
+    if total < step * 6:
+        return p
+    n = max(16, int(round(total / step)))
+    targets = np.linspace(0, total, n, endpoint=False)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    out = np.empty((n, 2), dtype=float)
+    j = 0
+    for i, t in enumerate(targets):
+        while j < len(seg) - 1 and cum[j + 1] < t:
+            j += 1
+        span = seg[j] or 1.0
+        u = (t - cum[j]) / span
+        a = p[j]
+        b = p[(j + 1) % len(p)]
+        out[i] = (1 - u) * a + u * b
     return out
+
+
+def smooth_loop(pts: list[tuple[float, float]], radius_mm: float = 0.28) -> list[tuple[float, float]]:
+    """Low-pass the closed outline so photo-pixel stairs become a marker edge.
+
+    The radius is a fraction of a millimeter — enough to erase the 1-pixel
+    sawtooth, not enough to redraw the glyph, close a counter, or eat a dot.
+    """
+    step = 0.03
+    samples = resample_closed(pts, step)
+    if len(samples) < 8:
+        return [(float(x), float(y)) for x, y in samples]
+    sigma = max(1.0, radius_mm / step)
+    xs = gaussian_filter1d(samples[:, 0], sigma, mode="wrap")
+    ys = gaussian_filter1d(samples[:, 1], sigma, mode="wrap")
+    smoothed = [(float(x), float(y)) for x, y in zip(xs, ys)]
+    # Even chords, short enough that the extruded wall reads as a curve up close.
+    dense = resample_closed(smoothed, 0.055)
+    return [(float(x), float(y)) for x, y in dense]
 
 
 def dedupe(pts: list[tuple[float, float]], tol: float = 0.012) -> list[tuple[float, float]]:
@@ -142,14 +175,16 @@ def trace(clean: np.ndarray) -> list[list[tuple[float, float]]]:
         contours = find_contours(comp.astype(float), 0.5)
         rings = []
         for contour in contours:
-            approx = approximate_polygon(contour, tolerance=0.62)
-            if len(approx) >= 2 and np.allclose(approx[0], approx[-1]):
-                approx = approx[:-1]
-            if len(approx) < 3:
+            raw = contour
+            if len(raw) >= 2 and np.allclose(raw[0], raw[-1]):
+                raw = raw[:-1]
+            if len(raw) < 3:
                 continue
-            pts = [to_mm(float(p[1] - 1), float(p[0] - 1)) for p in approx]
-            pts = dedupe(chaikin(pts))
-            pts = dedupe(approximate_mm(pts, 0.045))
+            pts = [to_mm(float(p[1] - 1), float(p[0] - 1)) for p in raw]
+            pts = smooth_loop(pts)
+            if self_intersects(pts):
+                pts = smooth_loop([to_mm(float(p[1] - 1), float(p[0] - 1)) for p in raw], 0.16)
+            pts = dedupe(pts, 0.02)
             if len(pts) < 3:
                 continue
             area = signed_area(pts)
@@ -186,6 +221,7 @@ def write_js(polys: list[list[tuple[float, float]]]) -> None:
 // origin at the bottom center, +Y toward the hole, +X to the photo's right.
 // Each ring is a closed loop (first point is not repeated).
 // Outers are counter-clockwise; counters (a, e, o, P, B, A, …) are clockwise.
+// Stroke edges are low-pass smoothed (~0.28 mm) so photo-pixel stairs do not print.
 export const REF_HEIGHT = {REF_HEIGHT};
 export const LETTER_POLYS = {chr(10).join(lines)};
 """
@@ -243,6 +279,24 @@ def preview(polys: list[list[tuple[float, float]]], clean: np.ndarray) -> None:
     inter = np.logical_and(r, clean).sum()
     union = np.logical_or(r, clean).sum()
     print(f"IoU {inter / union:.4f}  missing {np.logical_and(clean, ~r).sum()}  extra {np.logical_and(r, ~clean).sum()}")
+    # Edge-only zoom of "Please look" (photo right / model +X) so stairs are obvious.
+    zoom = Image.new("RGB", (1400, 1800), (232, 214, 176))
+    zd = ImageDraw.Draw(zoom)
+    def zx(p):
+        x, y = p
+        return ((x - 4) * 78 + 80, 1700 - (y - 18) * 78)
+    for poly in polys:
+        area = signed_area(poly)
+        if not poly:
+            continue
+        # only the right-hand words
+        if max(x for x, _y in poly) < 2:
+            continue
+        pts = [zx(p) for p in poly]
+        zd.line(pts + [pts[0]], fill=(40, 28, 20) if area > 0 else (120, 70, 40), width=3)
+    zoom.save("/tmp/pad/smooth-zoom.png")
+    areas = sorted(abs(signed_area(p)) for p in polys)
+    print("smallest areas mm2", [round(a, 3) for a in areas[:8]])
 
 
 def main() -> None:
