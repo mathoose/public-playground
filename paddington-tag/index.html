@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- build: paddington-tag-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Paddington tag</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-0644/3d-printing/index.html">← 3D printing library</a>
+        <h1>Paddington tag</h1>
+      </div>
+      <p>v1 · Oct 26, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip" data-view="letters">Letters</button>
+        <button type="button" class="chip" data-view="iso">Iso</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group view-group" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="group-note">Preview only. The download is always the whole tag, letters raised, one solid.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" id="showLetters" aria-pressed="true">Show letters</button>
+            <button class="chip active" type="button" id="showCord" aria-pressed="true">Show cord</button>
+            <button class="chip active" type="button" id="showBed" aria-pressed="true">Show bed</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Necklace tag</summary>
+        <div class="group-body">
+          <p class="group-note">Luggage-tag shape from the photo: clipped top corners, rounded bottom, hole at the top. Default is necklace size. Letters are the photo’s marker strokes, traced — not a stand-in font.</p>
+          <div class="row">
+            <label for="height">Overall height</label>
+            <output id="height-out">55 mm</output>
+            <input id="height" type="range" min="40" max="130" step="0.5" value="55" />
+          </div>
+          <div class="row">
+            <label for="hole">Hole diameter</label>
+            <output id="hole-out">5 mm</output>
+            <input id="hole" type="range" min="2.5" max="12" step="0.1" value="5" />
+          </div>
+          <div class="row">
+            <label for="letterH">Letter height</label>
+            <output id="letterH-out">0.80 mm</output>
+            <input id="letterH" type="range" min="0.2" max="2.2" step="0.05" value="0.8" />
+          </div>
+          <div class="row">
+            <label for="thickness">Tag thickness</label>
+            <output id="thickness-out">2.0 mm</output>
+            <input id="thickness" type="range" min="1.2" max="5" step="0.1" value="2" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download this STL</button>
+            <button type="button" class="secondary" id="reset">Reset necklace</button>
+          </div>
+          <div class="ready">
+            <a href="paddington-tag-v1.stl" download>Print v1 necklace (55 mm)</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>flat, letters up</b>, 0.2 mm layers, no supports. One color — the letters are raised 0.8 mm, not a second filament.
+            The 5 mm hole fits a necklace cord, with a wall of plastic around it so it does not tear.
+            Text is the photo, same way up relative to the hole: Please look / after this / BEAR THANK / you.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Paddington tag v1 · Oct 26, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

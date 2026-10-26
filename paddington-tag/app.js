@@ -1,0 +1,180 @@
+import {
+  APP_NAME,
+  APP_VERSION,
+  APP_VERSION_TAG,
+  DEFAULT_PARAMS,
+  SLIDERS,
+  applySliderChange,
+  derive,
+  mergeParams,
+  warnings,
+} from "./geometry.js";
+import { TagPreview } from "./preview.js";
+import { buildTag, buildTagStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { installUndo } from "../shared/undo-history.js";
+import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+
+const $ = (id) => document.getElementById(id);
+
+let params = mergeParams();
+let preview;
+let latest = null;
+let rebuildTimer = 0;
+let rebuildGen = 0;
+
+function fmtValue(key, n) {
+  const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
+  const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
+  return `${Number(n).toFixed(digits)} mm`;
+}
+
+function writeParams(p) {
+  params = mergeParams(p);
+  for (const spec of SLIDERS) {
+    const el = $(spec.key);
+    const out = $(`${spec.key}-out`);
+    if (el) {
+      el.min = String(spec.min);
+      el.max = String(spec.max);
+      el.step = String(spec.step);
+      el.dataset.unit = spec.unit;
+      el.value = String(params[spec.key]);
+    }
+    if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
+  }
+}
+
+function setStatus(text, kind = "") {
+  const el = $("status");
+  if (!el) return;
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+
+function renderReadout(result) {
+  const d = result?.d || derive(params);
+  const warnEl = $("warnings");
+  if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
+  const el = $("readout");
+  if (!el) return;
+  const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
+  const tris = result ? Math.round(result.tris) : "—";
+  el.innerHTML = `
+    Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
+    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)})<br />
+    Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
+    One color · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
+  `;
+}
+
+async function rebuild() {
+  const gen = ++rebuildGen;
+  setStatus("Updating…");
+  try {
+    const result = await buildTag(params, { quality: "preview" });
+    if (gen !== rebuildGen) return;
+    latest = result;
+    preview.update(result);
+    renderReadout(result);
+    setStatus("Live");
+    document.body.dataset.ready = "1";
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+function scheduleRebuild() {
+  renderReadout(latest);
+  window.clearTimeout(rebuildTimer);
+  rebuildTimer = window.setTimeout(() => rebuild(), 40);
+}
+
+async function downloadStl() {
+  setStatus("Building STL…");
+  try {
+    const { stl, volume } = await buildTagStl(params);
+    const grams = ((volume / 1000) * 1.24).toFixed(1);
+    const h = params.height.toFixed(0);
+    downloadArrayBuffer(`paddington-tag-${APP_VERSION_TAG}-${h}mm.stl`, stl);
+    setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${grams} g PLA`);
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+function bindShow() {
+  const map = [
+    ["showLetters", "letters"],
+    ["showCord", "cord"],
+    ["showBed", "bed"],
+  ];
+  for (const [id, key] of map) {
+    const btn = $(id);
+    if (!btn) continue;
+    btn.addEventListener("click", () => {
+      const on = !btn.classList.contains("active");
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      preview.setShow({ [key]: on });
+    });
+  }
+}
+
+function bind() {
+  writeParams(DEFAULT_PARAMS);
+  for (const { key } of SLIDERS) {
+    const el = $(key);
+    if (!el) continue;
+    el.addEventListener("input", () => {
+      params = applySliderChange(params, key, Number(el.value));
+      writeParams(params);
+      scheduleRebuild();
+    });
+  }
+  $("reset")?.addEventListener("click", () => {
+    params = mergeParams(DEFAULT_PARAMS);
+    writeParams(params);
+    preview.fitted = false;
+    scheduleRebuild();
+  });
+  $("resetView")?.addEventListener("click", () => preview.fit());
+  document.querySelectorAll("[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
+  });
+  $("download")?.addEventListener("click", () => downloadStl());
+  bindShow();
+}
+
+const versionEl = $("app-version");
+if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
+
+preview = new TagPreview({ canvas: $("view") });
+window.__tagPreview = preview;
+bind();
+pairSlidersWithNumbers(document.querySelector(".panel"));
+installUndo({
+  panel: document.querySelector(".panel"),
+  read: () => {
+    const { height, hole, letterH, thickness } = params;
+    return { height, hole, letterH, thickness };
+  },
+  apply: (snapshot) => {
+    writeParams(snapshot);
+    scheduleRebuild();
+  },
+});
+
+const capture = new URLSearchParams(location.search).get("capture");
+if (capture) {
+  document.body.classList.add("capture");
+  preview.renderer.setPixelRatio(2);
+  if (capture === "letters") preview.setShow({ letters: true, cord: false, bed: false });
+  if (capture === "front") preview.setShow({ letters: true, cord: false, bed: true });
+}
+
+rebuild().then(() => {
+  if (capture === "letters") preview.setNamedView("letters");
+  else if (capture === "front" || capture === "iso") preview.setNamedView(capture === "iso" ? "iso" : "front");
+});
