@@ -1,0 +1,160 @@
+import { LETTER_POLYS, REF_HEIGHT } from "./letters.js";
+
+export const APP_VERSION = "1 · Oct 26, 2026";
+export const APP_VERSION_TAG = "v1";
+export const APP_NAME = "Paddington tag";
+
+/** Paper silhouette from the reference photo, in pixels (y down). Metal clip excluded. */
+const PHOTO_TOP = 42;
+const PHOTO_BOTTOM = 710;
+const PHOTO_H = PHOTO_BOTTOM - PHOTO_TOP;
+const BODY_HALF_PX = 236;
+const TOP_HALF_PX = 139;
+const CHAMFER_PX = 128;
+const CORNER_PX = 38;
+const HOLE_X_PX = 374 - 375;
+const HOLE_Y_PX = 710 - 115;
+const MIN_WALL = 1.6;
+
+export const DEFAULT_PARAMS = Object.freeze({
+  height: 55,
+  hole: 5,
+  letterH: 0.8,
+  thickness: 2,
+});
+
+export const SLIDERS = [
+  { key: "height", min: 40, max: 130, step: 0.5, unit: "mm" },
+  { key: "hole", min: 2.5, max: 12, step: 0.1, unit: "mm" },
+  { key: "letterH", min: 0.2, max: 2.2, step: 0.05, unit: "mm" },
+  { key: "thickness", min: 1.2, max: 5, step: 0.1, unit: "mm" },
+];
+
+export function clamp(v, lo, hi) {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+function snap(v, step) {
+  const decimals = step >= 1 ? 0 : (String(step).split(".")[1] || "").length;
+  return Number(v.toFixed(decimals));
+}
+
+export function outlinePoints(layout, arcSegs = 10) {
+  const bw = layout.bodyHalf;
+  const tw = layout.topHalf;
+  const chamfer = layout.chamfer;
+  const h = layout.height;
+  const rr = Math.min(layout.cornerR, bw - 0.6, (h - chamfer) * 0.45);
+  const pts = [];
+  pts.push([-bw + rr, 0]);
+  pts.push([bw - rr, 0]);
+  for (let i = 1; i <= arcSegs; i++) {
+    const a = -Math.PI / 2 + (i * (Math.PI / 2)) / arcSegs;
+    pts.push([bw - rr + Math.cos(a) * rr, rr + Math.sin(a) * rr]);
+  }
+  pts.push([bw, h - chamfer]);
+  pts.push([tw, h]);
+  pts.push([-tw, h]);
+  pts.push([-bw, h - chamfer]);
+  pts.push([-bw, rr]);
+  for (let i = 1; i < arcSegs; i++) {
+    const a = Math.PI + (i * (Math.PI / 2)) / arcSegs;
+    pts.push([-bw + rr + Math.cos(a) * rr, rr + Math.sin(a) * rr]);
+  }
+  return pts;
+}
+
+function distPointSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = clamp(t, 0, 1);
+  const x = ax + t * dx;
+  const y = ay + t * dy;
+  return Math.hypot(px - x, py - y);
+}
+
+function clearance(layout) {
+  const pts = outlinePoints(layout, 12);
+  let best = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    best = Math.min(best, distPointSeg(layout.holeX, layout.holeY, a[0], a[1], b[0], b[1]));
+  }
+  return best;
+}
+
+export function layoutFor(height) {
+  const s = height / PHOTO_H;
+  const layout = {
+    height,
+    bodyHalf: BODY_HALF_PX * s,
+    topHalf: TOP_HALF_PX * s,
+    chamfer: CHAMFER_PX * s,
+    cornerR: CORNER_PX * s,
+    holeX: HOLE_X_PX * s,
+    holeY: HOLE_Y_PX * s,
+  };
+  layout.width = layout.bodyHalf * 2;
+  layout.maxHole = snap(Math.max(2.5, 2 * (clearance(layout) - MIN_WALL)), 0.1);
+  return layout;
+}
+
+export function clampParams(raw = {}) {
+  const p = { ...DEFAULT_PARAMS, ...raw };
+  for (const s of SLIDERS) {
+    let v = Number(p[s.key]);
+    if (!Number.isFinite(v)) v = DEFAULT_PARAMS[s.key];
+    p[s.key] = snap(clamp(v, s.min, s.max), s.step);
+  }
+  const layout = layoutFor(p.height);
+  const holeCap = Math.min(p.hole, layout.maxHole);
+  p.hole = snap(clamp(holeCap, SLIDERS.find((s) => s.key === "hole").min, layout.maxHole), 0.1);
+  p._holeCapped = holeCap + 1e-6 < Number(raw.hole);
+  return p;
+}
+
+export function mergeParams(overrides = {}) {
+  return clampParams({ ...DEFAULT_PARAMS, ...overrides });
+}
+
+export function applySliderChange(prev, key, value) {
+  return clampParams({ ...prev, [key]: value });
+}
+
+export function scaledLetters(height) {
+  const k = height / REF_HEIGHT;
+  return LETTER_POLYS.map((poly) => poly.map(([x, y]) => [x * k, y * k]));
+}
+
+export function derive(raw) {
+  const p = clampParams(raw);
+  const layout = layoutFor(p.height);
+  return {
+    p,
+    ...layout,
+    letterScale: p.height / REF_HEIGHT,
+    totalH: p.thickness + p.letterH,
+    holeCapped: Boolean(p._holeCapped) || p.hole + 0.05 < Number(raw.hole || p.hole),
+  };
+}
+
+export function warnings(raw) {
+  const d = derive(raw);
+  const notes = [];
+  if (Number(raw.hole) > d.maxHole + 0.05) {
+    notes.push(
+      `Hole capped at ${d.hole.toFixed(1)} mm so at least ${MIN_WALL.toFixed(1)} mm of plastic stays around it.`
+    );
+  }
+  if (d.p.letterH < 0.4) {
+    notes.push("Letter height under 0.4 mm is only a layer or two — easy to miss on the print.");
+  }
+  return notes;
+}
+
+export function formatMm(n) {
+  return `${Number(n).toFixed(1)} mm`;
+}
