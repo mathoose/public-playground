@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: paddington-tag-v1 -->
+<!-- build: paddington-tag-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,10 +11,10 @@
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-0644/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-colors-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Paddington tag</h1>
       </div>
-      <p>v1 · Oct 26, 2026</p>
+      <p>v2 · Oct 27, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -30,9 +30,10 @@
       <details class="settings-group view-group" open>
         <summary>View</summary>
         <div class="group-body">
-          <p class="group-note">Preview only. The download is always the whole tag, letters raised, one solid.</p>
+          <p class="group-note">Preview only. Downloads are three STLs — body, letters, and the hole ring — so each can be its own color.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" id="showLetters" aria-pressed="true">Show letters</button>
+            <button class="chip active" type="button" id="showRing" aria-pressed="true">Show ring</button>
             <button class="chip active" type="button" id="showCord" aria-pressed="true">Show cord</button>
             <button class="chip active" type="button" id="showBed" aria-pressed="true">Show bed</button>
           </div>
@@ -70,23 +71,26 @@
         <summary>Download</summary>
         <div class="group-body">
           <div class="actions">
-            <button type="button" class="wide" id="download">Download this STL</button>
+            <button type="button" class="wide" data-download="body">Download body STL</button>
+            <button type="button" class="wide" data-download="letters">Download letters STL</button>
+            <button type="button" class="wide" data-download="ring">Download ring STL</button>
             <button type="button" class="secondary" id="reset">Reset necklace</button>
           </div>
           <div class="ready">
-            <a href="paddington-tag-v1.stl" download>Print v1 necklace (55 mm)</a>
+            <a href="paddington-tag-v2-body.stl" download>Body</a>
+            <a href="paddington-tag-v2-letters.stl" download>Letters</a>
+            <a href="paddington-tag-v2-ring.stl" download>Ring</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
-            Print <b>flat, letters up</b>, 0.2 mm layers, no supports. One color — the letters are raised 0.8 mm, not a second filament.
-            The 5 mm hole fits a necklace cord, with a wall of plastic around it so it does not tear.
-            Text is the photo, same way up relative to the hole: Please look / after this / BEAR THANK / you.
+            Print <b>flat, letters up</b>, 0.2 mm layers, no supports. Import all three STLs together: body one color, letters a second, the raised ring a third (brown, like the photo).
+            The 5 mm hole fits a necklace cord. Letters stay the traced marker: Please look / after this / BEAR THANK / you.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Paddington tag v1 · Oct 26, 2026</p>
+      <p class="foot" id="app-version">Paddington tag v2 · Oct 27, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
