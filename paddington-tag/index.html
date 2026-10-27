@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: paddington-tag-v4 -->
+<!-- build: paddington-tag-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,10 +11,10 @@
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-letter-size-0644/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-letter-shift-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Paddington tag</h1>
       </div>
-      <p>v4 · Oct 27, 2026</p>
+      <p>v5 · Oct 27, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -43,7 +43,7 @@
       <details class="settings-group" open>
         <summary>Necklace tag</summary>
         <div class="group-body">
-          <p class="group-note">Luggage-tag shape from the photo: clipped top corners, rounded bottom, hole at the top. Default is necklace size. Letter size is how much of the tag the writing fills (100% is the photo). Letter height is how far those strokes stand up. The strokes stay the traced marker.</p>
+          <p class="group-note">Luggage-tag shape from the photo: clipped top corners, rounded bottom, hole at the top. Default is necklace size. Letter size is how much of the tag the writing fills (100% is the photo). Letter shift moves that writing up toward the hole or down away from it. Letter height is how far the strokes stand up. The strokes stay the traced marker.</p>
           <div class="row">
             <label for="height">Overall height</label>
             <output id="height-out">55 mm</output>
@@ -58,6 +58,11 @@
             <label for="letterSize">Letter size</label>
             <output id="letterSize-out">100 %</output>
             <input id="letterSize" type="range" min="55" max="145" step="1" value="100" />
+          </div>
+          <div class="row">
+            <label for="letterShift">Letter shift</label>
+            <output id="letterShift-out">at the photo</output>
+            <input id="letterShift" type="range" min="-18" max="10" step="0.5" value="0" />
           </div>
           <div class="row">
             <label for="letterH">Letter height</label>
@@ -97,7 +102,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Paddington tag v4 · Oct 27, 2026</p>
+      <p class="foot" id="app-version">Paddington tag v5 · Oct 27, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

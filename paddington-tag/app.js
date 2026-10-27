@@ -23,6 +23,12 @@ let rebuildTimer = 0;
 let rebuildGen = 0;
 
 function fmtValue(key, n) {
+  if (key === "letterShift") {
+    const v = Number(n);
+    if (Math.abs(v) < 0.05) return "at the photo";
+    const mag = Math.abs(v).toFixed(1);
+    return v > 0 ? `up ${mag}` : `down ${mag}`;
+  }
   const spec = SLIDERS.find((s) => s.key === key);
   const step = spec?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
@@ -63,7 +69,7 @@ function renderReadout(result) {
   const tris = result ? Math.round(result.tris) : "—";
   el.innerHTML = `
     Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
-    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)}, size ${d.p.letterSize.toFixed(0)}%)<br />
+    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)}, size ${d.p.letterSize.toFixed(0)}%, shift ${d.p.letterShift.toFixed(1)} mm)<br />
     Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
     Three colors · paper body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
   `;
@@ -184,8 +190,8 @@ pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: () => {
-    const { height, hole, letterSize, letterH, thickness } = params;
-    return { height, hole, letterSize, letterH, thickness };
+    const { height, hole, letterSize, letterShift, letterH, thickness } = params;
+    return { height, hole, letterSize, letterShift, letterH, thickness };
   },
   apply: (snapshot) => {
     writeParams(snapshot);
