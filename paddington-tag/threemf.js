@@ -1,6 +1,8 @@
 /**
- * One 3MF package, three separate mesh objects (not fused).
- * Same coordinates as the STLs, so a slicer imports body, letters, and ring as parts.
+ * One 3MF package: three separate meshes (not fused) inside one assembly.
+ * Vertices stay in the same millimeters as the STLs. A slicer that sees three
+ * build items drops each mesh onto the bed, which plants the letters and the
+ * ring inside the body. One build item of components keeps that stack.
  */
 
 const COLORS = {
@@ -100,6 +102,9 @@ function fmt(n) {
   return Number(n).toFixed(5);
 }
 
+// 3MF core spec: 3×4 row-major affine matrix, implicit last row 0 0 0 1.
+const IDENTITY = "1 0 0 0 1 0 0 0 1 0 0 0";
+
 function meshXml(mesh) {
   const stride = mesh.numProp || 3;
   const vp = mesh.vertProperties;
@@ -135,8 +140,9 @@ ${meshXml(part.mesh)}
     </object>`;
     })
     .join("\n");
-  const items = parts
-    .map((_, i) => `    <item objectid="${i + 1}"/>`)
+  const assemblyId = parts.length + 1;
+  const components = parts
+    .map((_, i) => `      <component objectid="${i + 1}" transform="${IDENTITY}"/>`)
     .join("\n");
   const model = `<?xml version="1.0" encoding="UTF-8"?>
 <model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
@@ -146,9 +152,14 @@ ${meshXml(part.mesh)}
 ${bases}
     </basematerials>
 ${objects}
+    <object id="${assemblyId}" name="Paddington tag" type="model">
+      <components>
+${components}
+      </components>
+    </object>
   </resources>
   <build>
-${items}
+    <item objectid="${assemblyId}" transform="${IDENTITY}"/>
   </build>
 </model>
 `;

@@ -108,7 +108,7 @@ async function download3mf() {
       built.threemf,
       "model/3mf"
     );
-    setStatus(`3MF · body, letters, ring · ${Math.round(built.tris)} tris`);
+    setStatus(`3MF · one assembly · body, letters, ring · ${Math.round(built.tris)} tris`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");

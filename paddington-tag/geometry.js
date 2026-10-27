@@ -1,7 +1,7 @@
 import { LETTER_POLYS, REF_HEIGHT } from "./letters.js";
 
-export const APP_VERSION = "5 · Oct 27, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Oct 27, 2026";
+export const APP_VERSION_TAG = "v6";
 export const APP_NAME = "Paddington tag";
 
 /**

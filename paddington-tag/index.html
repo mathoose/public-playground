@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: paddington-tag-v5 -->
+<!-- build: paddington-tag-v6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,10 +11,10 @@
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-letter-shift-0644/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-3mf-assembly-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Paddington tag</h1>
       </div>
-      <p>v5 · Oct 27, 2026</p>
+      <p>v6 · Oct 27, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -30,7 +30,7 @@
       <details class="settings-group view-group" open>
         <summary>View</summary>
         <div class="group-body">
-          <p class="group-note">Preview only. Three STLs stay separate. The 3MF is the same assembly as three objects, not one fused mesh.</p>
+          <p class="group-note">Preview only. Three STLs stay separate. The 3MF is one assembly of those three parts, so the letters and ring stay on the face. The meshes are not fused.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" id="showLetters" aria-pressed="true">Show letters</button>
             <button class="chip active" type="button" id="showRing" aria-pressed="true">Show ring</button>
@@ -91,18 +91,18 @@
             <a href="paddington-tag-v3-body.stl" download>Body</a>
             <a href="paddington-tag-v3-letters.stl" download>Letters</a>
             <a href="paddington-tag-v3-ring.stl" download>Ring</a>
-            <a href="paddington-tag-v3.3mf" download>3MF</a>
+            <a href="paddington-tag-v6.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
-            Print <b>flat, letters up</b>, 0.2 mm layers, no supports. The body face is paper grain; letters and the ring stay smooth. Import the three STLs, or the one 3MF — body, letters, and the raised brown ring stay separate parts.
+            Print <b>flat, letters up</b>, 0.2 mm layers, no supports. The body face is paper grain; letters and the ring stay smooth. Import the three STLs, or the one 3MF — it comes in as a single assembly with the letters and ring already on the face, still separate parts.
             The 5 mm hole fits a necklace cord. Letters stay the traced marker: Please look / after this / BEAR THANK / you.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Paddington tag v5 · Oct 27, 2026</p>
+      <p class="foot" id="app-version">Paddington tag v6 · Oct 27, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
