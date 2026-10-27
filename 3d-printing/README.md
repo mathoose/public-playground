@@ -14,7 +14,7 @@ Browser apps for parts you can customize and download as STL.
 | [`../photive-snap-box/`](../photive-snap-box/) | Photive USB snap box (live tray + lid designer) |
 | [`../henson-razor-tool/`](../henson-razor-tool/) | Henson AL13 / Ti22 blade-change cradle + handle grip |
 | [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F slide-on sleeve, wrap around the band, elastic clips on the back |
-| [`../paddington-tag/`](../paddington-tag/) | Paddington luggage-tag necklace: traced letters, raised hole ring, three STLs |
+| [`../paddington-tag/`](../paddington-tag/) | Paddington luggage-tag necklace: paper-grain body, traced letters, raised hole ring, three STLs or one 3MF |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
 On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, and `/private/` (behind the small lock in the footer).

@@ -38,7 +38,22 @@ console.log("ring z", rb.min[2], rb.max[2], "vol", ring.volume.toFixed(1), "oute
 
 assert(body.genus === 1, `body genus ${body.genus}`);
 assert(Math.abs(bb.max[1] - bb.min[1] - 55) < 0.2, "body height");
-assert(Math.abs(bb.max[2] - 2) < 0.05, "body is the plate only");
+assert(Math.abs(bb.max[2] - 2) < 0.05, "body peaks stay at the plate");
+assert(body.volume < 3980 && body.volume > 3400, `paper grain should cut the body, vol ${body.volume}`);
+let valleys = 0;
+for (let i = 2; i < body.positions.length; i += 3) {
+  const z = body.positions[i];
+  if (z > 1.55 && z < 1.9) valleys++;
+}
+assert(valleys > 400, `paper valleys missing (${valleys})`);
+
+const xml = Buffer.from(built.threemf).toString("latin1");
+assert(xml.startsWith("PK"), "3mf is a zip");
+for (const name of ["body", "letters", "ring"]) {
+  assert(xml.includes(`name="${name}"`), `3mf missing ${name}`);
+}
+assert((xml.match(/<mesh>/g) || []).length === 3, "3mf should keep three separate meshes");
+assert((xml.match(/<item /g) || []).length === 3, "3mf should place three parts");
 assert(Math.abs(lb.max[2] - 2.8) < 0.08, "letters raised 0.8");
 assert(Math.abs(rb.max[2] - 2.8) < 0.08, "ring raised with the letters");
 assert(letters.volume > 80, "letters still have volume");
