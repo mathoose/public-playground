@@ -84,7 +84,39 @@ for (const name of ["body", "letters", "ring"]) {
   assert(xml.includes(`name="${name}"`), `3mf missing ${name}`);
 }
 assert((xml.match(/<mesh>/g) || []).length === 3, "3mf should keep three separate meshes");
-assert((xml.match(/<item /g) || []).length === 3, "3mf should place three parts");
+assert((xml.match(/<components>/g) || []).length === 1, "3mf should wrap the parts in one assembly");
+assert((xml.match(/<component /g) || []).length === 3, "3mf assembly should list three parts");
+assert((xml.match(/<item /g) || []).length === 1, "3mf should place one assembly, not three loose models");
+const partIds = {};
+for (const name of ["body", "letters", "ring"]) {
+  const m = xml.match(new RegExp(`<object id="(\\d+)" name="${name}"`));
+  assert(m, `3mf object id for ${name}`);
+  partIds[name] = m[1];
+}
+for (const name of ["body", "letters", "ring"]) {
+  assert(xml.includes(`<component objectid="${partIds[name]}"`), `assembly missing ${name}`);
+}
+function zRangeOf(name) {
+  const id = partIds[name];
+  const start = xml.indexOf(`<object id="${id}" name="${name}"`);
+  const end = xml.indexOf("</object>", start);
+  assert(start >= 0 && end > start, `mesh block ${name}`);
+  const block = xml.slice(start, end);
+  let min = Infinity;
+  let max = -Infinity;
+  for (const m of block.matchAll(/z="([^"]+)"/g)) {
+    const z = Number(m[1]);
+    if (z < min) min = z;
+    if (z > max) max = z;
+  }
+  return { min, max };
+}
+const letterZ = zRangeOf("letters");
+const ringZ = zRangeOf("ring");
+const bodyZ = zRangeOf("body");
+assert(bodyZ.min < 0.05 && Math.abs(bodyZ.max - 2) < 0.05, `body z in 3mf ${bodyZ.min}–${bodyZ.max}`);
+assert(letterZ.min > 1.5 && Math.abs(letterZ.max - 2.8) < 0.08, `letters should sit on the face in the 3mf, z ${letterZ.min}–${letterZ.max}`);
+assert(ringZ.min > 1.5 && Math.abs(ringZ.max - 2.8) < 0.08, `ring should sit on the face in the 3mf, z ${ringZ.min}–${ringZ.max}`);
 assert(Math.abs(lb.max[2] - 2.8) < 0.08, "letters raised 0.8");
 assert(Math.abs(rb.max[2] - 2.8) < 0.08, "ring raised with the letters");
 assert(letters.volume > 80, "letters still have volume");
