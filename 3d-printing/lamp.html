@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LED lamp kit shades</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .hero { padding-top: 28px; padding-bottom: 8px; }
+    .back {
+      display: inline-block;
+      margin: 0 0 14px;
+      color: var(--accent-ink);
+      font-weight: 700;
+      font-size: 0.92rem;
+      text-decoration: none;
+    }
+    .jumps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0 0;
+    }
+    .jumps a {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--accent-ink);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .panel, .band {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 8px 20px 0;
+    }
+    .sheet {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 16px 18px;
+      box-shadow: 0 12px 30px rgba(28, 25, 23, 0.06);
+    }
+    .sheet img {
+      display: block;
+      width: 100%;
+      max-height: 320px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 0 0 8px;
+      background: #ddd6cc;
+    }
+    .sheet h2, .band h2 {
+      margin: 8px 0 8px;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+    }
+    .sheet p, .band > p, .note {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .sheet a { color: var(--accent-ink); }
+    .sheet dl { margin: 12px 0 0; }
+    .sheet dt {
+      margin-top: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+    }
+    .sheet dd { margin: 4px 0 0; line-height: 1.45; }
+    .band h2 { margin-top: 22px; }
+    .band .grid { padding: 12px 0 8px; max-width: none; }
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 1.12rem;
+      letter-spacing: -0.03em;
+    }
+    .who {
+      margin: 0 0 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+    }
+    .card .body p { margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <p><a class="back" href="./index.html" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/lamp-kit-shades-d511/3d-printing/index.html">← 3D printing library</a></p>
+    <p class="kicker">BambooSegD / Bambu</p>
+    <h1>LED lamp kit shades</h1>
+    <p class="lead">Past searches for shades that fit LED Lamp Kit-001. Dimensions below are the kit spec, not a measurement of this puck.</p>
+    <nav class="jumps" aria-label="Sections">
+      <a href="#kit">Kit spec</a>
+      <a href="#halloween">Halloween</a>
+      <a href="#fall">Fall</a>
+      <a href="#winter">Winter</a>
+    </nav>
+  </header>
+
+  <section class="panel" id="kit">
+    <div class="sheet">
+      <img src="./lamp/kit-box.jpg" alt="Box for BambooSegD LED Lamp Kit-001, model M4001, DC 5V 4W, RGB, 3 pieces, designed by Lin and Gleason." />
+      <h2>Kit spec</h2>
+      <p>BambooSegD LED Lamp Kit-001, the same hardware family as Bambu Lab LED Lamp 001. Designed by Lin and Gleason.</p>
+      <dl>
+        <dt>This unit</dt>
+        <dd>BambooSegD model M4001. DC 5V, 4W, RGB, USB, 3-pack. Read from the box label. The label does not print a puck height.</dd>
+        <dt>Puck size</dt>
+        <dd>About Ø59 mm. Official pages disagree on height. <a href="https://us.store.bambulab.com/products/led-lamp-kit-001">Bambu’s US store</a> lists the MH001 puck as Ø59 × 8 mm, DC 5V, 3W, warm white. <a href="https://www.3djake.com/bambu-lab/led-lamp-kit-001">3DJake</a> lists that same MH001 kit as 59 × 18 mm.</dd>
+        <dt>How a shade fits</dt>
+        <dd>The shade twist-locks onto a printed base. Kit design rules: 0.2 mm gap between the base and the shade wall, and 0.1 mm interference on the locating lug.</dd>
+        <dt>Base and ring</dt>
+        <dd><a href="https://makerworld.com/en/models/13717-led-lamp-001">LED Lamp 001 on MakerWorld</a> — the Lin and Gleason base files and the design guide.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section id="halloween">
+    <header class="band">
+      <h2>Halloween</h2>
+      <p>These six models, from the last pumpkin search.</p>
+    </header>
+    <div class="grid">
+      <a class="card" href="https://makerworld.com/en/models/39480-halloween-jack-o-lantern">
+        <img class="thumb" src="./lamp/bambu-lab-halloween-jack-o-lantern.jpg" alt="Bambu Lab Halloween Jack-O’-Lantern shade." />
+        <div class="body">
+          <p class="who">Bambu Lab</p>
+          <h3>Halloween Jack-O’-Lantern</h3>
+          <p>Official quick-release base for this kit.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/1794393-halloween-pumpkin-led-lamp-kit-001">
+        <img class="thumb" src="./lamp/yueylmz-halloween-pumpkin-kit-001.jpg" alt="yueylmz Halloween pumpkin for LED Lamp Kit 001." />
+        <div class="body">
+          <p class="who">yueylmz</p>
+          <h3>Halloween Pumpkin Led Lamp Kit 001</h3>
+          <p>About 104 mm, with an RGB insert.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/3363914-jack-o-lantern-maker-customizable-pumpkin-lamp">
+        <img class="thumb" src="./lamp/justprintit-jack-o-lantern-maker.jpg" alt="JustPrintIt customizable jack-o-lantern maker." />
+        <div class="body">
+          <p class="who">JustPrintIt</p>
+          <h3>Jack-O-Lantern Maker</h3>
+          <p>Pocket for a 60 mm disc.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/598269-halloween-pumpkin-led-lamp-kit-001">
+        <img class="thumb" src="./lamp/3dcrabi-halloween-pumpkin-kit-001.jpg" alt="3Dcrabi Halloween pumpkin for LED Lamp Kit 001." />
+        <div class="body">
+          <p class="who">3Dcrabi</p>
+          <h3>Halloween Pumpkin LED Lamp Kit 001</h3>
+          <p>Pumpkin lamp written for LED Lamp Kit 001.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/3274859-xxl-led-halloween-pumpkin-spooky">
+        <img class="thumb" src="./lamp/hankys-3d-xxl-halloween-pumpkin.jpg" alt="Hanky’s 3D extra-large Halloween pumpkin." />
+        <div class="body">
+          <p class="who">Hanky’s 3D</p>
+          <h3>XXL LED Halloween Pumpkin</h3>
+          <p>25 or 30 cm tall.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/1526654-mickey-and-minnie-mouse-halloween-pumpkin-lamp">
+        <img class="thumb" src="./lamp/thelightning-mickey-minnie-pumpkin-lamp.jpg" alt="Mickey and Minnie pumpkin lamp by theLightning." />
+        <div class="body">
+          <p class="who">theLightning</p>
+          <h3>Mickey and Minnie pumpkin lamp</h3>
+          <p>MH001 screws into the shade.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section id="fall">
+    <header class="band">
+      <h2>Fall</h2>
+      <p>Leaves, a stump-and-leaf lamp, and woodland mushrooms that name this kit. Acorn and maple lanterns that only fit a tea light, and the Howarx 60 mm puck upgrade, are left off.</p>
+    </header>
+    <div class="grid">
+      <a class="card" href="https://makerworld.com/en/models/2544387-leaf-lamp-kit-001">
+        <div class="body">
+          <p class="who">Skipper</p>
+          <h3>Leaf Lamp - Kit 001</h3>
+          <p>Layered leaf shade made for Bambu Lab LED Kit 001.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/1892088">
+        <div class="body">
+          <p class="who">Bez</p>
+          <h3>Customizable Nature Autumn Lamp</h3>
+          <p>Stump base for Kit 001. The first shade is the leaf that inspired it.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/2535327-bonsai-desk-lamp">
+        <div class="body">
+          <p class="who">3D Paint Lab</p>
+          <h3>Bonsai Desk Lamp</h3>
+          <p>Leaf canopy with a press-fit base for the Bambu LED Lamp Kit.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/1770745-enchanted-mushroom-lamp">
+        <div class="body">
+          <p class="who">3Core</p>
+          <h3>Enchanted Mushroom Lamp</h3>
+          <p>Kit 001 sits in the base and lights the stem and the cap.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/375763-mushroom-light-for-led-lamp-kit-001">
+        <div class="body">
+          <p class="who">Mdesign</p>
+          <h3>Mushroom light for LED Lamp Kit 001</h3>
+          <p>Printed holder for the kit. Pressing the cap hits the switch.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/3357616-mushroom-lamp">
+        <div class="body">
+          <p class="who">LeeRoy Titanium</p>
+          <h3>Mushroom Lamp</h3>
+          <p>Cap tabs onto a base made for Bambu Lab’s LED Lamp Kit. Cable runs down the stem.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section id="winter">
+    <header class="band">
+      <h2>Winter / Christmas</h2>
+      <p>Trees, a snowman, a snowflake book nook, and a lamp post that name this kit. Nativity globes that only say “space for an LED” are left off.</p>
+    </header>
+    <div class="grid">
+      <a class="card" href="https://makerworld.com/en/models/886966-christmas-tree-lamp-led-lamp-kit-001">
+        <div class="body">
+          <p class="who">r3D</p>
+          <h3>Christmas Tree Lamp - LED Lamp Kit 001</h3>
+          <p>Snap-together tree made for the Bambu LED kit. No supports.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/775038-big-chistmas-tree-for-led-lamp-kit-001">
+        <div class="body">
+          <p class="who">nmonari</p>
+          <h3>Big Chistmas Tree for LED Lamp Kit-001</h3>
+          <p>About 21 cm tall. Conical tube sized for the kit.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/697629-christmas-tree-with-star-lamp-bambu-led-lamp-kit-0">
+        <div class="body">
+          <p class="who">Mikhail</p>
+          <h3>Christmas Tree with Star Lamp</h3>
+          <p>Star on top, lit by LED Lamp Kit 001.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/641410-snowman-for-led-lamp-001-bambu-lab-kit">
+        <div class="body">
+          <p class="who">Crafty Sven</p>
+          <h3>Snowman for LED Lamp 001</h3>
+          <p>Snowman top. Print the original Kit 001 base, or use the one you have.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/666460-christmas-tree-for-led-lamp-001-bambu-lab-kit">
+        <div class="body">
+          <p class="who">Crafty Sven</p>
+          <h3>Christmas Tree for LED Lamp 001</h3>
+          <p>Tree top for that same Kit 001 base.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+      <a class="card" href="https://www.printables.com/model/1492467-christmas-tree-led-lamp-or-decoration">
+        <div class="body">
+          <p class="who">INDIRECT SHAPES</p>
+          <h3>Christmas Tree (LED Lamp or Decoration)</h3>
+          <p>Twist-on ring holds the Kit 001 puck in the printed base.</p>
+          <span class="go">Printables</span>
+        </div>
+      </a>
+      <a class="card" href="https://makerworld.com/en/models/2267482">
+        <div class="body">
+          <p class="who">Bez</p>
+          <h3>Winter Snowflake Book Nook Lamp Kit 001</h3>
+          <p>Snowflake bookend. The puck twist-locks into the printed base.</p>
+          <span class="go">MakerWorld</span>
+        </div>
+      </a>
+      <a class="card" href="https://thangs.com/designer/alext1/3d-model/Christmas%20Lamp%20Post%20-%20Christmas%20Day%2015-1223138">
+        <div class="body">
+          <p class="who">alext1</p>
+          <h3>Christmas Lamp Post</h3>
+          <p>Candy-cane post. Uses Bambu’s LED Light Kit 001. The puck is not glued in.</p>
+          <span class="go">Thangs</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p><a class="back" href="./index.html" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/lamp-kit-shades-d511/3d-printing/index.html">← 3D printing library</a></p>
+  </footer>
+
+  <script>
+    var onPreview = location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:";
+    if (onPreview) {
+      document.querySelectorAll("a[data-htmlpreview]").forEach(function (a) {
+        a.href = a.getAttribute("data-htmlpreview");
+      });
+    }
+  </script>
+</body>
+</html>

@@ -27,7 +27,9 @@ jobs:
         run: |
           set -e
           mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/henson-razor-tool _site/power-bank-wrap _site/paddington-tag _site/private _site/drive-briefing
-          cp 3d-printing/index.html 3d-printing/styles.css _site/
+          cp 3d-printing/index.html 3d-printing/styles.css 3d-printing/lamp.html _site/
+          mkdir -p _site/lamp
+          cp -a 3d-printing/lamp/. _site/lamp/
           # Apps
           tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
             | tar -C _site/bubble-frame -xf -
