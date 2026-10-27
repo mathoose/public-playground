@@ -1,7 +1,7 @@
 import { LETTER_POLYS, REF_HEIGHT } from "./letters.js";
 
-export const APP_VERSION = "3 · Oct 27, 2026";
-export const APP_VERSION_TAG = "v3";
+export const APP_VERSION = "4 · Oct 27, 2026";
+export const APP_VERSION_TAG = "v4";
 export const APP_NAME = "Paddington tag";
 
 /**
@@ -27,6 +27,7 @@ const MIN_RIM = 1.2;
 export const DEFAULT_PARAMS = Object.freeze({
   height: 55,
   hole: 5,
+  letterSize: 100,
   letterH: 0.8,
   thickness: 2,
 });
@@ -34,6 +35,7 @@ export const DEFAULT_PARAMS = Object.freeze({
 export const SLIDERS = [
   { key: "height", min: 40, max: 130, step: 0.5, unit: "mm" },
   { key: "hole", min: 2.5, max: 12, step: 0.1, unit: "mm" },
+  { key: "letterSize", min: 55, max: 145, step: 1, unit: "%" },
   { key: "letterH", min: 0.2, max: 2.2, step: 0.05, unit: "mm" },
   { key: "thickness", min: 1.2, max: 5, step: 0.1, unit: "mm" },
 ];
@@ -133,9 +135,35 @@ export function applySliderChange(prev, key, value) {
   return clampParams({ ...prev, [key]: value });
 }
 
-export function scaledLetters(height) {
-  const k = height / REF_HEIGHT;
-  return LETTER_POLYS.map((poly) => poly.map(([x, y]) => [x * k, y * k]));
+function refLetterCenter() {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const poly of LETTER_POLYS) {
+    for (const [x, y] of poly) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+}
+
+const REF_LETTER_CENTER = refLetterCenter();
+
+/**
+ * Traced strokes at a tag height. letterSize is how much of the tag they fill:
+ * 100 keeps the photo layout; other values scale the block about its own center.
+ */
+export function scaledLetters(height, letterSize = 100) {
+  const hs = height / REF_HEIGHT;
+  const cover = letterSize / 100;
+  const { cx, cy } = REF_LETTER_CENTER;
+  return LETTER_POLYS.map((poly) =>
+    poly.map(([x, y]) => [hs * (cx + (x - cx) * cover), hs * (cy + (y - cy) * cover)])
+  );
 }
 
 export function derive(raw) {
@@ -144,7 +172,7 @@ export function derive(raw) {
   return {
     p,
     ...layout,
-    letterScale: p.height / REF_HEIGHT,
+    letterScale: (p.height / REF_HEIGHT) * (p.letterSize / 100),
     ringOuter: (p.hole / 2) * RING_OD_RATIO,
     totalH: p.thickness + p.letterH,
     holeCapped: Boolean(p._holeCapped) || p.hole + 0.05 < Number(raw.hole || p.hole),
@@ -161,6 +189,9 @@ export function warnings(raw) {
   }
   if (d.p.letterH < 0.4) {
     notes.push("Letter height under 0.4 mm is only a layer or two — easy to miss on the print.");
+  }
+  if (d.p.letterSize > 125) {
+    notes.push("Letter size above 125% runs into the ring and the edge of the tag. The extra is trimmed.");
   }
   return notes;
 }

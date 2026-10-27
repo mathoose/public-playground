@@ -1,4 +1,4 @@
-import { DEFAULT_PARAMS, derive, mergeParams, outlinePoints } from "./geometry.js";
+import { DEFAULT_PARAMS, derive, mergeParams, outlinePoints, scaledLetters } from "./geometry.js";
 import { boundsOf, buildParts, buildTagStls, loadManifold } from "./stl.js";
 
 function assert(cond, msg) {
@@ -9,6 +9,29 @@ const d = derive(DEFAULT_PARAMS);
 assert(Math.abs(d.height - 55) < 1e-6, "default height");
 assert(Math.abs(d.p.hole - 5) < 1e-6, "default hole");
 assert(Math.abs(d.p.letterH - 0.8) < 1e-6, "default letter height");
+assert(d.p.letterSize === 100, "default letter size");
+
+function boxOf(polys) {
+  const b = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  for (const poly of polys) {
+    for (const [x, y] of poly) {
+      if (x < b.minX) b.minX = x;
+      if (y < b.minY) b.minY = y;
+      if (x > b.maxX) b.maxX = x;
+      if (y > b.maxY) b.maxY = y;
+    }
+  }
+  return b;
+}
+const atPhoto = boxOf(scaledLetters(55, 100));
+const bigger = boxOf(scaledLetters(55, 140));
+assert(Math.abs(atPhoto.maxX - atPhoto.minX - 24.186) < 0.02, "100% keeps the traced width");
+const photoW = atPhoto.maxX - atPhoto.minX;
+const bigW = bigger.maxX - bigger.minX;
+assert(Math.abs(bigW / photoW - 1.4) < 0.01, `140% should be 1.4× wide, got ${bigW / photoW}`);
+const photoMidX = (atPhoto.minX + atPhoto.maxX) / 2;
+const bigMidX = (bigger.minX + bigger.maxX) / 2;
+assert(Math.abs(photoMidX - bigMidX) < 0.05, "letter size grows in place");
 assert(d.ringOuter > d.p.hole / 2 + 0.8, `ring should band the hole, outer ${d.ringOuter}`);
 assert(d.ringOuter < d.p.hole / 2 + 2.2, `ring band too wide ${d.ringOuter}`);
 assert(d.height - d.holeY - d.ringOuter > 1.1, "parchment outside the ring");
