@@ -10,7 +10,7 @@ import {
   warnings,
 } from "./geometry.js";
 import { TagPreview } from "./preview.js";
-import { buildTag, buildTagStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
@@ -63,7 +63,7 @@ function renderReadout(result) {
     Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
     (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)})<br />
     Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
-    One color · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
+    Three colors · body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
   `;
 }
 
@@ -90,14 +90,15 @@ function scheduleRebuild() {
   rebuildTimer = window.setTimeout(() => rebuild(), 40);
 }
 
-async function downloadStl() {
-  setStatus("Building STL…");
+async function downloadPart(part) {
+  setStatus(`Building ${part} STL…`);
   try {
-    const { stl, volume } = await buildTagStl(params);
-    const grams = ((volume / 1000) * 1.24).toFixed(1);
+    const built = await buildTagStls(params);
+    const piece = built.parts[part];
     const h = params.height.toFixed(0);
-    downloadArrayBuffer(`paddington-tag-${APP_VERSION_TAG}-${h}mm.stl`, stl);
-    setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${grams} g PLA`);
+    downloadArrayBuffer(`paddington-tag-${APP_VERSION_TAG}-${part}-${h}mm.stl`, piece.stl);
+    const grams = ((piece.volume / 1000) * 1.24).toFixed(1);
+    setStatus(`${part} · ${stlTriangleCount(piece.stl)} tris · ~${grams} g PLA`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");
@@ -107,6 +108,7 @@ async function downloadStl() {
 function bindShow() {
   const map = [
     ["showLetters", "letters"],
+    ["showRing", "ring"],
     ["showCord", "cord"],
     ["showBed", "bed"],
   ];
@@ -143,7 +145,9 @@ function bind() {
   document.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
-  $("download")?.addEventListener("click", () => downloadStl());
+  document.querySelectorAll("[data-download]").forEach((btn) => {
+    btn.addEventListener("click", () => downloadPart(btn.getAttribute("data-download")));
+  });
   bindShow();
 }
 
@@ -170,8 +174,8 @@ const capture = new URLSearchParams(location.search).get("capture");
 if (capture) {
   document.body.classList.add("capture");
   preview.renderer.setPixelRatio(2);
-  if (capture === "letters") preview.setShow({ letters: true, cord: false, bed: false });
-  if (capture === "front") preview.setShow({ letters: true, cord: false, bed: true });
+  if (capture === "letters") preview.setShow({ letters: true, ring: true, cord: false, bed: false });
+  if (capture === "front") preview.setShow({ letters: true, ring: true, cord: false, bed: true });
 }
 
 rebuild().then(() => {

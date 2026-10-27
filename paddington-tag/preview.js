@@ -8,7 +8,9 @@ function geomFrom(positions) {
   return geo;
 }
 
-const KRAFT = 0xc4a574;
+const KRAFT = 0xd2b48a;
+const INK = 0x1c1917;
+const RING = 0x6b2c1a;
 
 export class TagPreview {
   constructor({ canvas }) {
@@ -54,8 +56,18 @@ export class TagPreview {
 
     this.mat = new THREE.MeshStandardMaterial({
       color: KRAFT,
-      roughness: 0.58,
-      metalness: 0.04,
+      roughness: 0.62,
+      metalness: 0.03,
+    });
+    this.letterMat = new THREE.MeshStandardMaterial({
+      color: INK,
+      roughness: 0.45,
+      metalness: 0.02,
+    });
+    this.ringMat = new THREE.MeshStandardMaterial({
+      color: RING,
+      roughness: 0.48,
+      metalness: 0.06,
     });
     this.cordMat = new THREE.MeshStandardMaterial({
       color: 0x3f342c,
@@ -64,16 +76,19 @@ export class TagPreview {
     });
 
     this.tagMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.mat);
-    this.letterMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.mat);
+    this.letterMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.letterMat);
+    this.ringMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.ringMat);
     this.tagMesh.castShadow = true;
     this.tagMesh.receiveShadow = true;
     this.letterMesh.castShadow = true;
     this.letterMesh.receiveShadow = true;
+    this.ringMesh.castShadow = true;
+    this.ringMesh.receiveShadow = true;
     this.cord = new THREE.Mesh(new THREE.BufferGeometry(), this.cordMat);
     this.cord.castShadow = true;
-    this.scene.add(this.tagMesh, this.letterMesh, this.cord);
+    this.scene.add(this.tagMesh, this.letterMesh, this.ringMesh, this.cord);
 
-    this.show = { letters: true, cord: true, bed: true };
+    this.show = { letters: true, ring: true, cord: true, bed: true };
     this.fitted = false;
     this.d = null;
     this.running = true;
@@ -85,7 +100,7 @@ export class TagPreview {
   }
 
   update(result) {
-    const { tagPos, letterPos, d } = result;
+    const { tagPos, letterPos, ringPos, d } = result;
     this.d = d;
     this.tagMesh.geometry.dispose();
     this.tagMesh.geometry = geomFrom(tagPos);
@@ -93,6 +108,8 @@ export class TagPreview {
     this.letterMesh.geometry = letterPos?.length
       ? geomFrom(letterPos)
       : new THREE.BufferGeometry();
+    this.ringMesh.geometry.dispose();
+    this.ringMesh.geometry = ringPos?.length ? geomFrom(ringPos) : new THREE.BufferGeometry();
     this._syncCord();
     this.applyShow();
     if (!this.fitted) this.fit();
@@ -112,6 +129,7 @@ export class TagPreview {
 
   applyShow() {
     this.letterMesh.visible = this.show.letters;
+    this.ringMesh.visible = this.show.ring;
     this.cord.visible = this.show.cord;
     this.grid.visible = this.show.bed;
   }

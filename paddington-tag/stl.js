@@ -60,45 +60,60 @@ function tagFace(CrossSection, d, segs, temps) {
   return face;
 }
 
-/**
- * One solid: tag plate on the bed, letters raised on the top face.
- * Letters are clipped to the plate (and out of the hole) so nothing floats.
- */
-export function buildTagSolid(wasm, raw, temps, segs) {
-  const { CrossSection } = wasm;
-  const d = derive(raw);
-  const face = tagFace(CrossSection, d, segs, temps);
-  const tag = face.extrude(d.p.thickness);
-  temps.push(tag);
-  if (d.p.letterH <= 0) return assertOk(tag, "tag");
+const SINK = 0.08;
 
-  const letters = polygonsToSection(CrossSection, scaledLetters(d.p.height), temps);
-  const clipped = letters.intersect(face);
-  temps.push(clipped);
-  // 0.15 mm sunk into the plate so the union is one body, not two shells touching.
-  const sunk = clipped.extrude(d.p.letterH + 0.15).translate([0, 0, d.p.thickness - 0.15]);
-  temps.push(sunk);
-  const solid = tag.add(sunk);
-  temps.push(solid);
-  return assertOk(solid, "tag");
+function circleAt(CrossSection, d, radius, segs, temps) {
+  const disk = CrossSection.circle(radius, segs).translate([d.holeX, d.holeY]);
+  temps.push(disk);
+  return disk;
 }
 
-export function buildPreviewParts(wasm, raw, temps, segs) {
+/**
+ * Three parts in one coordinate system: body on the bed, letters and the
+ * brown hole ring raised on the face. Separate meshes so each can be a color.
+ */
+export function buildParts(wasm, raw, temps, segs) {
   const { CrossSection } = wasm;
   const d = derive(raw);
   const face = tagFace(CrossSection, d, segs, temps);
-  const tag = assertOk(face.extrude(d.p.thickness), "plate");
-  temps.push(tag);
+  const body = assertOk(face.extrude(d.p.thickness), "body");
+  temps.push(body);
+
+  const ringOuter = circleAt(CrossSection, d, d.ringOuter, segs, temps);
+  const ringBand = ringOuter.intersect(face);
+  temps.push(ringBand);
+  const raise = Math.max(0.2, d.p.letterH);
+  const ring = assertOk(
+    ringBand.extrude(raise + SINK).translate([0, 0, d.p.thickness - SINK]),
+    "ring"
+  );
+  temps.push(ring);
+
   let letters = null;
   if (d.p.letterH > 0) {
     const section = polygonsToSection(CrossSection, scaledLetters(d.p.height), temps);
-    const clipped = section.intersect(face);
-    temps.push(clipped);
-    letters = clipped.extrude(d.p.letterH + 0.04).translate([0, 0, d.p.thickness - 0.04]);
+    const onFace = section.intersect(face);
+    temps.push(onFace);
+    const clearOfRing = onFace.subtract(ringOuter);
+    temps.push(clearOfRing);
+    letters = assertOk(
+      clearOfRing.extrude(d.p.letterH + SINK).translate([0, 0, d.p.thickness - SINK]),
+      "letters"
+    );
     temps.push(letters);
-    assertOk(letters, "letters");
   }
-  return { tag, letters, d };
+  return { body, letters, ring, d };
+}
+
+function pack(solid, name) {
+  const mesh = solid.getMesh();
+  return {
+    stl: meshToStl(mesh, name),
+    volume: solid.volume(),
+    genus: typeof solid.genus === "function" ? solid.genus() : null,
+    tris: mesh.triVerts.length / 3,
+    positions: manifoldMeshToPositions(mesh),
+  };
 }
 
 export async function buildTag(raw, { quality = "preview" } = {}) {
@@ -107,45 +122,31 @@ export async function buildTag(raw, { quality = "preview" } = {}) {
   if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(segs);
   const temps = [];
   try {
-    const { tag, letters, d } = buildPreviewParts(wasm, raw, temps, segs);
-    const tagPos = manifoldMeshToPositions(tag.getMesh());
-    const letterPos = letters ? manifoldMeshToPositions(letters.getMesh()) : new Float32Array();
-    const solid = buildTagSolid(wasm, raw, temps, segs);
-    const volume = solid.volume();
-    const mesh = solid.getMesh();
+    const { body, letters, ring, d } = buildParts(wasm, raw, temps, segs);
+    const parts = {
+      body: pack(body, "body"),
+      letters: letters ? pack(letters, "letters") : null,
+      ring: pack(ring, "ring"),
+    };
+    const volume = parts.body.volume + (parts.letters?.volume || 0) + parts.ring.volume;
+    const tris = parts.body.tris + (parts.letters?.tris || 0) + parts.ring.tris;
     return {
       d,
-      tagPos,
-      letterPos,
+      tagPos: parts.body.positions,
+      letterPos: parts.letters?.positions || new Float32Array(),
+      ringPos: parts.ring.positions,
+      parts,
       volume,
-      tris: (mesh.triVerts.length || 0) / 3,
-      genus: typeof solid.genus === "function" ? solid.genus() : null,
+      tris,
     };
   } finally {
     deleteAll(temps);
   }
 }
 
-export async function buildTagStl(raw) {
-  const wasm = await loadManifold();
-  if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(64);
-  const temps = [];
-  try {
-    const solid = buildTagSolid(wasm, raw, temps, 64);
-    const mesh = solid.getMesh();
-    const volume = solid.volume();
-    const genus = typeof solid.genus === "function" ? solid.genus() : null;
-    return {
-      stl: meshToStl(mesh, "paddington-tag"),
-      volume,
-      genus,
-      tris: mesh.triVerts.length / 3,
-      d: derive(raw),
-      positions: manifoldMeshToPositions(mesh),
-    };
-  } finally {
-    deleteAll(temps);
-  }
+export async function buildTagStls(raw) {
+  const built = await buildTag(raw, { quality: "export" });
+  return built;
 }
 
 export function meshToStl(mesh, name = "mesh") {

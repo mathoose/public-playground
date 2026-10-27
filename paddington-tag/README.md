@@ -1,6 +1,6 @@
 # Paddington tag
 
-Necklace-size luggage tag from the classic Paddington label. One printable solid: clipped top corners, rounded bottom, 5 mm cord hole, marker lettering raised 0.8 mm so it prints in a single color.
+Necklace-size luggage tag from the classic Paddington label. Three printable parts in the same coordinates: the tag body, the raised marker letters, and a raised ring around the 5 mm cord hole (the dark brown grommet on the photo). Each part is its own STL so a slicer can give it a color.
 
 Default is about **55 mm** tall. Sliders: overall height, hole diameter, letter height, tag thickness.
 
@@ -14,6 +14,8 @@ Please look / after this / BEAR THANK / you.
 
 ## Print
 
-Flat on the bed, letters up, no supports. 0.2 mm layers. PLA or PETG. The hole is sized for a necklace cord, with plastic left around it.
+Flat on the bed, letters and ring up, no supports. 0.2 mm layers. Import all three STLs together and assign three colors: body, letters, and the hole ring (brown). The ring is raised the same height as the letters so a color change at that layer works too. The hole is sized for a necklace cord, with plastic left around the ring.
 
-STL: [`paddington-tag-v1.stl`](paddington-tag-v1.stl).
+- [`paddington-tag-v2-body.stl`](paddington-tag-v2-body.stl)
+- [`paddington-tag-v2-letters.stl`](paddington-tag-v2-letters.stl)
+- [`paddington-tag-v2-ring.stl`](paddington-tag-v2-ring.stl)
