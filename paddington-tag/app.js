@@ -63,7 +63,7 @@ function renderReadout(result) {
     Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
     (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)})<br />
     Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
-    Three colors · body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
+    Three colors · paper body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
   `;
 }
 
@@ -88,6 +88,23 @@ function scheduleRebuild() {
   renderReadout(latest);
   window.clearTimeout(rebuildTimer);
   rebuildTimer = window.setTimeout(() => rebuild(), 40);
+}
+
+async function download3mf() {
+  setStatus("Building 3MF…");
+  try {
+    const built = await buildTagStls(params);
+    const h = params.height.toFixed(0);
+    downloadArrayBuffer(
+      `paddington-tag-${APP_VERSION_TAG}-${h}mm.3mf`,
+      built.threemf,
+      "model/3mf"
+    );
+    setStatus(`3MF · body, letters, ring · ${Math.round(built.tris)} tris`);
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
 }
 
 async function downloadPart(part) {
@@ -146,7 +163,11 @@ function bind() {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
   document.querySelectorAll("[data-download]").forEach((btn) => {
-    btn.addEventListener("click", () => downloadPart(btn.getAttribute("data-download")));
+    btn.addEventListener("click", () => {
+      const kind = btn.getAttribute("data-download");
+      if (kind === "3mf") download3mf();
+      else downloadPart(kind);
+    });
   });
   bindShow();
 }
