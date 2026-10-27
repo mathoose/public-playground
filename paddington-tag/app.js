@@ -23,9 +23,11 @@ let rebuildTimer = 0;
 let rebuildGen = 0;
 
 function fmtValue(key, n) {
-  const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
+  const spec = SLIDERS.find((s) => s.key === key);
+  const step = spec?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
-  return `${Number(n).toFixed(digits)} mm`;
+  const unit = spec?.unit ?? "mm";
+  return `${Number(n).toFixed(digits)} ${unit}`;
 }
 
 function writeParams(p) {
@@ -52,7 +54,7 @@ function setStatus(text, kind = "") {
 }
 
 function renderReadout(result) {
-  const d = result?.d || derive(params);
+  const d = derive(params);
   const warnEl = $("warnings");
   if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
   const el = $("readout");
@@ -61,7 +63,7 @@ function renderReadout(result) {
   const tris = result ? Math.round(result.tris) : "—";
   el.innerHTML = `
     Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
-    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)})<br />
+    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)}, size ${d.p.letterSize.toFixed(0)}%)<br />
     Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
     Three colors · paper body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
   `;
@@ -182,8 +184,8 @@ pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: () => {
-    const { height, hole, letterH, thickness } = params;
-    return { height, hole, letterH, thickness };
+    const { height, hole, letterSize, letterH, thickness } = params;
+    return { height, hole, letterSize, letterH, thickness };
   },
   apply: (snapshot) => {
     writeParams(snapshot);

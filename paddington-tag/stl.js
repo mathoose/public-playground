@@ -110,7 +110,7 @@ function distToPoly(poly, x, y) {
 /** Letters and the ring sit on a smooth seat. Counters stay open so grain shows through. */
 function makeFlatAt(d) {
   const margin = SEAT_MARGIN;
-  const polys = scaledLetters(d.p.height).map((poly) => {
+  const polys = scaledLetters(d.p.height, d.p.letterSize).map((poly) => {
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -245,7 +245,7 @@ export function buildParts(wasm, raw, temps, segs) {
 
   let letters = null;
   if (d.p.letterH > 0) {
-    const section = polygonsToSection(CrossSection, scaledLetters(d.p.height), temps);
+    const section = polygonsToSection(CrossSection, scaledLetters(d.p.height, d.p.letterSize), temps);
     const onFace = section.intersect(face);
     temps.push(onFace);
     const clearOfRing = onFace.subtract(ringOuter);
