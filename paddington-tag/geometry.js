@@ -1,7 +1,7 @@
 import { LETTER_POLYS, REF_HEIGHT } from "./letters.js";
 
-export const APP_VERSION = "4 · Oct 27, 2026";
-export const APP_VERSION_TAG = "v4";
+export const APP_VERSION = "5 · Oct 27, 2026";
+export const APP_VERSION_TAG = "v5";
 export const APP_NAME = "Paddington tag";
 
 /**
@@ -28,6 +28,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   height: 55,
   hole: 5,
   letterSize: 100,
+  letterShift: 0,
   letterH: 0.8,
   thickness: 2,
 });
@@ -36,6 +37,7 @@ export const SLIDERS = [
   { key: "height", min: 40, max: 130, step: 0.5, unit: "mm" },
   { key: "hole", min: 2.5, max: 12, step: 0.1, unit: "mm" },
   { key: "letterSize", min: 55, max: 145, step: 1, unit: "%" },
+  { key: "letterShift", min: -18, max: 10, step: 0.5, unit: "mm" },
   { key: "letterH", min: 0.2, max: 2.2, step: 0.05, unit: "mm" },
   { key: "thickness", min: 1.2, max: 5, step: 0.1, unit: "mm" },
 ];
@@ -157,13 +159,28 @@ const REF_LETTER_CENTER = refLetterCenter();
  * Traced strokes at a tag height. letterSize is how much of the tag they fill:
  * 100 keeps the photo layout; other values scale the block about its own center.
  */
-export function scaledLetters(height, letterSize = 100) {
+export function scaledLetters(height, letterSize = 100, letterShift = 0) {
   const hs = height / REF_HEIGHT;
   const cover = letterSize / 100;
   const { cx, cy } = REF_LETTER_CENTER;
   return LETTER_POLYS.map((poly) =>
-    poly.map(([x, y]) => [hs * (cx + (x - cx) * cover), hs * (cy + (y - cy) * cover)])
+    poly.map(([x, y]) => [
+      hs * (cx + (x - cx) * cover),
+      hs * (cy + (y - cy) * cover) + letterShift,
+    ])
   );
+}
+
+function letterSpanY(height, letterSize, letterShift) {
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const poly of scaledLetters(height, letterSize, letterShift)) {
+    for (const [, y] of poly) {
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return { minY, maxY };
 }
 
 export function derive(raw) {
@@ -190,8 +207,9 @@ export function warnings(raw) {
   if (d.p.letterH < 0.4) {
     notes.push("Letter height under 0.4 mm is only a layer or two — easy to miss on the print.");
   }
-  if (d.p.letterSize > 125) {
-    notes.push("Letter size above 125% runs into the ring and the edge of the tag. The extra is trimmed.");
+  const span = letterSpanY(d.p.height, d.p.letterSize, d.p.letterShift);
+  if (span.maxY > d.holeY - d.ringOuter - 0.3) {
+    notes.push("Letters reach the hole. Shift them down to clear it.");
   }
   return notes;
 }

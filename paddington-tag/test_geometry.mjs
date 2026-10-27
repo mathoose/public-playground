@@ -1,4 +1,4 @@
-import { DEFAULT_PARAMS, derive, mergeParams, outlinePoints, scaledLetters } from "./geometry.js";
+import { DEFAULT_PARAMS, derive, mergeParams, outlinePoints, scaledLetters, warnings } from "./geometry.js";
 import { boundsOf, buildParts, buildTagStls, loadManifold } from "./stl.js";
 
 function assert(cond, msg) {
@@ -10,6 +10,7 @@ assert(Math.abs(d.height - 55) < 1e-6, "default height");
 assert(Math.abs(d.p.hole - 5) < 1e-6, "default hole");
 assert(Math.abs(d.p.letterH - 0.8) < 1e-6, "default letter height");
 assert(d.p.letterSize === 100, "default letter size");
+assert(d.p.letterShift === 0, "default letter shift");
 
 function boxOf(polys) {
   const b = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
@@ -32,6 +33,13 @@ assert(Math.abs(bigW / photoW - 1.4) < 0.01, `140% should be 1.4× wide, got ${b
 const photoMidX = (atPhoto.minX + atPhoto.maxX) / 2;
 const bigMidX = (bigger.minX + bigger.maxX) / 2;
 assert(Math.abs(photoMidX - bigMidX) < 0.05, "letter size grows in place");
+const dropped = boxOf(scaledLetters(55, 100, -6));
+assert(Math.abs(dropped.maxY - (atPhoto.maxY - 6)) < 0.02, "shift moves the writing down");
+assert(Math.abs(dropped.minX - atPhoto.minX) < 0.02, "shift does not move the writing sideways");
+const crowded = warnings({ ...DEFAULT_PARAMS, letterSize: 140 });
+assert(crowded.some((n) => n.includes("hole")), "large letters warn about the hole");
+const cleared = warnings({ ...DEFAULT_PARAMS, letterSize: 140, letterShift: -8 });
+assert(!cleared.some((n) => n.includes("hole")), `down shift should clear the hole, got ${cleared.join(" | ")}`);
 assert(d.ringOuter > d.p.hole / 2 + 0.8, `ring should band the hole, outer ${d.ringOuter}`);
 assert(d.ringOuter < d.p.hole / 2 + 2.2, `ring band too wide ${d.ringOuter}`);
 assert(d.height - d.holeY - d.ringOuter > 1.1, "parchment outside the ring");

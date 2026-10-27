@@ -4,7 +4,7 @@ Necklace-size luggage tag from the classic Paddington label. Three printable par
 
 The body face is embossed with a subtle paper grain (light on `paper-height.png` is high). Letters and the ring stay smooth.
 
-Default is about **55 mm** tall. Sliders: overall height, hole diameter, letter size (how much of the tag the writing fills; 100% is the photo), letter height, tag thickness.
+Default is about **55 mm** tall. Sliders: overall height, hole diameter, letter size (how much of the tag the writing fills; 100% is the photo), letter shift (up toward the hole, down away from it), letter height, tag thickness.
 
 ## Letters
 
