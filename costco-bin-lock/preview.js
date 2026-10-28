@@ -188,6 +188,7 @@ export class LockPreview {
     return {
       point: hit.point.clone(),
       normal,
+      part: hit.object === this.lidMesh ? "lid" : "lock",
       verts: [hit.face.a, hit.face.b, hit.face.c].map((index) =>
         new THREE.Vector3().fromBufferAttribute(pos, index).applyMatrix4(hit.object.matrixWorld)
       ),
@@ -309,7 +310,8 @@ export class LockPreview {
     bubble.style.top = `${y}px`;
     if (this._bubbleValue) this._bubbleValue.textContent = this.measureReadout.label;
     if (this._bubbleKind) {
-      this._bubbleKind.textContent = this.measureReadout.parallel ? "between those faces" : "between the clicks";
+      this._bubbleKind.textContent =
+        this.kindText || (this.measureReadout.parallel ? "between those faces" : "between the clicks");
     }
   }
 

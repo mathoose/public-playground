@@ -20,6 +20,7 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { identifyFace, slidersAffecting } from "./measure.js";
 import { readSaves, rememberSave, sameSliderParams, writeSaves } from "./saves.js";
 
 const APP_ID = "costco-bin-lock";
@@ -28,6 +29,8 @@ const pageSearch = new URLSearchParams(location.search);
 const skipLibrary = pageSearch.has("capture") || pageSearch.has("shot");
 
 let params = mergeParams(!skipLibrary && wantsRestore() ? lastSettings(APP_ID) || {} : {});
+let affectKeys = [];
+let affectFilter = false;
 let saves = [];
 let preview;
 let latest = null;
@@ -250,6 +253,57 @@ async function downloadStl() {
   }
 }
 
+function sliderLabel(key) {
+  return document.querySelector(`label[for="${key}"]`)?.textContent?.trim() || key;
+}
+
+function affectPhrase() {
+  if (!affectKeys.length) return "no slider changes this";
+  const names = affectKeys.map(sliderLabel).join(", ");
+  if (affectFilter) return `only ${names} · click for all`;
+  return `${names} · click to show only these`;
+}
+
+function paintAffect() {
+  document.querySelectorAll(".panel .row").forEach((row) => {
+    const key = row.querySelector('input[type="range"]')?.id;
+    const hot = Boolean(key && affectKeys.includes(key));
+    row.classList.toggle("measure-hot", hot);
+    row.hidden = Boolean(affectFilter && key && !hot);
+  });
+  document.querySelectorAll(".settings-group").forEach((group) => {
+    const rows = [...group.querySelectorAll(".row")];
+    if (!rows.length) {
+      group.hidden = false;
+      return;
+    }
+    group.hidden = affectFilter && rows.every((row) => row.hidden);
+  });
+  const bubble = $("measureBubble");
+  bubble?.classList.toggle("filtering", affectFilter);
+  bubble?.setAttribute("aria-pressed", affectFilter ? "true" : "false");
+  const phrase = affectKeys.length || preview?.picks?.length === 2 ? affectPhrase() : "";
+  if (preview) preview.kindText = phrase;
+  const kind = $("measureKind");
+  if (kind && phrase) kind.textContent = phrase;
+}
+
+function clearAffect() {
+  affectKeys = [];
+  affectFilter = false;
+  paintAffect();
+}
+
+function showAffect(picks) {
+  const d = preview.d;
+  const a = identifyFace(picks[0].point, picks[0].normal, picks[0].part || "lock", d);
+  const b = identifyFace(picks[1].point, picks[1].normal, picks[1].part || "lock", d);
+  affectKeys = slidersAffecting(params, a, b);
+  affectFilter = false;
+  paintAffect();
+  document.querySelector(".panel .row.measure-hot")?.scrollIntoView({ block: "nearest" });
+}
+
 function bind() {
   writeParams(params);
   for (const { key } of SLIDERS) {
@@ -285,9 +339,18 @@ function bind() {
     preview.setMeasureMode(on);
     $("measure")?.classList.toggle("active", on);
     const hint = $("hint");
+    if (!on) clearAffect();
     if (hint) hint.textContent = on ? "Click one face, then another" : "Drag to orbit · pinch or scroll to zoom";
   });
+  $("measureBubble")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!affectKeys.length) return;
+    affectFilter = !affectFilter;
+    paintAffect();
+  });
   preview.onMeasure = (info) => {
+    if (info.phase === "cleared" || info.phase === "first") clearAffect();
+    if (info.phase === "pair") showAffect(preview.picks);
     const hint = $("hint");
     if (!hint || !preview.measureMode) return;
     if (info.phase === "cleared") hint.textContent = "Click one face, then another";

@@ -90,13 +90,25 @@ header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
   align-items: center;
   gap: 1px;
   padding: 6px 12px 7px;
+  border: 0;
   border-radius: 999px;
   background: #9a3412;
   color: #fff;
-  pointer-events: none;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
   white-space: nowrap;
   box-shadow: 0 8px 18px rgba(28, 25, 23, 0.22);
 }
+.measure-bubble.filtering { background: #115e59; }
+.row.measure-hot {
+  background: #fef3c7;
+  outline: 2px solid #d97706;
+  border-radius: 10px;
+  padding: 4px 6px;
+}
+.row[hidden],
+.settings-group[hidden] { display: none !important; }
 .measure-bubble[hidden] { display: none !important; }
 .measure-bubble b {
   font-size: 0.95rem;
@@ -244,6 +256,17 @@ button.wide { background: var(--accent-2); }
   border-color: #5eead4;
   color: var(--accent-dark);
 }
+button.measure-bubble {
+  border: 0;
+  border-radius: 999px;
+  background: #9a3412;
+  color: #fff;
+  padding: 6px 12px 7px;
+  max-width: min(280px, 78vw);
+  white-space: normal;
+  text-align: center;
+}
+button.measure-bubble.filtering { background: #115e59; }
 
 .save-fields {
   display: grid;
