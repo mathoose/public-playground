@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- build: costco-bin-lock-v3 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Costco bin lock</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bin-clip-measure-0644/3d-printing/index.html">← 3D printing library</a>
+        <h1>Costco bin lock</h1>
+      </div>
+      <p>v3 · Oct 27, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint" id="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <div class="measure-bubble" id="measureBubble" hidden>
+        <b id="measureValue"></b>
+        <span id="measureKind"></span>
+      </div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="iso">Iso</button>
+        <button type="button" class="chip" data-view="top">Top</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" data-view="hook">Hook</button>
+        <button type="button" class="chip" id="measure">Measure</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Slot</summary>
+        <div class="group-body">
+          <p class="group-note">The caliper spanned the long opening: 32.2 mm, jaw just past the 32 mm tick. Width is the short side, about 11.4 mm from the photo. Type either number if you measure again.</p>
+          <div class="row">
+            <label for="slotLength">Slot length</label>
+            <output id="slotLength-out"></output>
+            <input id="slotLength" type="range" min="18" max="70" step="0.1" value="32.2" />
+          </div>
+          <div class="row">
+            <label for="slotWidth">Slot width</label>
+            <output id="slotWidth-out"></output>
+            <input id="slotWidth" type="range" min="8" max="24" step="0.1" value="11.4" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Square end</summary>
+        <div class="group-body">
+          <p class="group-note">The pad you twist, on top of the lid. This sets the side of that square. Measure turns on face picking: click one face, then another. The distance sits in a bubble, and the dimension line is drawn outside the part so the lock does not cover it.</p>
+          <div class="row">
+            <label for="squareEnd">Square end</label>
+            <output id="squareEnd-out"></output>
+            <input id="squareEnd" type="range" min="12" max="40" step="0.1" value="16" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Hook</summary>
+        <div class="group-body">
+          <p class="group-note">Engagement is how far the tab reaches under the rim on each side. The shelf is flat, so a full bin pushing out seats the lock instead of sliding it back through the slot. The old clip was too shallow and fell out.</p>
+          <div class="row">
+            <label for="engagement">Engagement depth</label>
+            <output id="engagement-out"></output>
+            <input id="engagement" type="range" min="3" max="14" step="0.1" value="8" />
+          </div>
+          <div class="row">
+            <label for="clipThickness">Clip thickness</label>
+            <output id="clipThickness-out"></output>
+            <input id="clipThickness" type="range" min="2.8" max="7" step="0.1" value="4.2" />
+          </div>
+          <div id="warnings"></div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Saves</summary>
+        <div class="group-body">
+          <p class="group-note">Saved in this browser only, including on the preview page. Nothing is uploaded. Tap a save to load those sliders, keep editing, then save again. The same name replaces that save. Newest is on top.</p>
+          <div class="save-fields">
+            <label for="saveName">Name</label>
+            <input id="saveName" type="text" maxlength="80" autocomplete="off" placeholder="Full bin, deeper hook" />
+            <label for="saveNote">Note</label>
+            <textarea id="saveNote" rows="2" maxlength="400" placeholder="What you changed"></textarea>
+          </div>
+          <div class="actions">
+            <button type="button" class="wide" id="saveDesign">Save these sliders</button>
+          </div>
+          <p class="save-hint" id="saveHint"></p>
+          <ul class="save-list" id="saveList"></ul>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download this STL</button>
+            <button type="button" class="secondary" id="reset">Reset</button>
+          </div>
+          <div class="ready" id="exportLinks">
+            <a href="costco-bin-lock-v2.stl" download>Print v2 default</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            One solid. Print <b>flat, hook down</b>, PLA or PETG, 0.2 mm layers, 4 walls, <b>100% infill</b>.
+            No supports — the top pad bridges about 4 mm off the neck.
+            Drop the hook through the long way of the slot, then turn 90° until the tabs sit under the rim.
+            Use two or four locks on a full bin.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Costco bin lock v3 · Oct 27, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
