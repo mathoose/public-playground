@@ -15,10 +15,11 @@ Browser apps for parts you can customize and download as STL.
 | [`../henson-razor-tool/`](../henson-razor-tool/) | Henson AL13 / Ti22 blade-change cradle + handle grip |
 | [`../power-bank-wrap/`](../power-bank-wrap/) | SYJ-F37F slide-on sleeve, wrap around the band, elastic clips on the back |
 | [`../paddington-tag/`](../paddington-tag/) | Paddington luggage-tag necklace: paper-grain body, traced letters, raised hole ring, three STLs or one assembled 3MF |
+| [`../gingerbread-switch/`](../gingerbread-switch/) | Gingerbread house light switch cover: standard plate, house in relief past the edges, three STLs or one joint 3MF |
 | [`../baroque-frame/`](../baroque-frame/) | Baroque picture frame: width and height change the opening, moulding width stays put, thickness scales the border and the depth |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
-On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/baroque-frame/`, and `/private/` (behind the small lock in the footer).
+On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, and `/private/` (behind the small lock in the footer).
 
 ## Add another app
 
