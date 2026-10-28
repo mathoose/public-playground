@@ -54,6 +54,8 @@ Live URLs after merge:
 
 When you export or ship Bubble Frame, also keep **clickable STL download links** in the app (`#exportLinks`) pointing at the latest generated frame / back plate / stand.
 
+When the change adds or ships a project in the 3D printing library, also follow `.cursor/skills/3d-printing-library/SKILL.md`. Every new project is added to the hub with today’s date and the next `data-seq`, so Latest stays newest-first.
+
 ### Joint 3MF (multi-part prints)
 
 Whenever an app ships more than one mesh — colors, raised letters, a ring, icing, candy — always offer both:

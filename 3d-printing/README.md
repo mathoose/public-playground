@@ -24,7 +24,7 @@ On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/phot
 ## Add another app
 
 1. Put the new project folder next to the others (locally: `Projects / 3d printing / your-app`).
-2. Add a card in [`index.html`](index.html).
+2. Add a card in [`index.html`](index.html). Set `data-id` (the folder name), `data-title`, `data-updated` to today’s `YYYY-MM-DD`, and `data-seq` to one higher than the current highest. Put the star button beside the link, not inside it. Do not hand-sort the cards — the page orders Latest by that date, then `data-seq`.
 3. Copy the folder in `.github/workflows/pages.yml` next to the other apps.
 4. Prefer **collapsible settings groups** (`<details class="settings-group">`) for params — see `striped-frame/`.
 5. **Add Undo / Redo** (required for every designer) — import the shared module and call it once after the controls are bound:
@@ -42,3 +42,4 @@ On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/phot
    It adds a sticky Undo / Redo bar at the top of the settings panel (never over the canvas), records one step per slider release / change / preset / Reset click, and handles ⌘Z / Ctrl+Z and ⇧⌘Z / Ctrl+Shift+Z. esbuild bundles it into `app.bundle.js`, so nothing extra needs deploying. See [`../shared/README.md`](../shared/README.md).
 6. **Typeable numbers next to sliders** (required) — call `pairSlidersWithNumbers(document.querySelector(".panel"))` from `../shared/slider-numbers.js` once after the form is first written. Typed values are clamped to the slider's `min`/`max`, so pick a generous `max`. See [`../shared/README.md`](../shared/README.md).
 7. Show a footer version (`<p class="foot" id="app-version">App name vN · Mon D, YYYY</p>`) and a cache marker (`<!-- build: your-app-vN -->`); bump both on every ship.
+8. **Record library activity** (required) — import `rememberVisit`, `rememberSettings`, `rememberExport`, `lastSettings`, and `wantsRestore` from [`../shared/library-activity.js`](../shared/library-activity.js). Call `rememberVisit(appId)` on load, and on each STL or 3MF download call `rememberSettings(appId, params)` and `rememberExport(appId, { filename, params })`. Apply `lastSettings(appId)` only when the URL has `?restore=1` or `#restore`. The id matches the card’s `data-id`. See [the library skill](../.cursor/skills/3d-printing-library/SKILL.md).

@@ -16,6 +16,24 @@ import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "photive-snap-box";
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -154,7 +172,9 @@ async function downloadPart(part) {
     const { stl, volume } = await buildPartStl(params, part);
     const grams = ((volume / 1000) * 1.27).toFixed(1);
     const name = part === "spacer" ? "usb-spacer" : part;
-    downloadArrayBuffer(`photive-snap-box-${name}-${APP_VERSION_TAG}.stl`, stl);
+    const filename = `photive-snap-box-${name}-${APP_VERSION_TAG}.stl`;
+    downloadArrayBuffer(filename, stl);
+    noteDownload(filename);
     setStatus(`${part} · ${stlTriangleCount(stl)} tris · ~${grams} g PETG`);
   } catch (err) {
     console.error(err);
@@ -177,7 +197,7 @@ function setSection(on) {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -218,6 +238,8 @@ installUndo({
     scheduleRebuild();
   },
 });
+if (!skipLibrary()) rememberVisit(APP_ID);
+
 setPartView("open");
 setStatus("Loading CAD…");
 rebuild().catch((err) => {

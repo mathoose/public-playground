@@ -13,6 +13,24 @@ import { applyFrame, loadFrameMesh, meshTo3mf, meshToStl } from "./mesh.js";
 import { FramePreview } from "./preview.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "baroque-frame";
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -105,7 +123,7 @@ function downloadBlob(filename, buffer, mime) {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -133,13 +151,17 @@ function bind() {
   $("download-stl")?.addEventListener("click", () => {
     if (!mapped) return;
     setStatus("Building STL…");
-    downloadBlob(`baroque-frame-${APP_VERSION_TAG}.stl`, meshToStl(mapped, mesh.idx), "model/stl");
+    const stlName = `baroque-frame-${APP_VERSION_TAG}.stl`;
+    downloadBlob(stlName, meshToStl(mapped, mesh.idx), "model/stl");
+    noteDownload(stlName);
     setStatus("STL ready");
   });
   $("download-3mf")?.addEventListener("click", () => {
     if (!mapped) return;
     setStatus("Building 3MF…");
-    downloadBlob(`baroque-frame-${APP_VERSION_TAG}.3mf`, meshTo3mf(mapped, mesh.idx), "model/3mf");
+    const threemfName = `baroque-frame-${APP_VERSION_TAG}.3mf`;
+    downloadBlob(threemfName, meshTo3mf(mapped, mesh.idx), "model/3mf");
+    noteDownload(threemfName);
     setStatus("3MF ready");
   });
 }
@@ -162,6 +184,8 @@ installUndo({
     scheduleRebuild();
   },
 });
+
+if (!skipLibrary()) rememberVisit(APP_ID);
 
 const capture = new URLSearchParams(location.search).get("capture");
 if (capture) {

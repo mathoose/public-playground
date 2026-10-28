@@ -13,6 +13,24 @@ import { ToolPreview } from "./preview.js";
 import { buildAll, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "henson-razor-tool";
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 const UNITS = Object.fromEntries(SLIDERS.map((s) => [s.key, s.unit]));
@@ -95,7 +113,9 @@ async function downloadPart(part) {
   try {
     const { stl, volume } = await buildPartStl(params, part);
     const name = part === "grip" ? "handle-grip" : "head-cradle";
-    downloadArrayBuffer(`henson-${name}-${APP_VERSION_TAG}.stl`, stl);
+    const filename = `henson-${name}-${APP_VERSION_TAG}.stl`;
+    downloadArrayBuffer(filename, stl);
+    noteDownload(filename);
     setStatus(`${part} · ${stlTriangleCount(stl)} tris · ~${((volume / 1000) * 1.27).toFixed(1)} g PETG`);
   } catch (err) {
     console.error(err);
@@ -112,7 +132,7 @@ function applyView() {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -157,6 +177,8 @@ installUndo({
     scheduleRebuild();
   },
 });
+if (!skipLibrary()) rememberVisit(APP_ID);
+
 applyView();
 setStatus("Loading CAD…");
 rebuild();

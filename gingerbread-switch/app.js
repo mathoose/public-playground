@@ -14,6 +14,24 @@ import { HousePreview } from "./preview.js";
 import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "gingerbread-switch";
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -105,11 +123,9 @@ async function download3mf() {
   setStatus("Building 3MF…");
   try {
     const built = await buildTagStls(params);
-    downloadArrayBuffer(
-      `gingerbread-switch-${APP_VERSION_TAG}.3mf`,
-      built.threemf,
-      "model/3mf"
-    );
+    const filename = `gingerbread-switch-${APP_VERSION_TAG}.3mf`;
+    downloadArrayBuffer(filename, built.threemf, "model/3mf");
+    noteDownload(filename);
     setStatus(`3MF · one assembly · gingerbread, icing, candy · ${Math.round(built.tris)} tris`);
   } catch (err) {
     console.error(err);
@@ -122,7 +138,9 @@ async function downloadPart(part) {
   try {
     const built = await buildTagStls(params);
     const piece = built.parts[part];
-    downloadArrayBuffer(`gingerbread-switch-${APP_VERSION_TAG}-${part}.stl`, piece.stl);
+    const filename = `gingerbread-switch-${APP_VERSION_TAG}-${part}.stl`;
+    downloadArrayBuffer(filename, piece.stl);
+    noteDownload(filename);
     const grams = ((piece.volume / 1000) * 1.24).toFixed(1);
     setStatus(`${part} · ${stlTriangleCount(piece.stl)} tris · ~${grams} g PLA`);
   } catch (err) {
@@ -150,7 +168,7 @@ function bindShow() {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -204,6 +222,8 @@ installUndo({
     scheduleRebuild();
   },
 });
+
+if (!skipLibrary()) rememberVisit(APP_ID);
 
 const capture = new URLSearchParams(location.search).get("capture");
 if (capture) {

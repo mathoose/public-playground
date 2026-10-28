@@ -25,6 +25,15 @@ import {
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import {
+  lastSettings,
+  rememberExport as noteLibraryExport,
+  rememberSettings,
+  rememberVisit,
+  wantsRestore,
+} from "../shared/library-activity.js";
+
+const APP_ID = "bubble-frame";
 
 const lastExports = {};
 
@@ -330,6 +339,7 @@ function rememberExport(kind, filename, buffer) {
   a.click();
   a.remove();
   renderExportLinks();
+  noteLibraryExport(APP_ID, { filename, params });
 }
 
 function renderExportLinks() {
@@ -357,6 +367,7 @@ async function exportStls(which) {
   const status = $("status");
   const buttons = [$("dlFrame"), $("dlPlate"), $("dlStand"), $("dlBoth")];
   buttons.forEach((b) => (b.disabled = true));
+  rememberSettings(APP_ID, params);
   try {
     const parts = [];
     if (which === "plate" || which === "all" || which === "both") {
@@ -388,6 +399,14 @@ async function exportStls(which) {
 }
 
 function init() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("capture") && !q.has("shot")) {
+    if (wantsRestore()) {
+      const saved = lastSettings(APP_ID);
+      if (saved) params = saved;
+    }
+    rememberVisit(APP_ID);
+  }
   preview = new FramePreview({
     canvas3d: $("view3d"),
     canvas2d: $("view2d"),
