@@ -4,7 +4,7 @@ Small modules reused by the STL designers. They are bundled into each app's `app
 
 ## `undo-history.js` — Undo / Redo for settings
 
-Used by every designer (`bubble-frame/`, `henson-razor-tool/`, `photive-snap-box/`, `postit-wall-clip/`, `striped-frame/`, `power-bank-wrap/`, `paddington-tag/`). New designers must include it.
+Used by every designer (`bubble-frame/`, `henson-razor-tool/`, `photive-snap-box/`, `postit-wall-clip/`, `striped-frame/`, `power-bank-wrap/`, `paddington-tag/`, `baroque-frame/`). New designers must include it.
 
 ```js
 import { installUndo } from "../shared/undo-history.js";
