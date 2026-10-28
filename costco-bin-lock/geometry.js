@@ -11,7 +11,7 @@
  * the clip instead of camming it back out.
  */
 
-export const APP_VERSION = "1 · Oct 27, 2026";
+export const APP_VERSION = "2 · Oct 28, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Costco bin lock";
 

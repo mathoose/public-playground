@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: costco-bin-lock-v1 -->
+<!-- build: costco-bin-lock-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/costco-bin-lock-441d/3d-printing/index.html">← 3D printing library</a>
         <h1>Costco bin lock</h1>
       </div>
-      <p>v1 · Oct 27, 2026</p>
+      <p>v2 · Oct 28, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -64,6 +64,24 @@
       </details>
 
       <details class="settings-group" open>
+        <summary>Saves</summary>
+        <div class="group-body">
+          <p class="group-note">Saved in this browser only, including on the preview page. Nothing is uploaded. Tap a save to load those sliders, keep editing, then save again. The same name replaces that save. Newest is on top.</p>
+          <div class="save-fields">
+            <label for="saveName">Name</label>
+            <input id="saveName" type="text" maxlength="80" autocomplete="off" placeholder="Full bin, deeper hook" />
+            <label for="saveNote">Note</label>
+            <textarea id="saveNote" rows="2" maxlength="400" placeholder="What you changed"></textarea>
+          </div>
+          <div class="actions">
+            <button type="button" class="wide" id="saveDesign">Save these sliders</button>
+          </div>
+          <p class="save-hint" id="saveHint"></p>
+          <ul class="save-list" id="saveList"></ul>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
         <summary>Download</summary>
         <div class="group-body">
           <div class="actions">
@@ -83,7 +101,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Costco bin lock v1 · Oct 27, 2026</p>
+      <p class="foot" id="app-version">Costco bin lock v2 · Oct 28, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

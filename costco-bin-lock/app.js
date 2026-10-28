@@ -13,10 +13,12 @@ import { LockPreview } from "./preview.js";
 import { buildLock, buildLockStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { readSaves, rememberSave, sameSliderParams, writeSaves } from "./saves.js";
 
 const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
+let saves = [];
 let preview;
 let latest = null;
 let rebuildTimer = 0;
@@ -42,6 +44,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  renderSaves();
 }
 
 function setStatus(text, kind = "") {
@@ -94,6 +97,122 @@ function scheduleRebuild() {
   rebuildTimer = window.setTimeout(() => {
     rebuild();
   }, 40);
+}
+
+function setSaveHint(text, kind = "") {
+  const el = $("saveHint");
+  if (!el) return;
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+
+function formatWhen(ms) {
+  try {
+    return new Date(ms).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function renderSaves() {
+  const list = $("saveList");
+  if (!list) return;
+  list.replaceChildren();
+  if (!saves.length) {
+    const empty = document.createElement("p");
+    empty.className = "save-empty";
+    empty.textContent = "No saves in this browser yet.";
+    list.append(empty);
+    return;
+  }
+  saves.forEach((save, index) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "save-item";
+    if (sameSliderParams(save.params, params)) btn.classList.add("active");
+    const name = document.createElement("span");
+    name.className = "save-name";
+    name.textContent = index === 0 ? `${save.name} · Latest` : save.name;
+    const note = document.createElement("span");
+    note.className = "save-note";
+    note.textContent = save.note;
+    const when = document.createElement("span");
+    when.className = "save-when";
+    when.textContent = formatWhen(save.savedAt);
+    btn.append(name, note, when);
+    btn.addEventListener("click", () => loadSave(save.id));
+    li.append(btn);
+    list.append(li);
+  });
+}
+
+function loadSave(id) {
+  const save = saves.find((item) => item.id === id);
+  if (!save) return;
+  params = mergeParams(save.params);
+  writeParams(params);
+  const nameEl = $("saveName");
+  const noteEl = $("saveNote");
+  if (nameEl) nameEl.value = save.name;
+  if (noteEl) noteEl.value = save.note;
+  setSaveHint(`Loaded ${save.name}. Edit the sliders, then save again.`);
+  scheduleRebuild();
+}
+
+function saveCurrent() {
+  const result = rememberSave(saves, {
+    name: $("saveName")?.value || "",
+    note: $("saveNote")?.value || "",
+    params,
+    now: Date.now(),
+  });
+  if (!result.ok) {
+    setSaveHint(result.error, "err");
+    return;
+  }
+  saves = result.saves;
+  try {
+    writeSaves((key, value) => localStorage.setItem(key, value), saves);
+  } catch {
+    setSaveHint("This browser blocked saving. Nothing was uploaded.", "err");
+    return;
+  }
+  if ($("saveName")) $("saveName").value = result.entry.name;
+  setSaveHint(result.replaced ? `Replaced ${result.entry.name}.` : `Saved ${result.entry.name}.`);
+  renderSaves();
+}
+
+function refreshSaveHint() {
+  const name = ($("saveName")?.value || "").trim();
+  if (!name) {
+    setSaveHint("");
+    return;
+  }
+  const existing = saves.find((item) => item.name === name);
+  setSaveHint(existing ? `“${name}” is already saved. Saving again replaces it.` : "");
+}
+
+function bindSaves() {
+  try {
+    saves = readSaves((key) => localStorage.getItem(key));
+  } catch {
+    saves = [];
+  }
+  renderSaves();
+  $("saveDesign")?.addEventListener("click", () => saveCurrent());
+  $("saveName")?.addEventListener("input", refreshSaveHint);
+  $("saveName")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveCurrent();
+    }
+  });
 }
 
 function markView(name) {
@@ -154,6 +273,7 @@ preview = new LockPreview({ canvas: $("view") });
 window.__lockPreview = preview;
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
+bindSaves();
 window.__lockHistory = installUndo({
   panel: document.querySelector(".panel"),
   read: () => params,
