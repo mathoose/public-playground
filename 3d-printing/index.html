@@ -10,97 +10,249 @@
   <header class="hero">
     <p class="kicker">Projects / 3d printing</p>
     <h1>3D printing library</h1>
-    <p class="lead">Customize a part in the browser, download the STL, drop it in your slicer. Each app is its own folder — add another whenever you make a new one.</p>
+    <p class="lead">Customize a part in the browser, download the STL, drop it in your slicer. Latest is the newest work. Favorites and Last you worked on stay on this browser.</p>
   </header>
 
-  <main class="grid">
-    <a class="card" href="./bubble-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/bubble-frame/index.html">
-      <div class="thumb beads" aria-hidden="true"></div>
-      <div class="body">
-        <h2>Bubble frame</h2>
-        <p>Hemisphere bead frame around a photo. The back slides down onto side rails, with hanging holes and a cleat for the stand.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-latest" aria-selected="true" aria-controls="catalog">Latest</button>
+    <button type="button" role="tab" id="tab-favorites" aria-selected="false" aria-controls="catalog">Favorites</button>
+    <button type="button" role="tab" id="tab-recent" aria-selected="false" aria-controls="recent">Last you worked on</button>
+  </div>
 
-    <a class="card" href="./clip/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/postit-wall-clip/index.html">
-      <img class="thumb" src="./clip/postit-wall-clip-iso.png" data-htmlpreview-img="../postit-wall-clip/postit-wall-clip-iso.png" alt="" />
-      <div class="body">
-        <h2>Post-it clip</h2>
-        <p>Wall clip for a Post-it pad. Print on its side. v3 — chamfered putty slot you can slide along the back.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+  <main>
+    <div class="grid" id="catalog">
+      <article class="card" data-id="baroque-frame" data-title="Baroque frame" data-updated="2026-10-27" data-seq="9">
+        <a class="card-link" href="./baroque-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/baroque-frame/index.html">
+          <img class="thumb" src="./baroque-frame/thumb.png" data-htmlpreview-img="../baroque-frame/thumb.png" alt="" />
+          <div class="body">
+            <h2>Baroque frame</h2>
+            <p>Mari3d’s miniature baroque frame, resized. Width and height change the picture opening and leave the moulding the same width. A separate slider scales that border and how far it stands off the wall.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Baroque frame">☆</button>
+      </article>
 
-    <a class="card" href="./striped-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/striped-frame-e1e5/striped-frame/index.html">
-      <div class="thumb stripes" aria-hidden="true"></div>
-      <div class="body">
-        <h2>Striped frame</h2>
-        <p>Alternating color bands along the frame path (2–4 colors). The back slides onto the same side rails as the bubble frame, plus a stand cleat.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="gingerbread-switch" data-title="Gingerbread switch" data-updated="2026-10-27" data-seq="8">
+        <a class="card-link" href="./gingerbread-switch/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/gingerbread-switch/index.html">
+          <img class="thumb" src="./gingerbread-switch/thumb.png" data-htmlpreview-img="../gingerbread-switch/thumb.png" alt="" />
+          <div class="body">
+            <h2>Gingerbread switch</h2>
+            <p>A standard light-switch plate with a gingerbread house standing off it. The roof and chimney run past the plate, the back stays flat on the wall, and the toggle comes out the door. Three STLs, or one joint 3MF.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Gingerbread switch">☆</button>
+      </article>
 
-    <a class="card" href="./photive-snap-box/" data-htmlpreview="https://cdn.jsdelivr.net/gh/mathoose/public-playground@0ba8fd926c1d0b3ce9a68031b2c9f07061aa4421/photive-snap-box/">
-      <img class="thumb" src="./photive-snap-box/iso.png" data-htmlpreview-img="../photive-snap-box/iso.png" alt="" />
-      <div class="body">
-        <h2>Photive snap box</h2>
-        <p>Open tray + snap-over cap lid for the 6-port Photive brick, plus a per-port USB spacer comb. Live sliders for fit, plug lengths, cord slot, and inner size.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
-    <a class="card" href="./henson-razor-tool/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/henson-razor-tool-67bf/henson-razor-tool/index.html">
-      <img class="thumb" src="./henson-razor-tool/iso.png" data-htmlpreview-img="../henson-razor-tool/iso.png" alt="" />
-      <div class="body">
-        <h2>Henson razor tool</h2>
-        <p>Knurled cradle that holds the Henson AL13 / Ti22 head by its cap so you can unscrew the handle without touching the blade. Optional handle grip sleeve.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="paddington-tag" data-title="Paddington tag" data-updated="2026-10-27" data-seq="7">
+        <a class="card-link" href="./paddington-tag/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/paddington-tag/index.html">
+          <img class="thumb" src="./paddington-tag/thumb.png" data-htmlpreview-img="../paddington-tag/thumb.png" alt="" />
+          <div class="body">
+            <h2>Paddington tag</h2>
+            <p>Necklace luggage tag. Paper-grain body, traced letters — Please look / after this / BEAR THANK / you. — sized and slid so they fill the tag without covering the hole, and a raised ring around the cord hole. Three STLs, or one assembled 3MF.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Paddington tag">☆</button>
+      </article>
 
-    <a class="card" href="./paddington-tag/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/paddington-tag-3mf-assembly-0644/paddington-tag/index.html">
-      <img class="thumb" src="./paddington-tag/thumb.png" data-htmlpreview-img="../paddington-tag/thumb.png" alt="" />
-      <div class="body">
-        <h2>Paddington tag</h2>
-        <p>Necklace luggage tag. Paper-grain body, traced letters — Please look / after this / BEAR THANK / you. — sized and slid so they fill the tag without covering the hole, and a raised ring around the cord hole. Three STLs, or one assembled 3MF.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="striped-frame" data-title="Striped frame" data-updated="2026-10-18" data-seq="6">
+        <a class="card-link" href="./striped-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/striped-frame/index.html">
+          <div class="thumb stripes" aria-hidden="true"></div>
+          <div class="body">
+            <h2>Striped frame</h2>
+            <p>Alternating color bands along the frame path (2–4 colors). The back slides onto the same side rails as the bubble frame, plus a stand cleat.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Striped frame">☆</button>
+      </article>
 
-    <a class="card" href="./gingerbread-switch/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/gingerbread-switch-0644/gingerbread-switch/index.html">
-      <img class="thumb" src="./gingerbread-switch/thumb.png" data-htmlpreview-img="../gingerbread-switch/thumb.png" alt="" />
-      <div class="body">
-        <h2>Gingerbread switch</h2>
-        <p>A standard light-switch plate with a gingerbread house standing off it. The roof and chimney run past the plate, the back stays flat on the wall, and the toggle comes out the door. Three STLs, or one joint 3MF.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="bubble-frame" data-title="Bubble frame" data-updated="2026-10-18" data-seq="5">
+        <a class="card-link" href="./bubble-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/bubble-frame/index.html">
+          <div class="thumb beads" aria-hidden="true"></div>
+          <div class="body">
+            <h2>Bubble frame</h2>
+            <p>Hemisphere bead frame around a photo. The back slides down onto side rails, with hanging holes and a cleat for the stand.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Bubble frame">☆</button>
+      </article>
 
-    <a class="card" href="./baroque-frame/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/baroque-frame-0644/baroque-frame/index.html">
-      <img class="thumb" src="./baroque-frame/thumb.png" data-htmlpreview-img="../baroque-frame/thumb.png" alt="" />
-      <div class="body">
-        <h2>Baroque frame</h2>
-        <p>Mari3d’s miniature baroque frame, resized. Width and height change the picture opening and leave the moulding the same width. A separate slider scales that border and how far it stands off the wall.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="postit-wall-clip" data-title="Post-it clip" data-updated="2026-10-06" data-seq="4">
+        <a class="card-link" href="./clip/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/postit-wall-clip/index.html">
+          <img class="thumb" src="./clip/postit-wall-clip-iso.png" data-htmlpreview-img="../postit-wall-clip/postit-wall-clip-iso.png" alt="" />
+          <div class="body">
+            <h2>Post-it clip</h2>
+            <p>Wall clip for a Post-it pad. Print on its side. v3 — chamfered putty slot you can slide along the back.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Post-it clip">☆</button>
+      </article>
 
-    <a class="card" href="./power-bank-wrap/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/power-bank-wrap-v7-9c5d/power-bank-wrap/index.html">
-      <img class="thumb" src="./power-bank-wrap/iso.png" data-htmlpreview-img="../power-bank-wrap/iso.png" alt="" />
-      <div class="body">
-        <h2>Power bank wrap</h2>
-        <p>Slide-on sleeve for the mint SYJ-F37F. Cord wraps around the band (not the USB end); elastic clips on the back hold the ends.</p>
-        <span class="go">Open designer</span>
-      </div>
-    </a>
+      <article class="card" data-id="photive-snap-box" data-title="Photive snap box" data-updated="2026-10-06" data-seq="3">
+        <a class="card-link" href="./photive-snap-box/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/photive-snap-box/index.html">
+          <img class="thumb" src="./photive-snap-box/iso.png" data-htmlpreview-img="../photive-snap-box/iso.png" alt="" />
+          <div class="body">
+            <h2>Photive snap box</h2>
+            <p>Open tray + snap-over cap lid for the 6-port Photive brick, plus a per-port USB spacer comb. Live sliders for fit, plug lengths, cord slot, and inner size.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Photive snap box">☆</button>
+      </article>
+
+      <article class="card" data-id="henson-razor-tool" data-title="Henson razor tool" data-updated="2026-10-06" data-seq="2">
+        <a class="card-link" href="./henson-razor-tool/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/henson-razor-tool/index.html">
+          <img class="thumb" src="./henson-razor-tool/iso.png" data-htmlpreview-img="../henson-razor-tool/iso.png" alt="" />
+          <div class="body">
+            <h2>Henson razor tool</h2>
+            <p>Knurled cradle that holds the Henson AL13 / Ti22 head by its cap so you can unscrew the handle without touching the blade. Optional handle grip sleeve.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Henson razor tool">☆</button>
+      </article>
+
+      <article class="card" data-id="power-bank-wrap" data-title="Power bank wrap" data-updated="2026-10-06" data-seq="1">
+        <a class="card-link" href="./power-bank-wrap/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/power-bank-wrap/index.html">
+          <img class="thumb" src="./power-bank-wrap/iso.png" data-htmlpreview-img="../power-bank-wrap/iso.png" alt="" />
+          <div class="body">
+            <h2>Power bank wrap</h2>
+            <p>Slide-on sleeve for the mint SYJ-F37F. Cord wraps around the band (not the USB end); elastic clips on the back hold the ends.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Power bank wrap">☆</button>
+      </article>
+    </div>
+
+    <p class="empty-note panel-note" id="favorites-empty" hidden>No favorites yet. Star a project and it stays on this browser.</p>
+
+    <section class="recent" id="recent" hidden>
+      <ol class="recent-list" id="recent-list"></ol>
+      <p class="empty-note" id="recent-empty" hidden>Open a designer or download a file and it will show up here.</p>
+    </section>
   </main>
 
   <footer>
-    <p>Next print project: make a new folder next to these, then add a card here.</p>
+    <p>Next print project: make a new folder next to these, then add a card here. Give it today’s date and the next data-seq so Latest stays newest first.</p>
     <p><a class="private-link" href="./private/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/private-models-a7fd/private/index.html" aria-label="Private models (PIN)" title="Private">🔒</a></p>
   </footer>
 
   <script>
+    var STORE_KEY = "mathoose-public-playground:print-library";
+
+    function readStore() {
+      try {
+        var data = JSON.parse(localStorage.getItem(STORE_KEY));
+        if (!data || typeof data !== "object") throw new Error("empty");
+        return {
+          favorites: Array.isArray(data.favorites) ? data.favorites : [],
+          activity: Array.isArray(data.activity) ? data.activity : [],
+          settings: data.settings && typeof data.settings === "object" ? data.settings : {}
+        };
+      } catch (e) {
+        return { favorites: [], activity: [], settings: {} };
+      }
+    }
+
+    function writeStore(data) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+
+    function sortCards() {
+      var grid = document.getElementById("catalog");
+      var cards = Array.prototype.slice.call(grid.querySelectorAll(".card"));
+      cards.sort(function (a, b) {
+        var da = a.getAttribute("data-updated") || "";
+        var db = b.getAttribute("data-updated") || "";
+        if (da !== db) return da < db ? 1 : -1;
+        return Number(b.getAttribute("data-seq") || 0) - Number(a.getAttribute("data-seq") || 0);
+      });
+      cards.forEach(function (card) { grid.appendChild(card); });
+    }
+
+    function paintStars() {
+      var favorites = readStore().favorites;
+      document.querySelectorAll(".card").forEach(function (card) {
+        var on = favorites.indexOf(card.getAttribute("data-id")) !== -1;
+        var star = card.querySelector(".star");
+        if (!star) return;
+        star.setAttribute("aria-pressed", on ? "true" : "false");
+        star.textContent = on ? "★" : "☆";
+      });
+    }
+
+    function withRestore(href) {
+      if (!href) return href;
+      if (href.indexOf("htmlpreview.github.io") !== -1 || href.indexOf("jsdelivr.net") !== -1) {
+        return href.split("#")[0] + "#restore";
+      }
+      var hashAt = href.indexOf("#");
+      var hash = hashAt === -1 ? "" : href.slice(hashAt);
+      var base = hashAt === -1 ? href : href.slice(0, hashAt);
+      if (base.indexOf("restore=1") !== -1) return href;
+      return base + (base.indexOf("?") === -1 ? "?" : "&") + "restore=1" + hash;
+    }
+
+    function kindText(entry) {
+      if (entry.kind === "export") return "Exported " + (entry.filename || "a file");
+      if (entry.kind === "save") return "Saved settings";
+      return "Opened";
+    }
+
+    function renderRecent() {
+      var list = document.getElementById("recent-list");
+      var empty = document.getElementById("recent-empty");
+      var activity = readStore().activity;
+      list.innerHTML = "";
+      activity.forEach(function (entry) {
+        var card = document.querySelector('.card[data-id="' + entry.id + '"]');
+        if (!card) return;
+        var link = card.querySelector(".card-link");
+        var item = document.createElement("li");
+        var a = document.createElement("a");
+        a.className = "recent-item";
+        a.href = withRestore(link.getAttribute("href"));
+        var title = document.createElement("b");
+        title.textContent = card.getAttribute("data-title") || entry.id;
+        var detail = document.createElement("span");
+        var when = "";
+        try { when = new Date(entry.at).toLocaleString(); } catch (e) { when = ""; }
+        detail.textContent = kindText(entry) + (when ? " · " + when : "");
+        a.appendChild(title);
+        a.appendChild(detail);
+        item.appendChild(a);
+        list.appendChild(item);
+      });
+      empty.hidden = list.children.length > 0;
+    }
+
+    function showTab(name) {
+      var catalog = document.getElementById("catalog");
+      var recent = document.getElementById("recent");
+      var favEmpty = document.getElementById("favorites-empty");
+      var favorites = readStore().favorites;
+      document.querySelectorAll("[role='tab']").forEach(function (tab) {
+        tab.setAttribute("aria-selected", tab.id === "tab-" + name ? "true" : "false");
+      });
+      var recentOn = name === "recent";
+      catalog.hidden = recentOn;
+      recent.hidden = !recentOn;
+      var shown = 0;
+      document.querySelectorAll(".card").forEach(function (card) {
+        var keep = name !== "favorites" || favorites.indexOf(card.getAttribute("data-id")) !== -1;
+        card.hidden = !keep;
+        if (keep) shown += 1;
+      });
+      favEmpty.hidden = name !== "favorites" || shown > 0;
+      if (recentOn) renderRecent();
+    }
+
     var onPreview = location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:";
     if (onPreview) {
       document.querySelectorAll("a[data-htmlpreview]").forEach(function (a) {
@@ -110,6 +262,25 @@
         img.src = img.getAttribute("data-htmlpreview-img");
       });
     }
+
+    sortCards();
+    paintStars();
+    document.querySelectorAll(".star").forEach(function (star) {
+      star.addEventListener("click", function () {
+        var id = star.closest(".card").getAttribute("data-id");
+        var data = readStore();
+        var i = data.favorites.indexOf(id);
+        if (i === -1) data.favorites.push(id);
+        else data.favorites.splice(i, 1);
+        writeStore(data);
+        paintStars();
+        if (document.getElementById("tab-favorites").getAttribute("aria-selected") === "true") showTab("favorites");
+      });
+    });
+    document.getElementById("tab-latest").addEventListener("click", function () { showTab("latest"); });
+    document.getElementById("tab-favorites").addEventListener("click", function () { showTab("favorites"); });
+    document.getElementById("tab-recent").addEventListener("click", function () { showTab("recent"); });
+    showTab("latest");
   </script>
 </body>
 </html>

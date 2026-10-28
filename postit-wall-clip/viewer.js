@@ -3,6 +3,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { APP_VERSION, APP_VERSION_TAG, DEFAULT_PARAMS, facesToPositions, meshFor, stlBytes } from "./clip.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "postit-wall-clip";
 
 const KEYS = [
   "thickness",
@@ -131,6 +134,8 @@ function downloadStl() {
   a.download = `postit-wall-clip-${APP_VERSION_TAG}-${Math.round(p.width)}mm.stl`;
   a.click();
   URL.revokeObjectURL(a.href);
+  rememberSettings(APP_ID, p);
+  rememberExport(APP_ID, { filename: a.download, params: p });
 }
 
 const versionEl = document.getElementById("app-version");
@@ -143,7 +148,16 @@ function setPreset(overrides) {
   rebuild();
 }
 
-writeParams(DEFAULT_PARAMS);
+const bootQuery = new URLSearchParams(location.search);
+let bootParams = DEFAULT_PARAMS;
+if (!bootQuery.has("capture") && !bootQuery.has("shot")) {
+  if (wantsRestore()) {
+    const saved = lastSettings(APP_ID);
+    if (saved) bootParams = { ...DEFAULT_PARAMS, ...saved };
+  }
+  rememberVisit(APP_ID);
+}
+writeParams(bootParams);
 for (const key of KEYS) {
   document.getElementById(key).addEventListener("input", () => {
     writeParams(readParams());

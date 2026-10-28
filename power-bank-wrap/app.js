@@ -16,6 +16,24 @@ import { CasePreview } from "./preview.js";
 import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+
+const APP_ID = "power-bank-wrap";
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -123,7 +141,9 @@ async function downloadStl() {
   try {
     const { stl, volume } = await buildCaseStl(params);
     const grams = ((volume / 1000) * 1.24).toFixed(1);
-    downloadArrayBuffer(`power-bank-wrap-${APP_VERSION_TAG}.stl`, stl);
+    const filename = `power-bank-wrap-${APP_VERSION_TAG}.stl`;
+    downloadArrayBuffer(filename, stl);
+    noteDownload(filename);
     setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${grams} g PETG`);
   } catch (err) {
     console.error(err);
@@ -132,7 +152,7 @@ async function downloadStl() {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -179,6 +199,8 @@ window.__wrapHistory = installUndo({
   },
 });
 setStatus("Loading CAD…");
+
+if (!skipLibrary()) rememberVisit(APP_ID);
 
 const shot = new URLSearchParams(location.search).get("shot");
 if (shot) document.body.classList.add("capture");
