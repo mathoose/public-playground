@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!-- build: bone-side-bag-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bone side bag</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bone-side-bag-0b38/3d-printing/index.html">← 3D printing library</a>
+        <h1 id="piece-title">Side bag</h1>
+      </div>
+      <p>v1 · Oct 29, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="iso">Iso</button>
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" data-view="strap">Strap</button>
+        <button type="button" class="chip active" id="showBody" aria-pressed="true">Body</button>
+        <button type="button" class="chip active" id="showChain" aria-pressed="true">Chain</button>
+        <button type="button" class="chip active" id="showClasp" aria-pressed="true">Clasps</button>
+        <button type="button" class="chip active" id="showBed" aria-pressed="true">Bed</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Piece</summary>
+        <div class="group-body">
+          <p class="group-note">One designer, two prints. The side bag is a small cup with open ribs. The phone cage uses the same bone chain and a sleeve sized to your phone. The strap is separate bone links with hooks, not a solid handle.</p>
+          <div class="seg">
+            <button class="chip active" type="button" id="mode-bag" aria-pressed="true">Side bag</button>
+            <button class="chip" type="button" id="mode-phone" aria-pressed="false">Phone cage</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open data-for="bag">
+        <summary>Side bag</summary>
+        <div class="group-body">
+          <p class="group-note">Inside size of the cup. It prints opening up, so keys sit in the solid lower bowl. Ribs above that are open. Two eyelets match the chain eyes.</p>
+          <div class="row">
+            <label for="bagWidth">Width</label>
+            <output id="bagWidth-out">72 mm</output>
+            <input id="bagWidth" type="range" min="50" max="120" step="1" value="72" />
+          </div>
+          <div class="row">
+            <label for="bagHeight">Height</label>
+            <output id="bagHeight-out">90 mm</output>
+            <input id="bagHeight" type="range" min="64" max="140" step="1" value="90" />
+          </div>
+          <div class="row">
+            <label for="bagDepth">Depth</label>
+            <output id="bagDepth-out">34 mm</output>
+            <input id="bagDepth" type="range" min="24" max="56" step="1" value="34" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open data-for="phone">
+        <summary>Phone</summary>
+        <div class="group-body">
+          <p class="group-note">The phone itself, not the cage. Starts at an iPhone 16: 71.6 × 147.6 × 7.8 mm. The cage adds a little room and lips on the screen edges. Slide the phone in from the top. Type a size if yours is different, including a case.</p>
+          <div class="seg">
+            <button class="chip" type="button" id="phone-iphone">iPhone 16</button>
+            <button class="chip" type="button" id="phone-case">Slim case</button>
+          </div>
+          <div class="row">
+            <label for="phoneWidth">Phone width</label>
+            <output id="phoneWidth-out">71.6 mm</output>
+            <input id="phoneWidth" type="range" min="58" max="102" step="0.1" value="71.6" />
+          </div>
+          <div class="row">
+            <label for="phoneHeight">Phone height</label>
+            <output id="phoneHeight-out">147.6 mm</output>
+            <input id="phoneHeight" type="range" min="120" max="190" step="0.1" value="147.6" />
+          </div>
+          <div class="row">
+            <label for="phoneDepth">Phone depth</label>
+            <output id="phoneDepth-out">7.8 mm</output>
+            <input id="phoneDepth" type="range" min="6" max="22" step="0.1" value="7.8" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Bone chain</summary>
+        <div class="group-body">
+          <p class="group-note">Each link is a bone: a closed eye, a narrow shaft, and a hook. The hook snaps around the next eye. The gate is narrower than the eye, so flex it on — PETG forgives more than stiff PLA. Add links for a longer shoulder strap. Two clasps close the strap onto the eyelets.</p>
+          <div class="row">
+            <label for="links">Links</label>
+            <output id="links-out">12</output>
+            <input id="links" type="range" min="6" max="36" step="1" value="12" />
+          </div>
+          <div class="row">
+            <label for="linkLength">Link length</label>
+            <output id="linkLength-out">44 mm</output>
+            <input id="linkLength" type="range" min="40" max="56" step="1" value="44" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div id="warnings"></div>
+          <div class="actions">
+            <button type="button" class="wide" data-download="3mf">Download joint 3MF</button>
+            <button type="button" class="secondary" data-download="body">Body STL</button>
+            <button type="button" class="secondary" data-download="chain">Chain STL</button>
+            <button type="button" class="secondary" data-download="clasp">Clasps STL</button>
+            <button type="button" class="secondary" id="reset">Reset</button>
+          </div>
+          <div id="readout" class="readout"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Three parts, one assembly. The 3MF keeps the body, the chain, and both clasps in place.
+            The STLs are those same parts, separate.
+            Print the <b>body opening up</b>, PLA or PETG, 0.2 mm layers, 3 walls, 15% infill.
+            The chain and clasps lie flat and need no supports. Snap each hook onto the next eye, then snap a clasp through each eyelet and the end of the chain.
+            If the chain row is longer than the bed, split to objects and arrange the links.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Bone side bag v1 · Oct 29, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
