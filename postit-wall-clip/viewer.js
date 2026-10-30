@@ -204,6 +204,20 @@ document.getElementById("preset-original").addEventListener("click", () => setPr
 document.getElementById("preset-wide").addEventListener("click", () => setPreset({ width: 76 }));
 document.getElementById("reset").addEventListener("click", () => setPreset({}));
 document.getElementById("download").addEventListener("click", downloadStl);
+pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas,
+  camera,
+  scene,
+  getParts: () => [{ id: "clip", label: "Clip", objects: [{ object: mesh, hit: "clip" }] }],
+  inspect: (hit) => inspectClip(hit, latest?.params || readParams()),
+  measure: (a, b) => measureClip(a, b, latest?.params || readParams()),
+  onVisible: (shown) => {
+    mesh.visible = shown.clip !== false;
+  },
+});
+window.__pick = pick;
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
