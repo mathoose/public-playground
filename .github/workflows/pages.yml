@@ -26,7 +26,7 @@ jobs:
       - name: Assemble 3D printing library
         run: |
           set -e
-          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/henson-razor-tool _site/power-bank-wrap _site/paddington-tag _site/gingerbread-switch _site/baroque-frame _site/costco-bin-lock _site/bone-side-bag _site/private _site/drive-briefing
+          mkdir -p _site/bubble-frame _site/clip _site/striped-frame _site/photive-snap-box _site/henson-razor-tool _site/power-bank-wrap _site/paddington-tag _site/gingerbread-switch _site/baroque-frame _site/costco-bin-lock _site/coaster-base _site/poop-bag-holder _site/bone-side-bag _site/private _site/drive-briefing
           cp 3d-printing/index.html 3d-printing/styles.css _site/
           # Apps
           tar -C bubble-frame --exclude=node_modules --exclude='*.command' --exclude='*.bat' --exclude='Open Bubble Frame.html' -cf - . \
@@ -49,6 +49,10 @@ jobs:
             | tar -C _site/baroque-frame -xf -
           tar -C costco-bin-lock --exclude=node_modules -cf - . \
             | tar -C _site/costco-bin-lock -xf -
+          tar -C coaster-base --exclude=node_modules -cf - . \
+            | tar -C _site/coaster-base -xf -
+          tar -C poop-bag-holder --exclude=node_modules -cf - . \
+            | tar -C _site/poop-bag-holder -xf -
           tar -C bone-side-bag --exclude=node_modules -cf - . \
             | tar -C _site/bone-side-bag -xf -
           tar -C private --exclude=node_modules --exclude=scripts -cf - . \

@@ -10,7 +10,7 @@
  * and the support-free profile are untouched. Width works the same at X = ±CUT_X.
  */
 export const APP_NAME = "Private models";
-export const APP_VERSION = "1 · Oct 17, 2026";
+export const APP_VERSION = "2 · Oct 19, 2026";
 export const APP_VERSION_TAG = "v1";
 
 export const HOLDER = Object.freeze({

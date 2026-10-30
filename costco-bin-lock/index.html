@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: costco-bin-lock-v3 -->
+<!-- build: costco-bin-lock-v4 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,15 +14,18 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bin-clip-measure-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Costco bin lock</h1>
       </div>
-      <p>v3 · Oct 27, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version">v4 · Oct 27, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
       <div class="hint" id="hint">Drag to orbit · pinch or scroll to zoom</div>
-      <div class="measure-bubble" id="measureBubble" hidden>
+      <button type="button" class="measure-bubble" id="measureBubble" hidden aria-pressed="false">
         <b id="measureValue"></b>
         <span id="measureKind"></span>
-      </div>
+      </button>
       <div class="view-bar">
         <button type="button" class="chip active" data-view="iso">Iso</button>
         <button type="button" class="chip" data-view="top">Top</button>
@@ -53,7 +56,7 @@
       <details class="settings-group" open>
         <summary>Square end</summary>
         <div class="group-body">
-          <p class="group-note">The pad you twist, on top of the lid. This sets the side of that square. Measure turns on face picking: click one face, then another. The distance sits in a bubble, and the dimension line is drawn outside the part so the lock does not cover it.</p>
+          <p class="group-note">The pad you twist, on top of the lid. This sets the side of that square. Measure: click one face, then another. The bubble names every slider that changes that length. Click the bubble to hide the rest.</p>
           <div class="row">
             <label for="squareEnd">Square end</label>
             <output id="squareEnd-out"></output>
@@ -81,24 +84,6 @@
       </details>
 
       <details class="settings-group" open>
-        <summary>Saves</summary>
-        <div class="group-body">
-          <p class="group-note">Saved in this browser only, including on the preview page. Nothing is uploaded. Tap a save to load those sliders, keep editing, then save again. The same name replaces that save. Newest is on top.</p>
-          <div class="save-fields">
-            <label for="saveName">Name</label>
-            <input id="saveName" type="text" maxlength="80" autocomplete="off" placeholder="Full bin, deeper hook" />
-            <label for="saveNote">Note</label>
-            <textarea id="saveNote" rows="2" maxlength="400" placeholder="What you changed"></textarea>
-          </div>
-          <div class="actions">
-            <button type="button" class="wide" id="saveDesign">Save these sliders</button>
-          </div>
-          <p class="save-hint" id="saveHint"></p>
-          <ul class="save-list" id="saveList"></ul>
-        </div>
-      </details>
-
-      <details class="settings-group" open>
         <summary>Download</summary>
         <div class="group-body">
           <div class="actions">
@@ -118,7 +103,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Costco bin lock v3 · Oct 27, 2026</p>
+      <p class="foot" id="app-version">Costco bin lock v4 · Oct 27, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

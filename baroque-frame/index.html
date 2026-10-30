@@ -14,15 +14,23 @@
         <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Baroque frame</h1>
       </div>
-      <p>v1 · Oct 27, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version">v1 · Oct 27, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
-      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="hint" id="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="measure-bubble" id="measureBubble" hidden>
+        <b id="measureValue"></b>
+        <span id="measureKind"></span>
+      </div>
       <div class="view-bar">
         <button type="button" class="chip" data-view="front">Front</button>
         <button type="button" class="chip" data-view="angle">Angle</button>
         <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" id="measure">Measure</button>
       </div>
       <button type="button" class="view-btn" id="resetView">Reset view</button>
     </div>
@@ -68,6 +76,16 @@
       <p class="foot" id="app-version">Baroque frame v1 · Oct 27, 2026</p>
     </aside>
   </div>
+  <script>
+    if (!Uint8Array.fromBase64) {
+      Uint8Array.fromBase64 = function (s) {
+        var bin = atob(s);
+        var out = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+      };
+    }
+  </script>
   <script src="./app.bundle.js"></script>
   <script>
     if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {

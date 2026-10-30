@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { calloutShift, faceGap } from "./measure.js";
+import { calloutShift, faceGap } from "../shared/measure.js";
 import { manifoldMeshToPositions } from "./stl.js";
 
 function geomFrom(mesh) {
@@ -188,6 +188,7 @@ export class LockPreview {
     return {
       point: hit.point.clone(),
       normal,
+      part: hit.object === this.lidMesh ? "lid" : "lock",
       verts: [hit.face.a, hit.face.b, hit.face.c].map((index) =>
         new THREE.Vector3().fromBufferAttribute(pos, index).applyMatrix4(hit.object.matrixWorld)
       ),
@@ -259,6 +260,10 @@ export class LockPreview {
       parallel: gap.parallel,
       mm: gap.primary,
       label: `${gap.primary.toFixed(1)} mm`,
+      picks: this.picks.map((p) => ({
+        point: { x: p.point.x, y: p.point.y, z: p.point.z },
+        normal: p.normal ? { x: p.normal.x, y: p.normal.y, z: p.normal.z } : null,
+      })),
     };
     this._placeBubble();
     this.onMeasure?.(this.measureReadout);
@@ -309,7 +314,8 @@ export class LockPreview {
     bubble.style.top = `${y}px`;
     if (this._bubbleValue) this._bubbleValue.textContent = this.measureReadout.label;
     if (this._bubbleKind) {
-      this._bubbleKind.textContent = this.measureReadout.parallel ? "between those faces" : "between the clicks";
+      this._bubbleKind.textContent =
+        this.kindText || (this.measureReadout.parallel ? "between those faces" : "between the clicks");
     }
   }
 
