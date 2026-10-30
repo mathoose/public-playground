@@ -19,7 +19,10 @@ import {
 import { FramePreview } from "./preview.js";
 import {
   buildBackPlateStl,
+  buildCaptionJoint3mf,
+  buildCaptionPlateStl,
   buildFrameMesh,
+  buildFrontCaptionStl,
   buildStandStl,
   stlTriangleCount,
 } from "./stl.js";
@@ -36,6 +39,7 @@ import {
   wantsRestore,
 } from "../shared/library-activity.js";
 import { wirePanelSaves } from "../shared/wire-designer.js";
+import { applyFrameStylePreset, captionLayout } from "../shared/frame-caption.js";
 
 const APP_ID = "bubble-frame";
 const SLIDER_KEYS = Object.keys(defaultParams());
@@ -109,6 +113,19 @@ function renderForm() {
   $("dlStand").hidden = !params.standEnabled;
   $("segments").value = params.segments;
   $("alternate").checked = params.alternate !== false;
+  if ($("captionEnabled")) $("captionEnabled").checked = params.captionEnabled !== false;
+  if ($("captionText")) $("captionText").value = params.captionText || "";
+  if ($("captionTextInFront")) $("captionTextInFront").checked = Boolean(params.captionTextInFront);
+  if ($("captionPegPlate")) $("captionPegPlate").checked = Boolean(params.captionPegPlate);
+  if ($("captionFontScale")) $("captionFontScale").value = params.captionFontScale;
+  if ($("captionFontScaleRange")) $("captionFontScaleRange").value = params.captionFontScale;
+  if ($("chinExtra")) $("chinExtra").value = params.chinExtra.toFixed(1);
+  if ($("chinExtraRange")) $("chinExtraRange").value = params.chinExtra;
+  for (const btn of document.querySelectorAll("[data-frame-style]")) {
+    btn.classList.toggle("active", btn.dataset.frameStyle === params.frameStyle);
+  }
+  const capFields = $("captionFields");
+  if (capFields) capFields.hidden = params.captionEnabled === false;
   if (active !== $("colorA")) $("colorA").value = params.colorA;
   if (active !== $("colorB")) $("colorB").value = params.colorB;
   $("countTop").textContent = params.countTop;
@@ -151,6 +168,10 @@ function renderReadout(layout) {
     }</div>
   `;
   $("warnings").innerHTML = layout.warnings.map((w) => `<div class="warn">${w}</div>`).join("");
+  const cap = captionLayout(layout);
+  if (cap.warnings?.length) {
+    $("warnings").innerHTML += cap.warnings.map((w) => `<div class="warn">${w}</div>`).join("");
+  }
   $("restore").hidden = params.disabled.length === 0;
 }
 
@@ -360,6 +381,55 @@ function bind() {
   $("dlPlate").addEventListener("click", () => exportStls("plate"));
   $("dlStand").addEventListener("click", () => exportStls("stand"));
   $("dlBoth").addEventListener("click", () => exportStls("all"));
+  $("dlCaptionPlate")?.addEventListener("click", () => exportStls("captionPlate"));
+  $("dlCaptionFront")?.addEventListener("click", () => exportStls("captionFront"));
+  $("dlCaption3mf")?.addEventListener("click", () => exportStls("caption3mf"));
+
+  $("captionEnabled")?.addEventListener("change", () => {
+    params.captionEnabled = $("captionEnabled").checked;
+    refresh();
+  });
+  $("captionText")?.addEventListener("input", () => {
+    params.captionText = $("captionText").value;
+    refresh();
+  });
+  $("captionTextInFront")?.addEventListener("change", () => {
+    params.captionTextInFront = $("captionTextInFront").checked;
+    refresh();
+  });
+  $("captionPegPlate")?.addEventListener("change", () => {
+    params.captionPegPlate = $("captionPegPlate").checked;
+    refresh();
+  });
+  const syncFontScale = () => {
+    params.captionFontScale = Number($("captionFontScaleRange").value);
+    $("captionFontScale").value = params.captionFontScale;
+    refresh();
+  };
+  $("captionFontScaleRange")?.addEventListener("input", syncFontScale);
+  $("captionFontScale")?.addEventListener("change", () => {
+    params.captionFontScale = Number($("captionFontScale").value);
+    $("captionFontScaleRange").value = params.captionFontScale;
+    refresh();
+  });
+  $("chinExtraRange")?.addEventListener("input", () => {
+    params.chinExtra = Number($("chinExtraRange").value);
+    params.frameStyle = "standard";
+    $("chinExtra").value = params.chinExtra.toFixed(1);
+    refresh();
+  });
+  $("chinExtra")?.addEventListener("change", () => {
+    params.chinExtra = Number($("chinExtra").value);
+    params.frameStyle = "standard";
+    $("chinExtraRange").value = params.chinExtra;
+    refresh();
+  });
+  for (const btn of document.querySelectorAll("[data-frame-style]")) {
+    btn.addEventListener("click", () => {
+      params = applyFrameStylePreset(params, btn.dataset.frameStyle, params.photoH);
+      refresh({ fit: true });
+    });
+  }
 }
 
 function rememberExport(kind, filename, buffer) {
@@ -384,6 +454,9 @@ function renderExportLinks() {
     ["frame", "Frame"],
     ["plate", "Back plate"],
     ["stand", "Stand"],
+    ["captionPlate", "Caption plate"],
+    ["captionFront", "Front text"],
+    ["caption3mf", "Caption 3MF"],
   ];
   const parts = order
     .filter(([kind]) => lastExports[kind])
@@ -397,10 +470,23 @@ function renderExportLinks() {
     : "";
 }
 
+function downloadBlob(filename, buffer, mime) {
+  if (lastExports._tmp) URL.revokeObjectURL(lastExports._tmp.url);
+  const blob = new Blob([buffer], { type: mime });
+  const url = URL.createObjectURL(blob);
+  lastExports._tmp = { url, name: filename };
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 async function exportStls(which) {
   const label = sizeLabel(params.photoW, params.photoH, params.units);
   const status = $("status");
-  const buttons = [$("dlFrame"), $("dlPlate"), $("dlStand"), $("dlBoth")];
+  const buttons = document.querySelectorAll(".actions .btn");
   buttons.forEach((b) => (b.disabled = true));
   rememberSettings(APP_ID, params);
   try {
@@ -416,6 +502,30 @@ async function exportStls(which) {
       const stand = await buildStandStl(params);
       rememberExport("stand", `bubble-frame-${label}-stand.stl`, stand.stl);
       parts.push(`stand ${plaGrams(stand.volume).toFixed(1)} g`);
+    }
+    if ((which === "captionPlate" || which === "all") && params.captionEnabled && params.captionPegPlate) {
+      status.textContent = "Building caption plate…";
+      const capPlate = await buildCaptionPlateStl(params);
+      rememberExport("captionPlate", `bubble-frame-${label}-caption-plate.stl`, capPlate.stl);
+      parts.push(`caption plate ${stlTriangleCount(capPlate.stl).toLocaleString()} tris`);
+    }
+    if ((which === "captionFront" || which === "all") && params.captionEnabled && params.captionTextInFront) {
+      status.textContent = "Building front caption…";
+      const front = await buildFrontCaptionStl(params);
+      rememberExport("captionFront", `bubble-frame-${label}-caption-front.stl`, front.stl);
+      parts.push(`front text ${stlTriangleCount(front.stl).toLocaleString()} tris`);
+    }
+    if (
+      which === "caption3mf" &&
+      params.captionEnabled &&
+      (params.captionPegPlate || params.captionTextInFront)
+    ) {
+      status.textContent = "Packing caption 3MF…";
+      const joint = await buildCaptionJoint3mf(params);
+      const name = `bubble-frame-${label}-caption.3mf`;
+      downloadBlob(name, joint.threemf, "model/3mf");
+      noteLibraryExport(APP_ID, { filename: name, params });
+      parts.push(`3MF · ${joint.parts} parts`);
     }
     if (which === "frame" || which === "all" || which === "both") {
       status.textContent = "Unioning beads (first run loads the CAD kernel)…";

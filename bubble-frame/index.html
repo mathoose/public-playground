@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: bubble-frame-v5-oct30 -->
+<!-- build: bubble-frame-v6-oct30 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
 <body>
   <div class="app">
     <aside class="panel">
-      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/3d-printing/index.html">← 3D printing library</a>
+      <a class="library-nav" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/polaroid-caption-peg-808e/3d-printing/index.html">← 3D printing library</a>
       <h1>Bubble frame</h1>
       <p class="lead">Print a flat-backed bead frame around a photo. The back slides on and stays put when you change the size.</p>
 
@@ -177,6 +177,37 @@
         </div>
       </div>
 
+      <details class="settings-group" id="captionSettings" open>
+        <summary>Caption (Polaroid chin)</summary>
+        <div class="group-body">
+          <label class="check"><input id="captionEnabled" type="checkbox" checked /> Embossed caption</label>
+          <div id="captionFields">
+            <div class="seg view-seg">
+              <button class="chip active" type="button" data-frame-style="standard">Standard</button>
+              <button class="chip" type="button" data-frame-style="polaroid">Polaroid chin</button>
+            </div>
+            <div class="field">
+              <label>Chin height <span class="val">mm</span></label>
+              <input id="chinExtraRange" type="range" min="0" max="50" step="0.5" />
+              <input id="chinExtra" type="number" min="0" max="60" step="0.5" />
+              <div class="hint">Extra border below the photo — taller bar for reel-style captions.</div>
+            </div>
+            <div class="field">
+              <label for="captionText">Caption</label>
+              <input id="captionText" type="text" maxlength="48" value="@username" spellcheck="false" />
+            </div>
+            <div class="field">
+              <label>Text size <span class="val">%</span></label>
+              <input id="captionFontScaleRange" type="range" min="40" max="160" step="1" value="100" />
+              <input id="captionFontScale" type="number" min="40" max="160" step="1" value="100" />
+            </div>
+            <label class="check"><input id="captionTextInFront" type="checkbox" /> Text in front (over photo)</label>
+            <label class="check"><input id="captionPegPlate" type="checkbox" /> Snap caption plate (swappable)</label>
+            <div class="hint">Plate mode cuts a peg socket on the chin and exports a separate name plate STL. “Text in front” overlays the photo in preview and exports raised text on the glass plane.</div>
+          </div>
+        </div>
+      </details>
+
       <details class="settings-group" id="standSettings" open>
         <summary>Stand</summary>
         <div class="group-body">
@@ -213,6 +244,9 @@
         <button class="btn primary" id="dlFrame" type="button">Download frame STL</button>
         <button class="btn ghost" id="dlPlate" type="button">Download back plate</button>
         <button class="btn ghost" id="dlStand" type="button">Download stand</button>
+        <button class="btn ghost" id="dlCaptionPlate" type="button">Caption plate</button>
+        <button class="btn ghost" id="dlCaptionFront" type="button">Front text</button>
+        <button class="btn ghost" id="dlCaption3mf" type="button">Caption 3MF</button>
         <button class="btn ghost" id="dlBoth" type="button">Download all</button>
       </div>
       <div class="status" id="status"></div>
@@ -231,7 +265,7 @@
         Push the stand pegs into a pair of holes on the back. Higher holes lean it more. Lift the cover out to change the photo.
         STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Bubble frame v5 · Oct 30, 2026</p>
+      <p class="foot" id="app-version">Bubble frame v6 · Oct 30, 2026</p>
     </aside>
 
     <main class="stage">

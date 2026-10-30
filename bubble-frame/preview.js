@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { pegStandPlateBoxes, plateLoop } from "../shared/frame-clip.js";
 import { PART_SHOW } from "../shared/frame-pick-map.js";
+import { captionLayout } from "../shared/frame-caption.js";
 import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
@@ -75,6 +76,18 @@ export class FramePreview {
       transparent: true,
       opacity: 0.28,
       depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.captionMat = new THREE.MeshStandardMaterial({
+      color: 0x57534e,
+      roughness: 0.38,
+      metalness: 0.1,
+      side: THREE.DoubleSide,
+    });
+    this.captionPlateMat = new THREE.MeshStandardMaterial({
+      color: 0xe7e5e4,
+      roughness: 0.55,
+      metalness: 0.06,
       side: THREE.DoubleSide,
     });
     this.plateMat = new THREE.MeshStandardMaterial({
@@ -328,6 +341,8 @@ export class FramePreview {
     this.pose.add(this.content);
     this.group.add(this.pose);
     this.coverGroup = new THREE.Group();
+    this.captionGroup = new THREE.Group();
+    this.coverGroup.add(this.captionGroup);
     this.coverGroup.position.z = clip.frameBackZ;
     this.backGroup = new THREE.Group();
     this.standGroup = new THREE.Group();
@@ -375,8 +390,86 @@ export class FramePreview {
       ring.position.set(hole.x, hole.y, clip.plate.t + 0.05);
       this.backGroup.add(ring);
     }
+
+    this._addCaptionPreview(layout, clip);
     this._applyShown();
     this._applyPose();
+  }
+
+  _addCaptionPreview(layout, clip) {
+    const cap = captionLayout(layout);
+    if (!cap.enabled) return;
+    if (cap.chinExtra > 2) {
+      const padW = layout.outer.w * 0.92;
+      const padH = cap.chinExtra + layout.radius * 0.25;
+      const y0 = cap.bottomY + layout.radius * 0.2;
+      const t = Math.max(layout.params.webThickness, 0.8);
+      const pad = new THREE.Mesh(
+        this._trackGeom(new THREE.BoxGeometry(padW, padH, t)),
+        this.captionPlateMat
+      );
+      pad.position.set(0, y0 + padH / 2, t / 2);
+      this.captionGroup.add(pad);
+    }
+    const depth = cap.frontOverlay ? 1.2 : layout.radius * 0.35;
+    const z = cap.frontOverlay
+      ? clip.frameBackZ + layout.params.imageOverlap * 0.08
+      : layout.radius * 0.95;
+    const mat = cap.pegPlate ? this.captionPlateMat : this.captionMat;
+    for (const poly of cap.polys) {
+      if (poly.length < 3) continue;
+      const shape = new THREE.Shape();
+      shape.moveTo(poly[0][0], poly[0][1]);
+      for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
+      shape.closePath();
+      const geom = this._trackGeom(new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false }));
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.z = z;
+      if (cap.frontOverlay) this.photoGroup.add(mesh);
+      else this.captionGroup.add(mesh);
+    }
+    if (cap.pegPlate) {
+      const { plateBox, peg } = cap;
+      const plate = new THREE.Mesh(
+        this._trackGeom(new THREE.BoxGeometry(plateBox.w, plateBox.h, plateBox.t)),
+        this.captionPlateMat
+      );
+      plate.position.set(0, plateBox.y, plateBox.t / 2 + layout.radius);
+      this.captionGroup.add(plate);
+      const pegMesh = new THREE.Mesh(
+        this._trackGeom(new THREE.CylinderGeometry(peg.pegR, peg.barbR, peg.pegH, 16)),
+        this.captionMat
+      );
+      pegMesh.rotation.x = Math.PI / 2;
+      pegMesh.position.set(0, plateBox.y, layout.radius + plateBox.t + peg.pegH / 2);
+      this.captionGroup.add(pegMesh);
+    }
+  }
+
+  _drawCaption2d(ctx, map, layout) {
+    const cap = captionLayout(layout);
+    if (!cap.enabled) return;
+    const toX = (x) => map.ox + x * map.scale;
+    const toY = (y) => map.oy - y * map.scale;
+    if (cap.chinExtra > 2) {
+      const padW = layout.outer.w * 0.92;
+      const padH = cap.chinExtra + layout.radius * 0.2;
+      const y0 = cap.bottomY + layout.radius * 0.15;
+      ctx.fillStyle = "rgba(214, 211, 209, 0.85)";
+      ctx.fillRect(toX(-padW / 2), toY(y0 + padH), padW * map.scale, padH * map.scale);
+    }
+    const label = cap.text.text || "";
+    if (!label) return;
+    const sizePx = Math.max(8, cap.text.letterHeight * map.scale * 0.92);
+    ctx.font = `700 ${sizePx}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = cap.frontOverlay ? "rgba(41, 37, 36, 0.72)" : "#44403c";
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = Math.max(1, sizePx * 0.06);
+    const y = cap.text.y;
+    ctx.strokeText(label.toUpperCase(), toX(0), toY(y));
+    ctx.fillText(label.toUpperCase(), toX(0), toY(y));
   }
 
   _plateGeom(layout, clip) {
@@ -536,6 +629,8 @@ export class FramePreview {
     ctx.setLineDash([3, 3]);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    this._drawCaption2d(ctx, map, this.layout);
 
     for (const b of beads) {
       const hover = b.id === this.hoverId;

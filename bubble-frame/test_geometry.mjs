@@ -20,6 +20,8 @@ import {
   toggleDisabled,
 } from "./geometry.js";
 import { aabbOverlapVolume, frameClipLayout, pegStandPlateBoxes } from "../shared/frame-clip.js";
+import { captionLayout, polaroidChinForPhoto } from "../shared/frame-caption.js";
+import { layoutCaptionText } from "../shared/caption-glyphs.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
 
 let failed = 0;
@@ -89,6 +91,16 @@ assert(roundedLayout.outerCornerRadius === 8, "layout exposes corner radius");
 const poly = outerPerimeterPoly(roundedLayout.outer.w, roundedLayout.outer.h, 8, 8);
 assert(poly.length > 8, "rounded outer perimeter has arc points");
 assert(APP_VERSION.includes("Oct 30, 2026"), "version date");
+assert(APP_VERSION.startsWith("6"), "bubble frame version bump");
+
+const polaroid = layoutBeads(applyTargetOverlap({ ...defaultParams(), frameStyle: "polaroid", chinExtra: polaroidChinForPhoto(photoH) }));
+assert(polaroid.chinExtra > 18, "polaroid chin adds bottom bar");
+almost(polaroid.outer.h, layout.outer.h + polaroid.chinExtra, 1e-6, "outer height grows with chin");
+
+const cap = captionLayout(polaroid);
+assert(cap.enabled && cap.polys.length > 20, "caption layout builds letter meshes");
+const txt = layoutCaptionText("LOVE", { letterHeight: 8, maxWidth: 80 });
+assert(txt.polys.length > 4, "glyph polys for LOVE");
 
 const topEdge = layout.beads.filter((b) => b.id.startsWith("top-") || b.id === "corner-tl" || b.id === "corner-tr");
 assert(topEdge.length === 8, "top side includes corners");
