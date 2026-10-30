@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { plateLoop, socketShellBoxes } from "../shared/frame-clip.js";
-import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon } from "./geometry.js";
+import { pegStandPlateBoxes, plateLoop } from "../shared/frame-clip.js";
+import { PART_SHOW } from "../shared/frame-pick-map.js";
+import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -80,8 +81,8 @@ export class FramePreview {
       metalness: 0.05,
     });
     this.standMat = new THREE.MeshStandardMaterial({
-      color: 0xa8a29e,
-      roughness: 0.62,
+      color: 0x44403c,
+      roughness: 0.55,
       metalness: 0.04,
     });
     this.holeMat = new THREE.MeshBasicMaterial({
@@ -98,19 +99,19 @@ export class FramePreview {
       side: THREE.DoubleSide,
     });
 
-    this.raycaster = new THREE.Raycaster();
-    this.pointer = new THREE.Vector2();
     this.beadMeshes = [];
     this.photoMesh = null;
     this.plateMesh = null;
     this.partView = "assembled";
+    this._userShow = { ...PART_SHOW.assembled };
+    this._v = new THREE.Vector3();
+    this._n = new THREE.Vector3();
     this.tempGeoms = [];
     this.geomCache = new Map();
     this.running = true;
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
 
-    canvas3d.addEventListener("pointerdown", (e) => this._on3dPointer(e));
     canvas2d.addEventListener("pointerdown", (e) => this._on2dPointer(e));
     canvas2d.addEventListener("pointermove", (e) => this._on2dMove(e));
     canvas2d.addEventListener("pointerleave", () => {
@@ -149,18 +150,82 @@ export class FramePreview {
   }
 
   setPartView(mode) {
-    this.partView = mode === "cover" || mode === "back" ? mode : "assembled";
-    this._applyPartView();
+    this.partView = mode === "cover" || mode === "back" || mode === "side" ? mode : "assembled";
+    this.setShown(PART_SHOW[this.partView] || PART_SHOW.assembled);
+    this._applyPose();
     this.fit();
+    return { ...this._userShow };
   }
 
-  _applyPartView() {
+  setShown(shown) {
+    this._userShow = { ...this._userShow, ...(shown || {}) };
+    this._applyShown();
+  }
+
+  _applyShown() {
     if (!this.coverGroup) return;
-    const mode = this.partView;
-    this.coverGroup.visible = mode !== "back";
-    this.photoGroup.visible = mode === "assembled" || mode === "cover";
-    this.backGroup.visible = mode !== "cover";
-    this.standGroup.visible = mode !== "cover";
+    const s = this._userShow;
+    this.coverGroup.visible = s.cover !== false;
+    this.photoGroup.visible = s.photo !== false;
+    this.backGroup.visible = s.back !== false;
+    this.standGroup.visible = s.stand !== false && Boolean(this._clip?.pegStand?.cut);
+  }
+
+  toContent(hit) {
+    if (!hit?.point || !this.content) return hit;
+    this.group.updateMatrixWorld(true);
+    this._v.set(hit.point.x, hit.point.y, hit.point.z);
+    this.content.worldToLocal(this._v);
+    const point = { x: this._v.x, y: this._v.y, z: this._v.z };
+    let normal = hit.normal;
+    if (hit.normal) {
+      this._n.set(hit.normal.x, hit.normal.y, hit.normal.z);
+      const m = new THREE.Matrix3().getNormalMatrix(this.content.matrixWorld).invert();
+      this._n.applyMatrix3(m).normalize();
+      normal = { x: this._n.x, y: this._n.y, z: this._n.z };
+    }
+    return { ...hit, point, normal };
+  }
+
+  worldBox(box) {
+    if (!box?.min || !box?.max || !this.content) return box;
+    this.group.updateMatrixWorld(true);
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    const [x0, y0, z0] = box.min;
+    const [x1, y1, z1] = box.max;
+    for (const x of [x0, x1]) {
+      for (const y of [y0, y1]) {
+        for (const z of [z0, z1]) {
+          this._v.set(x, y, z);
+          this.content.localToWorld(this._v);
+          min[0] = Math.min(min[0], this._v.x);
+          min[1] = Math.min(min[1], this._v.y);
+          min[2] = Math.min(min[2], this._v.z);
+          max[0] = Math.max(max[0], this._v.x);
+          max[1] = Math.max(max[1], this._v.y);
+          max[2] = Math.max(max[2], this._v.z);
+        }
+      }
+    }
+    return { min, max };
+  }
+
+  toWorld(x, y, z) {
+    this.group.updateMatrixWorld(true);
+    this._v.set(x, y, z);
+    this.content.localToWorld(this._v);
+    return { x: this._v.x, y: this._v.y, z: this._v.z };
+  }
+
+  _applyPose() {
+    if (!this.pose || !this.layout) return;
+    const lean = this.partView === "assembled" || this.partView === "side";
+    const theta = lean && this._clip?.pegStand?.cut ? this._clip.pegStand.angleRad : 0;
+    const pivotY = -this.layout.outer.h / 2;
+    this.content.position.y = -pivotY;
+    this.pose.position.y = pivotY;
+    this.pose.rotation.x = -theta;
   }
 
   resize() {
@@ -176,17 +241,20 @@ export class FramePreview {
 
   fit() {
     if (!this.layout) return;
-    const extra = this.layout.params.standEnabled ? this.layout.params.standHeight * 0.35 : 0;
-    const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
+    const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
     const dist = span * 1.85;
+    const leg = this._clip?.pegStand?.legReach || span * 0.3;
     this.camera.up.set(0, 1, 0);
-    const back = this.partView === "back";
-    this.camera.position.set(
-      back ? dist * 0.18 : dist * 0.16,
-      back ? -dist * 0.22 : -dist * 0.06,
-      dist * (back ? 0.95 : 1.02)
-    );
-    this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.radius * 0.2);
+    if (this.partView === "side") {
+      this.camera.position.set(dist * 0.78, span * 0.04, -dist * 0.7);
+      this.controls.target.set(0, -span * 0.02, -leg * 0.22);
+    } else if (this.partView === "back") {
+      this.camera.position.set(dist * 0.14, -dist * 0.02, -dist);
+      this.controls.target.set(0, 0, -leg * 0.18);
+    } else {
+      this.camera.position.set(0, 0, dist);
+      this.controls.target.set(0, 0, this.partView === "cover" ? this.layout.radius * 0.2 : 0);
+    }
     this.controls.update();
   }
 
@@ -233,16 +301,21 @@ export class FramePreview {
     this._clearTemps();
     this.beadMeshes = [];
     const clip = frameClipFor(layout);
+    this._clip = clip;
 
+    this.pose = new THREE.Group();
+    this.content = new THREE.Group();
+    this.pose.add(this.content);
+    this.group.add(this.pose);
     this.coverGroup = new THREE.Group();
     this.coverGroup.position.z = clip.frameBackZ;
     this.backGroup = new THREE.Group();
     this.standGroup = new THREE.Group();
     this.photoGroup = new THREE.Group();
-    this.group.add(this.backGroup);
-    this.group.add(this.standGroup);
-    this.group.add(this.photoGroup);
-    this.group.add(this.coverGroup);
+    this.content.add(this.backGroup);
+    this.content.add(this.standGroup);
+    this.content.add(this.photoGroup);
+    this.content.add(this.coverGroup);
 
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
@@ -265,12 +338,8 @@ export class FramePreview {
       this._addBox(this.backGroup, rail.stop, this.slotMat);
       for (const lip of rail.lips) this._addBox(this.backGroup, lip, this.slotMat);
     }
-    if (clip.socket) {
-      for (const part of socketShellBoxes(clip.socket)) this._addBox(this.backGroup, part, this.slotMat);
-      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      stand.rotation.y = -Math.PI / 2;
-      stand.position.set(0, clip.socket.standPlace.py, clip.socket.standPlace.pz);
-      this.standGroup.add(stand);
+    if (clip.pegStand?.cut) {
+      for (const part of pegStandPlateBoxes(clip.pegStand)) this._addBox(this.standGroup, part, this.standMat);
     }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
@@ -286,7 +355,8 @@ export class FramePreview {
       ring.position.set(hole.x, hole.y, clip.plate.t + 0.05);
       this.backGroup.add(ring);
     }
-    this._applyPartView();
+    this._applyShown();
+    this._applyPose();
   }
 
   _plateGeom(layout, clip) {
@@ -302,6 +372,21 @@ export class FramePreview {
       path.absarc(hole.x, hole.y, hole.r, 0, Math.PI * 2, false);
       shape.holes.push(path);
     }
+    if (clip.pegStand?.cut) {
+      for (const hole of clip.pegStand.holes) {
+        const path = new THREE.Path();
+        const x0 = hole.x - hole.w / 2;
+        const x1 = hole.x + hole.w / 2;
+        const y0 = hole.y - hole.h / 2;
+        const y1 = hole.y + hole.h / 2;
+        path.moveTo(x0, y0);
+        path.lineTo(x1, y0);
+        path.lineTo(x1, y1);
+        path.lineTo(x0, y1);
+        path.closePath();
+        shape.holes.push(path);
+      }
+    }
     const geom = new THREE.ExtrudeGeometry(shape, {
       depth: t,
       bevelEnabled: false,
@@ -310,42 +395,11 @@ export class FramePreview {
     return this._trackGeom(geom);
   }
 
-  _standGeom(params) {
-    const poly = standPolygon(params);
-    const shape = new THREE.Shape();
-    shape.moveTo(poly[0][0], poly[0][1]);
-    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
-    shape.closePath();
-    const geom = new THREE.ExtrudeGeometry(shape, {
-      depth: params.standWidth,
-      bevelEnabled: false,
-    });
-    geom.translate(0, 0, -params.standWidth / 2);
-    return this._trackGeom(geom);
-  }
-
   _loop() {
     if (!this.running) return;
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this._loop);
-  }
-
-  _eventToNdc(event, canvas) {
-    const rect = canvas.getBoundingClientRect();
-    this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  }
-
-  _on3dPointer(event) {
-    if (!this.layout) return;
-    this._eventToNdc(event, this.canvas3d);
-    this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects(this.beadMeshes);
-    if (hits.length) {
-      event.preventDefault();
-      this.onToggle(hits[0].object.userData.id);
-    }
   }
 
   _worldFrom2d(event) {

@@ -65,6 +65,7 @@ export class FramePreview {
     }
     if (shade || !geo.getAttribute("normal")) geo.computeVertexNormals();
     this.span = span;
+    this.clearMeasure?.();
     if (!this.fitted) this.fit();
   }
 
@@ -99,6 +100,7 @@ export class FramePreview {
   _loop() {
     if (!this.running) return;
     this.controls.update();
+    if (this.picks?.length === 2) this._placeMeasureBubble?.();
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this._loop);
   }
