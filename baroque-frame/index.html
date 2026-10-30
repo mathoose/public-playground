@@ -76,6 +76,16 @@
       <p class="foot" id="app-version">Baroque frame v1 · Oct 27, 2026</p>
     </aside>
   </div>
+  <script>
+    if (!Uint8Array.fromBase64) {
+      Uint8Array.fromBase64 = function (s) {
+        var bin = atob(s);
+        var out = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+      };
+    }
+  </script>
   <script src="./app.bundle.js"></script>
   <script>
     if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
