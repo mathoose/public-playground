@@ -10,22 +10,53 @@ import {
   warnings,
 } from "./geometry.js";
 import { TagPreview } from "./preview.js";
-import { buildTag, buildTagStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves, wireFaceMeasure } from "../shared/wire-designer.js";
+import { measurePair } from "./pick-map.js";
+import * as THREE from "three";
+
+const APP_ID = "paddington-tag";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
 
 function fmtValue(key, n) {
-  const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
+  if (key === "letterShift") {
+    const v = Number(n);
+    if (Math.abs(v) < 0.05) return "at the photo";
+    const mag = Math.abs(v).toFixed(1);
+    return v > 0 ? `up ${mag}` : `down ${mag}`;
+  }
+  const spec = SLIDERS.find((s) => s.key === key);
+  const step = spec?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
-  return `${Number(n).toFixed(digits)} mm`;
+  const unit = spec?.unit ?? "mm";
+  return `${Number(n).toFixed(digits)} ${unit}`;
 }
 
 function writeParams(p) {
@@ -42,6 +73,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -52,7 +84,7 @@ function setStatus(text, kind = "") {
 }
 
 function renderReadout(result) {
-  const d = result?.d || derive(params);
+  const d = derive(params);
   const warnEl = $("warnings");
   if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
   const el = $("readout");
@@ -61,9 +93,9 @@ function renderReadout(result) {
   const tris = result ? Math.round(result.tris) : "—";
   el.innerHTML = `
     Tag <b>${d.width.toFixed(1)} × ${d.height.toFixed(1)} × ${d.totalH.toFixed(2)} mm</b>
-    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)})<br />
+    (plate ${d.p.thickness.toFixed(1)} + letters ${d.p.letterH.toFixed(2)}, size ${d.p.letterSize.toFixed(0)}%, shift ${d.p.letterShift.toFixed(1)} mm)<br />
     Hole <b>${d.p.hole.toFixed(1)} mm</b> at the top, ${ (d.height - d.holeY - d.p.hole / 2).toFixed(1) } mm of plastic above it<br />
-    One color · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
+    Three colors · paper body / letters / brown ring · flat on the bed · PLA ~<b>${grams} g</b> · ${tris} tris
   `;
 }
 
@@ -90,14 +122,32 @@ function scheduleRebuild() {
   rebuildTimer = window.setTimeout(() => rebuild(), 40);
 }
 
-async function downloadStl() {
-  setStatus("Building STL…");
+async function download3mf() {
+  setStatus("Building 3MF…");
   try {
-    const { stl, volume } = await buildTagStl(params);
-    const grams = ((volume / 1000) * 1.24).toFixed(1);
+    const built = await buildTagStls(params);
     const h = params.height.toFixed(0);
-    downloadArrayBuffer(`paddington-tag-${APP_VERSION_TAG}-${h}mm.stl`, stl);
-    setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${grams} g PLA`);
+    const filename = `paddington-tag-${APP_VERSION_TAG}-${h}mm.3mf`;
+    downloadArrayBuffer(filename, built.threemf, "model/3mf");
+    noteDownload(filename);
+    setStatus(`3MF · one assembly · body, letters, ring · ${Math.round(built.tris)} tris`);
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+async function downloadPart(part) {
+  setStatus(`Building ${part} STL…`);
+  try {
+    const built = await buildTagStls(params);
+    const piece = built.parts[part];
+    const h = params.height.toFixed(0);
+    const filename = `paddington-tag-${APP_VERSION_TAG}-${part}-${h}mm.stl`;
+    downloadArrayBuffer(filename, piece.stl);
+    noteDownload(filename);
+    const grams = ((piece.volume / 1000) * 1.24).toFixed(1);
+    setStatus(`${part} · ${stlTriangleCount(piece.stl)} tris · ~${grams} g PLA`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");
@@ -107,6 +157,7 @@ async function downloadStl() {
 function bindShow() {
   const map = [
     ["showLetters", "letters"],
+    ["showRing", "ring"],
     ["showCord", "cord"],
     ["showBed", "bed"],
   ];
@@ -123,7 +174,7 @@ function bindShow() {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -143,7 +194,13 @@ function bind() {
   document.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
-  $("download")?.addEventListener("click", () => downloadStl());
+  document.querySelectorAll("[data-download]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const kind = btn.getAttribute("data-download");
+      if (kind === "3mf") download3mf();
+      else downloadPart(kind);
+    });
+  });
   bindShow();
 }
 
@@ -152,13 +209,42 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new TagPreview({ canvas: $("view") });
 window.__tagPreview = preview;
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+wireFaceMeasure({
+  preview,
+  canvas: $("view"),
+  scene: preview.scene,
+  getTargets: () =>
+    [preview.tagMesh, preview.letterMesh, preview.ringMesh].filter(
+      (m) => m.geometry?.attributes?.position?.count > 0
+    ),
+  getBox: () => {
+    const box = new THREE.Box3();
+    for (const m of [preview.tagMesh, preview.letterMesh, preview.ringMesh]) {
+      if (m.visible && m.geometry?.attributes?.position?.count) box.expandByObject(m);
+    }
+    return box;
+  },
+  measurePair,
+  getParams: () => params,
+  THREE,
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
   read: () => {
-    const { height, hole, letterH, thickness } = params;
-    return { height, hole, letterH, thickness };
+    const { height, hole, letterSize, letterShift, letterH, thickness } = params;
+    return { height, hole, letterSize, letterShift, letterH, thickness };
   },
   apply: (snapshot) => {
     writeParams(snapshot);
@@ -166,12 +252,14 @@ installUndo({
   },
 });
 
+if (!skipLibrary()) rememberVisit(APP_ID);
+
 const capture = new URLSearchParams(location.search).get("capture");
 if (capture) {
   document.body.classList.add("capture");
   preview.renderer.setPixelRatio(2);
-  if (capture === "letters") preview.setShow({ letters: true, cord: false, bed: false });
-  if (capture === "front") preview.setShow({ letters: true, cord: false, bed: true });
+  if (capture === "letters") preview.setShow({ letters: true, ring: true, cord: false, bed: false });
+  if (capture === "front") preview.setShow({ letters: true, ring: true, cord: false, bed: true });
 }
 
 rebuild().then(() => {

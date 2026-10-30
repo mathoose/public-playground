@@ -108,6 +108,8 @@ export class CasePreview {
 
     this.fitted = false;
     this.running = true;
+    this._viewCord = true;
+    this.userParts = { sleeve: true, bank: true, cord: true };
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
 
@@ -182,8 +184,26 @@ export class CasePreview {
   }
 
   showCord(on) {
-    this.cordA.visible = !!on;
-    this.cordB.visible = !!on;
+    this._viewCord = !!on;
+    this.applyUserParts();
+  }
+
+  /** Preview visibility. Downloads ignore this. Cord camera views can still hide the cord. */
+  setUserParts(parts = {}) {
+    this.userParts = { ...this.userParts, ...parts };
+    this.applyUserParts();
+  }
+
+  applyUserParts() {
+    const u = this.userParts || {};
+    this.caseMesh.visible = u.sleeve !== false;
+    const bank = u.bank !== false;
+    this.bankMesh.visible = bank;
+    this.glassMesh.visible = bank;
+    this.portGroup.visible = bank;
+    const cord = u.cord !== false && this._viewCord !== false;
+    this.cordA.visible = cord;
+    this.cordB.visible = cord;
   }
 
   fit() {

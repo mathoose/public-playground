@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: postit-clip-v4 -->
+<!-- build: postit-clip-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -63,6 +63,15 @@
       margin-bottom: 2px;
     }
     header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; }
+    header .header-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      min-width: 0;
+      flex: 1 1 200px;
+    }
+    header .version { margin: 0; color: var(--muted); font-size: 0.85rem; }
     header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
     .ready {
       display: flex;
@@ -142,16 +151,25 @@
     input[type="range"] { width: 100%; grid-column: 1 / -1; accent-color: var(--accent); }
     .meta { color: var(--muted); font-size: 0.8rem; margin: 4px 0 0; }
     .meta strong { color: var(--ink); font-weight: 600; }
+    .row.mp-hot {
+      background: #fef3c7;
+      outline: 2px solid #d97706;
+      border-radius: 10px;
+      padding: 4px 6px;
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bubble-frame-finder-7f53/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Post-it clip designer</h1>
       </div>
-      <p>v4 · Oct 6, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version">v5 · Oct 19, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -226,7 +244,7 @@
       </div>
       <p class="meta" id="stats"></p>
       <p class="meta">Print on its side (S-profile on the bed). Thickness is the plastic ribbon; width is Z in the slicer. Press sticky putty into the chamfered slot on the flat back.</p>
-      <p class="foot" id="app-version">Post-it clip v4 · Oct 6, 2026</p>
+      <p class="foot" id="app-version">Post-it clip v5 · Oct 19, 2026</p>
     </aside>
   </div>
   <script src="./clip.bundle.js"></script>

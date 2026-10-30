@@ -4,7 +4,7 @@ Small modules reused by the STL designers. They are bundled into each app's `app
 
 ## `undo-history.js` — Undo / Redo for settings
 
-Used by every designer (`bubble-frame/`, `henson-razor-tool/`, `photive-snap-box/`, `postit-wall-clip/`, `striped-frame/`, `power-bank-wrap/`, `paddington-tag/`). New designers must include it.
+Used by every designer (`bubble-frame/`, `henson-razor-tool/`, `photive-snap-box/`, `postit-wall-clip/`, `striped-frame/`, `power-bank-wrap/`, `paddington-tag/`, `gingerbread-switch/`, `baroque-frame/`, `costco-bin-lock/`, `bone-side-bag/`). New designers must include it.
 
 ```js
 import { installUndo } from "../shared/undo-history.js";
@@ -48,3 +48,24 @@ pairSlidersWithNumbers(document.querySelector(".panel"));
 - Slider drags, `writeParams`, Reset, presets and Undo update the field too (it hooks the range's `value` setter).
 - Skips sliders that already share a container with an `<input type="number">` (bubble / striped frame pair their own) and any range marked `data-no-number`.
 - Because typing is clamped, **set slider `max` generously** — the real-world limit, not a "typical" one (e.g. Photive's 14 mm rear cord gap was too tight).
+
+## `library-activity.js` — visits, saves, and exports
+
+The hub’s Latest / Favorites / Last you worked on lists read one `localStorage` key, `mathoose-public-playground:print-library`. Designers bundle this module and call it. The hub inlines the same key because htmlpreview cannot fetch a second file.
+
+```js
+import {
+  lastSettings,
+  rememberExport,
+  rememberSettings,
+  rememberVisit,
+  wantsRestore,
+} from "../shared/library-activity.js";
+
+rememberVisit("your-app");
+const params = wantsRestore() ? (lastSettings("your-app") || defaults) : defaults;
+rememberSettings("your-app", params);
+rememberExport("your-app", { filename: "your-app.stl", params });
+```
+
+`rememberVisit` runs on load. `rememberSettings` and `rememberExport` run when a download succeeds. `wantsRestore()` is true for `?restore=1` and `#restore`, which is how Last you worked on reopens a designer. The saved value is the slider JSON, not the STL.
