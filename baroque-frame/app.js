@@ -14,6 +14,10 @@ import { FramePreview } from "./preview.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { mountDesignerSaves, makeSameParams } from "../shared/designer-saves.js";
+import { attachFaceMeasure, bindFaceMeasureUI, highlightMeasureParams } from "../shared/face-measure.js";
+import { measurePair } from "./pick-map.js";
+import * as THREE from "three";
 
 const APP_ID = "baroque-frame";
 
@@ -36,6 +40,7 @@ const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let mesh = null;
 let mapped = null;
 let rebuildTimer = 0;
@@ -67,6 +72,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -148,6 +154,18 @@ function bind() {
   document.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
+  bindFaceMeasureUI({
+    preview,
+    panel: document.querySelector(".panel"),
+    measureBtn: "measure",
+    hintEl: "hint",
+    defaultHint: "Drag to orbit · pinch/scroll to zoom",
+    onPair: (info) => {
+      if (!info.picks?.[0] || !info.picks?.[1]) return;
+      const mapped = measurePair(info.picks[0], info.picks[1], params);
+      highlightMeasureParams(document.querySelector(".panel"), mapped.params);
+    },
+  });
   $("download-stl")?.addEventListener("click", () => {
     if (!mapped) return;
     setStatus("Building STL…");
@@ -170,6 +188,28 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new FramePreview({ canvas: $("view") });
+attachFaceMeasure(preview, {
+  THREE,
+  canvas: $("view"),
+  scene: preview.scene,
+  getTargets: () => (preview.mesh?.geometry?.attributes?.position ? [preview.mesh] : []),
+  getBox: () => new THREE.Box3().setFromObject(preview.mesh),
+});
+const headerSaves = document.querySelector("header .header-saves");
+if (headerSaves) {
+  savesUi = mountDesignerSaves({
+    appId: APP_ID,
+    anchor: headerSaves,
+    mergeParams,
+    sameParams: makeSameParams(mergeParams, SLIDERS.map((s) => s.key)),
+    getParams: () => params,
+    setParams: (p) => {
+      writeParams(p);
+      shade = true;
+      scheduleRebuild();
+    },
+  });
+}
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({

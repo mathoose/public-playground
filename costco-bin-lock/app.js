@@ -20,8 +20,11 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
-import { identifyFace, slidersAffecting } from "./measure.js";
-import { readSaves, rememberSave, sameSliderParams, writeSaves } from "./saves.js";
+import { sameSliderParams } from "./saves.js";
+import { mountDesignerSaves } from "../shared/designer-saves.js";
+import { bindFaceMeasureUI } from "../shared/face-measure.js";
+import { measurePair } from "./pick-map.js";
+import { identifyFace, slidersAffecting } from "./measure-lock.js";
 
 const APP_ID = "costco-bin-lock";
 const $ = (id) => document.getElementById(id);
@@ -31,7 +34,7 @@ const skipLibrary = pageSearch.has("capture") || pageSearch.has("shot");
 let params = mergeParams(!skipLibrary && wantsRestore() ? lastSettings(APP_ID) || {} : {});
 let affectKeys = [];
 let affectFilter = false;
-let saves = [];
+let affectTitle = "";
 let preview;
 let latest = null;
 let rebuildTimer = 0;
@@ -57,7 +60,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
-  renderSaves();
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -113,119 +116,22 @@ function scheduleRebuild() {
   }, 40);
 }
 
-function setSaveHint(text, kind = "") {
-  const el = $("saveHint");
-  if (!el) return;
-  el.textContent = text;
-  el.dataset.kind = kind;
-}
+let savesUi;
 
-function formatWhen(ms) {
-  try {
-    return new Date(ms).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
-
-function renderSaves() {
-  const list = $("saveList");
-  if (!list) return;
-  list.replaceChildren();
-  if (!saves.length) {
-    const empty = document.createElement("p");
-    empty.className = "save-empty";
-    empty.textContent = "No saves in this browser yet.";
-    list.append(empty);
-    return;
-  }
-  saves.forEach((save, index) => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "save-item";
-    if (sameSliderParams(save.params, params)) btn.classList.add("active");
-    const name = document.createElement("span");
-    name.className = "save-name";
-    name.textContent = index === 0 ? `${save.name} · Latest` : save.name;
-    const note = document.createElement("span");
-    note.className = "save-note";
-    note.textContent = save.note;
-    const when = document.createElement("span");
-    when.className = "save-when";
-    when.textContent = formatWhen(save.savedAt);
-    btn.append(name, note, when);
-    btn.addEventListener("click", () => loadSave(save.id));
-    li.append(btn);
-    list.append(li);
-  });
-}
-
-function loadSave(id) {
-  const save = saves.find((item) => item.id === id);
-  if (!save) return;
-  params = mergeParams(save.params);
-  writeParams(params);
-  const nameEl = $("saveName");
-  const noteEl = $("saveNote");
-  if (nameEl) nameEl.value = save.name;
-  if (noteEl) noteEl.value = save.note;
-  setSaveHint(`Loaded ${save.name}. Edit the sliders, then save again.`);
-  scheduleRebuild();
-}
-
-function saveCurrent() {
-  const result = rememberSave(saves, {
-    name: $("saveName")?.value || "",
-    note: $("saveNote")?.value || "",
-    params,
-    now: Date.now(),
-  });
-  if (!result.ok) {
-    setSaveHint(result.error, "err");
-    return;
-  }
-  saves = result.saves;
-  try {
-    writeSaves((key, value) => localStorage.setItem(key, value), saves);
-  } catch {
-    setSaveHint("This browser blocked saving. Nothing was uploaded.", "err");
-    return;
-  }
-  if ($("saveName")) $("saveName").value = result.entry.name;
-  setSaveHint(result.replaced ? `Replaced ${result.entry.name}.` : `Saved ${result.entry.name}.`);
-  renderSaves();
-}
-
-function refreshSaveHint() {
-  const name = ($("saveName")?.value || "").trim();
-  if (!name) {
-    setSaveHint("");
-    return;
-  }
-  const existing = saves.find((item) => item.name === name);
-  setSaveHint(existing ? `“${name}” is already saved. Saving again replaces it.` : "");
-}
-
-function bindSaves() {
-  try {
-    saves = readSaves((key) => localStorage.getItem(key));
-  } catch {
-    saves = [];
-  }
-  renderSaves();
-  $("saveDesign")?.addEventListener("click", () => saveCurrent());
-  $("saveName")?.addEventListener("input", refreshSaveHint);
-  $("saveName")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      saveCurrent();
-    }
+function bindHeaderSaves() {
+  const anchor = document.querySelector("header .header-saves");
+  if (!anchor) return;
+  savesUi = mountDesignerSaves({
+    appId: APP_ID,
+    anchor,
+    mergeParams,
+    sameParams: sameSliderParams,
+    getParams: () => params,
+    setParams: (p) => {
+      params = mergeParams(p);
+      writeParams(params);
+      scheduleRebuild();
+    },
   });
 }
 
@@ -258,10 +164,11 @@ function sliderLabel(key) {
 }
 
 function affectPhrase() {
-  if (!affectKeys.length) return "no slider changes this";
+  const lead = affectTitle ? `${affectTitle} · ` : "";
+  if (!affectKeys.length) return `${lead}no slider changes this`;
   const names = affectKeys.map(sliderLabel).join(", ");
-  if (affectFilter) return `only ${names} · click for all`;
-  return `${names} · click to show only these`;
+  if (affectFilter) return `${lead}only ${names} · click for all`;
+  return `${lead}${names} · click to show only these`;
 }
 
 function paintAffect() {
@@ -291,6 +198,7 @@ function paintAffect() {
 function clearAffect() {
   affectKeys = [];
   affectFilter = false;
+  affectTitle = "";
   paintAffect();
 }
 
@@ -300,6 +208,8 @@ function showAffect(picks) {
   const b = identifyFace(picks[1].point, picks[1].normal, picks[1].part || "lock", d);
   affectKeys = slidersAffecting(params, a, b);
   affectFilter = false;
+  const mapped = measurePair(picks[0], picks[1], params);
+  affectTitle = mapped?.title && mapped.title !== "Between the two clicks" ? mapped.title : "";
   paintAffect();
   document.querySelector(".panel .row.measure-hot")?.scrollIntoView({ block: "nearest" });
 }
@@ -334,13 +244,16 @@ function bind() {
     });
   });
   $("download")?.addEventListener("click", () => downloadStl());
-  $("measure")?.addEventListener("click", () => {
-    const on = !preview.measureMode;
-    preview.setMeasureMode(on);
-    $("measure")?.classList.toggle("active", on);
-    const hint = $("hint");
-    if (!on) clearAffect();
-    if (hint) hint.textContent = on ? "Click one face, then another" : "Drag to orbit · pinch or scroll to zoom";
+  bindFaceMeasureUI({
+    preview,
+    panel: document.querySelector(".panel"),
+    measureBtn: "measure",
+    hintEl: "hint",
+    defaultHint: "Drag to orbit · pinch or scroll to zoom",
+    onReset: () => clearAffect(),
+    onPair: () => {
+      if (preview.picks?.length === 2) showAffect(preview.picks);
+    },
   });
   $("measureBubble")?.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -348,15 +261,6 @@ function bind() {
     affectFilter = !affectFilter;
     paintAffect();
   });
-  preview.onMeasure = (info) => {
-    if (info.phase === "cleared" || info.phase === "first") clearAffect();
-    if (info.phase === "pair") showAffect(preview.picks);
-    const hint = $("hint");
-    if (!hint || !preview.measureMode) return;
-    if (info.phase === "cleared") hint.textContent = "Click one face, then another";
-    if (info.phase === "first") hint.textContent = "Click the second face";
-    if (info.phase === "pair") hint.textContent = `${info.label} · drag still orbits`;
-  };
 }
 
 const versionEl = $("app-version");
@@ -367,7 +271,7 @@ window.__lockPreview = preview;
 bind();
 if (!skipLibrary) rememberVisit(APP_ID);
 pairSlidersWithNumbers(document.querySelector(".panel"));
-bindSaves();
+bindHeaderSaves();
 window.__lockHistory = installUndo({
   panel: document.querySelector(".panel"),
   read: () => params,

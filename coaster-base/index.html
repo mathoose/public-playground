@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- build: coaster-base-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Coaster base</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/coaster-legs-0644/3d-printing/index.html">← 3D printing library</a>
+        <h1>Coaster base</h1>
+      </div>
+      <p>v1 · Oct 27, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip active" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="top">Top</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Legs</summary>
+        <div class="group-body">
+          <p class="group-note">The four corner legs are twice the original size. Each one is twice as tall, twice as thick, and twice as wide, with a small gap so they stay four separate feet. The Merry Christmas letters and the 112 mm width are unchanged.</p>
+          <div class="readout">
+            <b>112 × 112 × 31 mm.</b> The deck is still 5 mm. Each leg rises 26 mm above it (was 13 mm), the wall is 10 mm thick (was 5 mm), and each foot spans about a quarter of the rim.
+          </div>
+        </div>
+      </details>
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download STL</button>
+          </div>
+          <div class="ready">
+            <a href="./coaster-base-v1.stl" download>coaster-base-v1.stl</a>
+          </div>
+          <p class="status" id="status"></p>
+          <p class="notes">Print the lettering up, flat on the bed, 0.2 mm layers, no supports. The legs are part of the rim, so nothing is floating.</p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Coaster base v1 · Oct 27, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

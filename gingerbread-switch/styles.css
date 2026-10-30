@@ -264,3 +264,38 @@ button.wide { background: var(--accent-2); }
     border-left: 1px solid var(--line);
   }
 }
+
+.stage.measuring #view { cursor: crosshair; }
+.measure-bubble {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -140%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 12px 7px;
+  border-radius: 999px;
+  background: #9a3412;
+  color: #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(28, 25, 23, 0.22);
+}
+.measure-bubble[hidden] { display: none !important; }
+.measure-bubble b { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.measure-bubble span { font-size: 0.68rem; font-weight: 650; opacity: 0.92; }
+header .header-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+header .version { margin: 0; color: var(--muted, #78716c); font-size: 0.85rem; }
+.row.mp-hot, .field.mp-hot {
+  background: #fef3c7;
+  outline: 2px solid #d97706;
+  border-radius: 10px;
+}

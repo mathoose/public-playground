@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { DEFAULT_PARAMS, derive } from "./geometry.js";
-import { calloutShift, faceGap, identifyFace, segmentHitsAabb, slidersAffecting } from "./measure.js";
+import { calloutShift, faceGap, segmentHitsAabb } from "./measure.js";
+import { identifyFace, slidersAffecting } from "./measure-lock.js";
 
 const boxMin = [-8, -14, 0];
 const boxMax = [8, 14, 12];

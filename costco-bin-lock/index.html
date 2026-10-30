@@ -14,7 +14,10 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bin-clip-measure-0644/3d-printing/index.html">← 3D printing library</a>
         <h1>Costco bin lock</h1>
       </div>
-      <p>v4 · Oct 27, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version">v4 · Oct 27, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -77,24 +80,6 @@
             <input id="clipThickness" type="range" min="2.8" max="7" step="0.1" value="4.2" />
           </div>
           <div id="warnings"></div>
-        </div>
-      </details>
-
-      <details class="settings-group" open>
-        <summary>Saves</summary>
-        <div class="group-body">
-          <p class="group-note">Saved in this browser only, including on the preview page. Nothing is uploaded. Tap a save to load those sliders, keep editing, then save again. The same name replaces that save. Newest is on top.</p>
-          <div class="save-fields">
-            <label for="saveName">Name</label>
-            <input id="saveName" type="text" maxlength="80" autocomplete="off" placeholder="Full bin, deeper hook" />
-            <label for="saveNote">Note</label>
-            <textarea id="saveNote" rows="2" maxlength="400" placeholder="What you changed"></textarea>
-          </div>
-          <div class="actions">
-            <button type="button" class="wide" id="saveDesign">Save these sliders</button>
-          </div>
-          <p class="save-hint" id="saveHint"></p>
-          <ul class="save-list" id="saveList"></ul>
         </div>
       </details>
 
