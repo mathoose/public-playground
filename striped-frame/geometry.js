@@ -1,7 +1,9 @@
 /** Path-stripe picture frame: alternating bands along the moulding loop. Units mm. */
 
-export const APP_VERSION = "4 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v3";
+import { frameClipLayout } from "../shared/frame-clip.js";
+
+export const APP_VERSION = "6 · Oct 18, 2026";
+export const APP_VERSION_TAG = "v6";
 
 /** Front-face edge finish modes. */
 export const EDGE_MODES = [
@@ -572,53 +574,33 @@ export function ensureCcw(poly) {
   return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
 }
 
+/** Slide-rail mate for this moulding layout. Shared with the bubble frame. */
+export function frameClipFor(layout) {
+  const p = layout.params;
+  return frameClipLayout({
+    outerW: layout.outer.w,
+    outerH: layout.outer.h,
+    border: p.mouldingWidth,
+    coverHeight: layout.maxHeight,
+    plateT: p.plateThickness,
+    cornerRadius: p.outerCornerRadius,
+    standWidth: p.standWidth,
+    standThickness: p.standThickness,
+    standEnabled: p.standEnabled,
+    standAngleDeg: p.standAngleDeg,
+    standHeight: p.standHeight,
+  });
+}
+
 export function standSlotLayout(p) {
   const params = clampParams(p);
   if (!params.standEnabled) return null;
-  const wall = 2.4;
-  const clearance = 0.4;
-  const insertH = Math.min(24, Math.max(12, 0.12 * params.photoH));
-  const slotW = params.standWidth + clearance;
-  const slotD = params.standThickness + clearance;
-  const bossW = slotW + 2 * wall;
-  const bossH = insertH + 3.5;
-  const bossD = slotD + wall;
-  const lift = Math.max(2.5, params.mouldingWidth - params.lip);
-  return {
-    wall,
-    clearance,
-    insertH,
-    slotW,
-    slotD,
-    bossW,
-    bossH,
-    bossD,
-    lift,
-  };
+  return frameClipFor(layoutStripes(params)).socket;
 }
 
 export function standPolygon(p) {
   const params = clampParams(p);
-  const slot = standSlotLayout({ ...params, standEnabled: true });
-  const tabT = params.standThickness;
-  const insertH = slot.insertH - 0.7;
-  const lift = slot.lift;
-  const join = Math.min(2.4, lift);
-  const tabBottom = lift - join;
-  const thick = params.standThickness;
-  const θ = (params.standAngleDeg * Math.PI) / 180;
-  const heelX = -params.standHeight * Math.tan(θ) - 10;
-  const poly = [
-    [tabT, tabBottom],
-    [tabT, lift + insertH],
-    [0, lift + insertH],
-    [0, lift],
-    [-thick, tabBottom],
-    [heelX - thick, 0],
-    [heelX, 0],
-    [0, tabBottom],
-  ];
-  return ensureCcw(poly);
+  return frameClipFor(layoutStripes({ ...params, standEnabled: true })).standPoly;
 }
 
 export function standBounds(poly) {

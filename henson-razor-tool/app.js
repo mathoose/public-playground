@@ -13,18 +13,40 @@ import { ToolPreview } from "./preview.js";
 import { buildAll, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { installModelPick } from "../shared/model-pick.js";
+import * as THREE from "three";
+import { inspectHenson, measureHenson } from "./pick-map.js";
+
+const APP_ID = "henson-razor-tool";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 const UNITS = Object.fromEntries(SLIDERS.map((s) => [s.key, s.unit]));
 
 let params = mergeParams();
 let preview;
+let pick;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
-let partView = "both";
-let showRazor = true;
-
 function fmtValue(key, n) {
   const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
   const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
@@ -43,6 +65,7 @@ function writeParams(p) {
     if (el) el.value = String(params[key]);
     if (out) out.textContent = fmtValue(key, params[key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -76,6 +99,12 @@ async function rebuild() {
     if (gen !== rebuildGen) return;
     latest = result;
     preview.update(result);
+    preview.setVisible({
+      cradle: pick.visibility().cradle !== false,
+      grip: pick.visibility().grip !== false,
+      razor: pick.visibility().razor !== false,
+    });
+    pick.refresh();
     renderReadout(result);
     setStatus("Live");
   } catch (err) {
@@ -96,6 +125,7 @@ async function downloadPart(part) {
     const { stl, volume } = await buildPartStl(params, part);
     const name = part === "grip" ? "handle-grip" : "head-cradle";
     downloadArrayBuffer(`henson-${name}-${APP_VERSION_TAG}.stl`, stl);
+    noteDownload(`henson-${name}-${APP_VERSION_TAG}.stl`);
     setStatus(`${part} · ${stlTriangleCount(stl)} tris · ~${((volume / 1000) * 1.27).toFixed(1)} g PETG`);
   } catch (err) {
     console.error(err);
@@ -104,15 +134,15 @@ async function downloadPart(part) {
 }
 
 function applyView() {
-  document.querySelectorAll("[data-part]").forEach((btn) => {
-    btn.classList.toggle("active", btn.getAttribute("data-part") === partView);
+  preview?.setVisible({
+    cradle: pick.visibility().cradle !== false,
+    grip: pick.visibility().grip !== false,
+    razor: pick.visibility().razor !== false,
   });
-  $("razorToggle")?.classList.toggle("active", showRazor);
-  preview?.setVisible({ cradle: partView !== "grip", grip: partView !== "cradle", razor: showRazor });
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -130,24 +160,54 @@ function bind() {
   $("resetView")?.addEventListener("click", () => preview.fit());
   $("dlCradle")?.addEventListener("click", () => downloadPart("cradle"));
   $("dlGrip")?.addEventListener("click", () => downloadPart("grip"));
-  document.querySelectorAll("[data-part]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      partView = btn.getAttribute("data-part");
-      applyView();
-      preview.fit();
-    });
-  });
-  $("razorToggle")?.addEventListener("click", () => {
-    showRazor = !showRazor;
-    applyView();
-  });
 }
 
 const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new ToolPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas: $("view"),
+  camera: preview.camera,
+  scene: preview.scene,
+  getParts: () => [
+    { id: "cradle", label: "Cradle", objects: [{ object: preview.meshes.cradle, hit: "cradle" }] },
+    { id: "grip", label: "Grip", objects: [{ object: preview.meshes.grip, hit: "grip" }] },
+    {
+      id: "razor",
+      label: "Razor",
+      preview: true,
+      objects: [
+        { object: preview.meshes.ghost, hit: "razor" },
+        { object: preview.meshes.blade, hit: "blade" },
+      ],
+    },
+  ],
+  inspect: (hit) => inspectHenson(hit, latest?.d || derive(params)),
+  measure: (a, b) => measureHenson(a, b, latest?.d || derive(params)),
+  onVisible: (shown) => {
+    preview.setVisible({
+      cradle: shown.cradle !== false,
+      grip: shown.grip !== false,
+      razor: shown.razor !== false,
+    });
+  },
+});
+window.__pick = pick;
 bind();
+if (!skipLibrary()) rememberVisit(APP_ID);
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),

@@ -1,10 +1,11 @@
+import { addCoverTongues, buildSlideBack } from "../shared/frame-clip-solid.js";
 import {
   clampParams,
   edgeFinishSizes,
+  frameClipFor,
   hangHoleLayout,
   layoutStripes,
   standPolygon,
-  standSlotLayout,
 } from "./geometry.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
@@ -247,14 +248,16 @@ export async function buildFrameMesh(params) {
     if (solid !== parts[0]) temps.push(solid);
 
     solid = applyFrameFinishes(Manifold, solid, layout, temps);
+    const withTongues = addCoverTongues(Manifold, solid, frameClipFor(layout), temps);
+    if (withTongues !== solid) temps.push(withTongues);
 
-    const status = solid.status ? solid.status() : "NoError";
+    const status = withTongues.status ? withTongues.status() : "NoError";
     if (status && status !== "NoError") {
       throw new Error(`Manifold error: ${status}`);
     }
 
-    const mesh = solid.getMesh();
-    const volume = solid.volume();
+    const mesh = withTongues.getMesh();
+    const volume = withTongues.volume();
     const stl = meshToStl(mesh, "striped-frame");
     return { stl, volume, layout };
   } finally {
@@ -304,60 +307,14 @@ export async function buildColorMeshes(params) {
 }
 
 export async function buildBackPlateStl(params) {
-  const p = layoutStripes(params).params;
-  const holes = hangHoleLayout(p);
-  const slot = standSlotLayout(p);
-  if (holes.length === 0 && !slot) {
-    return {
-      stl: boxStl(p.photoW, p.photoH, p.plateThickness, "striped-frame-back"),
-      volume: p.photoW * p.photoH * p.plateThickness,
-    };
-  }
-
+  const layout = layoutStripes(params);
+  const clip = frameClipFor(layout);
+  const holes = hangHoleLayout(layout.params);
   const wasm = await loadManifold();
   const { Manifold } = wasm;
   const temps = [];
   try {
-    const plate = Manifold.cube([p.photoW, p.photoH, p.plateThickness], true).translate(
-      0,
-      0,
-      p.plateThickness / 2
-    );
-    temps.push(plate);
-    let solid = plate;
-    if (slot) {
-      const boss = Manifold.cube([slot.bossW, slot.bossH, slot.bossD], true).translate(
-        0,
-        -p.photoH / 2 + slot.bossH / 2,
-        p.plateThickness + slot.bossD / 2
-      );
-      temps.push(boss);
-      const withBoss = solid.add(boss);
-      temps.push(withBoss);
-      const cutter = Manifold.cube([slot.slotW, slot.bossH + 8, slot.slotD], true).translate(
-        0,
-        -p.photoH / 2 + slot.insertH / 2 - 2,
-        p.plateThickness + slot.slotD / 2
-      );
-      temps.push(cutter);
-      solid = withBoss.subtract(cutter);
-      temps.push(solid);
-    }
-    if (holes.length) {
-      const drills = holes.map((h) => {
-        const cyl = Manifold.cylinder(p.plateThickness + 4, h.r, h.r, 36, true).translate(
-          h.x,
-          h.y,
-          p.plateThickness / 2
-        );
-        temps.push(cyl);
-        return cyl;
-      });
-      const cutter = drills.length === 1 ? drills[0] : Manifold.union(drills);
-      if (cutter !== drills[0]) temps.push(cutter);
-      solid = solid.subtract(cutter);
-      temps.push(solid);
-    }
+    const solid = buildSlideBack(Manifold, clip, holes, temps);
     const status = solid.status ? solid.status() : "NoError";
     if (status && status !== "NoError") throw new Error(`Back plate manifold error: ${status}`);
     const mesh = solid.getMesh();

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- build: private-models-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Private</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <form id="gate" class="gate" autocomplete="off">
+    <div class="gate-card">
+      <div class="lock-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <h1>Private models</h1>
+      <p class="gate-note">Personal-use files. Enter your PIN to decrypt them on this device.</p>
+      <label class="sr" for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="PIN" />
+      <button id="unlockBtn" type="submit" class="wide">Unlock</button>
+      <p id="gateMsg" class="gate-msg" role="status" aria-live="polite"></p>
+      <a class="gate-back" href="https://mathoose.github.io/cursor-apps/3d-printing-library/">← 3d print hub</a>
+    </div>
+  </form>
+
+  <div class="app" id="privateApp" hidden>
+    <header>
+      <div>
+        <a class="lib" href="https://mathoose.github.io/cursor-apps/3d-printing-library/">← 3d print hub</a>
+        <h1 id="title">2-phone wall holder</h1>
+      </div>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+      </div>
+      <div class="head-right">
+        <div class="seg tabs">
+          <button class="chip active" type="button" data-tab="holder">Phone holder</button>
+          <button class="chip" type="button" data-tab="pumpkin">Pumpkin</button>
+        </div>
+        <button class="chip lock-btn" type="button" id="lock" aria-label="Lock">🔒</button>
+      </div>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="iso">Iso</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip" data-view="top">Top</button>
+        <button type="button" class="chip active" id="showPhones" data-holder-only>Phones</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <div id="holderPanel">
+        <details class="settings-group" open>
+          <summary>Base</summary>
+          <div class="group-body">
+            <p class="group-note">Remix of Jonesman's “Wall-Mounted Phone Holder Integrated Cable pocket” (MakerWorld #3024216), deepened to hold two phones. Personal use only, don't share the files.</p>
+            <div class="seg">
+              <button class="chip active" type="button" data-base="screw">Screw (V2)</button>
+              <button class="chip" type="button" data-base="glue">Glue / tape (V2 closed)</button>
+            </div>
+            <div class="seg">
+              <button class="chip active" type="button" data-preset="two">2 iPhones in cases</button>
+              <button class="chip" type="button" data-preset="thick">2 thick cases</button>
+              <button class="chip" type="button" data-preset="original">Original (1 phone)</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="settings-group" open>
+          <summary>Pocket</summary>
+          <div class="group-body">
+            <p class="group-note">Depth is measured inside at the floor, front lip to the leaning back wall. Walls stay 2 mm, and the slot, cable clip and screw holes don't move.</p>
+            <div class="row">
+              <label for="depth">Inner depth</label>
+              <output id="depth-out"></output>
+              <input id="depth" type="range" min="17.2" max="45" step="0.1" value="27" />
+            </div>
+            <div class="row">
+              <label for="width">Inner width</label>
+              <output id="width-out"></output>
+              <input id="width" type="range" min="85" max="105" step="0.5" value="85" />
+            </div>
+          </div>
+        </details>
+
+        <details class="settings-group" open>
+          <summary>Phones (preview)</summary>
+          <div class="group-body">
+            <p class="group-note">Ghost phones in the viewer, used for the fit check. iPhone 15/16 Pro Max is 8.25 mm thick and 77.6 mm wide bare, and about 11–12 mm and 81–82 mm in a typical case.</p>
+            <div class="row">
+              <label for="phoneT">Phone + case thickness</label>
+              <output id="phoneT-out"></output>
+              <input id="phoneT" type="range" min="7" max="16" step="0.1" value="12" />
+            </div>
+            <div class="row">
+              <label for="phones">Phones stacked</label>
+              <output id="phones-out"></output>
+              <input id="phones" type="range" min="1" max="3" step="1" value="2" />
+            </div>
+            <div class="row">
+              <label for="phoneW">Phone + case width</label>
+              <output id="phoneW-out"></output>
+              <input id="phoneW" type="range" min="60" max="90" step="0.5" value="81.5" />
+            </div>
+            <div class="actions">
+              <button type="button" class="secondary" id="fitDepth">Fit depth to phones</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="settings-group" open>
+          <summary>Download</summary>
+          <div class="group-body">
+            <div class="actions">
+              <button type="button" class="wide" id="download">Download this STL</button>
+              <button type="button" class="secondary" id="reset">Reset</button>
+            </div>
+            <div class="ready">
+              <button type="button" class="secondary" data-item="holder-default">Print default (27 mm)</button>
+            </div>
+            <div id="readout" class="readout"></div>
+            <div id="warnings"></div>
+            <p class="status" id="status"></p>
+            <p class="notes">Print it standing on its base as the original does: <b>PLA or PETG, 0.2 mm layers, no supports</b>. The extra depth is straight floor and side wall, so it adds no overhangs.</p>
+          </div>
+        </details>
+      </div>
+
+      <div id="pumpkinPanel" hidden>
+        <details class="settings-group" open>
+          <summary>Size</summary>
+          <div class="group-body">
+            <p class="group-note">CHKN3D's “Mini Halloween Pumpkin Fidget” (MakerWorld). Personal use only.</p>
+            <div class="seg">
+              <button class="chip active" type="button" data-scale="1">1x</button>
+              <button class="chip" type="button" data-scale="2">2x</button>
+              <button class="chip" type="button" data-scale="3">3x</button>
+            </div>
+            <div id="pumpkinReadout" class="readout"></div>
+            <p class="status" id="pumpkinStatus"></p>
+          </div>
+        </details>
+        <details class="settings-group" open>
+          <summary>Download</summary>
+          <div class="group-body">
+            <div class="ready dl-list">
+              <button type="button" class="secondary" data-item="pumpkin-1x">1x STL</button>
+              <button type="button" class="secondary" data-item="pumpkin-2x">2x STL</button>
+              <button type="button" class="secondary" data-item="pumpkin-3x">3x STL</button>
+              <button type="button" class="secondary" data-item="pumpkin-plate-stl">2x + 3x plate STL</button>
+              <button type="button" class="secondary" data-item="pumpkin-plate-3mf">2x + 3x plate 3MF</button>
+            </div>
+          </div>
+        </details>
+      </div>
+      <p class="foot" id="app-version">Private models v1 · Oct 17, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+</body>
+</html>

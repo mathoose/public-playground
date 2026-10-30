@@ -54,6 +54,25 @@ Live URLs after merge:
 
 When you export or ship Bubble Frame, also keep **clickable STL download links** in the app (`#exportLinks`) pointing at the latest generated frame / back plate / stand.
 
+When the change adds or ships a project in the 3D printing library, also follow `.cursor/skills/3d-printing-library/SKILL.md`. Every new project is added to the hub with today’s date and the next `data-seq`, so Latest stays newest-first.
+
+### Joint 3MF (multi-part prints)
+
+Whenever an app ships more than one mesh — colors, raised letters, a ring, icing, candy — always offer both:
+
+1. **Separate STLs**, one file per part, all in the same millimeter coordinates.
+2. **The joint file**: one `.3mf` of those parts as a single assembly. This is the import that should land already stacked. The page offers it next to the STLs.
+
+Build that 3MF as one assembly. A slicer drops every `<build>` item onto the bed, so one item per part plants raised pieces inside the base (this is what buried the Paddington letters and ring).
+
+- `unit="millimeter"`.
+- Each part is its own `<object>` with a `<mesh>` and a `name`. Vertices stay in shared coordinates: Z up, bed at z=0, the same numbers as the STLs. Do not recenter a mesh on its own box.
+- One more object holds `<components>`, one `<component objectid="…">` per part, each with transform `1 0 0 0 1 0 0 0 1 0 0 0`.
+- `<build>` has a single `<item>` pointing at that assembly, with the same identity transform. Not one item per part.
+- Do not fuse the meshes into one solid.
+- A part that sits on a face keeps that height in the vertex Z. About 0.08 mm of overlap into the face is enough for the layers to bond.
+- Cut screw holes, switch openings, and cord holes through every mesh that would cover them.
+
 ### Other repos
 
 Look for `package.json`, `VERSION`, `CHANGELOG.md`, or similar. Follow the repo’s existing versioning convention. If none exists, note “no version file” in the PR summary table.
