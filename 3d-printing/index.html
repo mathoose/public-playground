@@ -10,7 +10,7 @@
   <header class="hero">
     <p class="kicker">Projects / 3d printing</p>
     <h1>3D printing library</h1>
-    <p class="lead">Customize a part in the browser, download the STL, drop it in your slicer. Latest is the newest work. Favorites and Last you worked on stay on this browser.</p>
+    <p class="lead">Customize a part in the browser, download the STL, drop it in your slicer. Latest is the newest work. Favorites, archive, and Last you worked on stay on this browser only.</p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -18,6 +18,7 @@
     <button type="button" role="tab" id="tab-favorites" aria-selected="false" aria-controls="catalog">Favorites</button>
     <button type="button" role="tab" id="tab-recent" aria-selected="false" aria-controls="recent">Last you worked on</button>
     <button type="button" role="tab" id="tab-activity" aria-selected="false" aria-controls="activity">Activity</button>
+    <button type="button" role="tab" id="tab-archived" aria-selected="false" aria-controls="archived">Archived</button>
   </div>
 
   <main>
@@ -165,8 +166,15 @@
     <section class="activity" id="activity" hidden>
       <label class="activity-search-label" for="activity-search">Search projects</label>
       <input type="search" id="activity-search" class="activity-search" placeholder="Name or keyword — coaster, frame, bag…" autocomplete="off" />
+      <p class="storage-note">Archive and favorites are saved only on this device and browser. Search here still finds archived projects.</p>
       <ol class="activity-list" id="activity-list"></ol>
       <p class="empty-note" id="activity-empty" hidden>No projects match that search.</p>
+    </section>
+
+    <section class="archived" id="archived" hidden>
+      <p class="storage-note">Archived projects are hidden from Latest and Favorites on this browser. Restore puts them back.</p>
+      <ol class="archived-list" id="archived-list"></ol>
+      <p class="empty-note" id="archived-empty" hidden>Nothing archived yet. Use Archive on a card or in Activity.</p>
     </section>
   </main>
 
@@ -208,12 +216,40 @@
         if (!data || typeof data !== "object") throw new Error("empty");
         return {
           favorites: Array.isArray(data.favorites) ? data.favorites : [],
+          archived: Array.isArray(data.archived) ? data.archived : [],
           activity: Array.isArray(data.activity) ? data.activity : [],
           settings: data.settings && typeof data.settings === "object" ? data.settings : {}
         };
       } catch (e) {
-        return { favorites: [], activity: [], settings: {} };
+        return { favorites: [], archived: [], activity: [], settings: {} };
       }
+    }
+
+    function isArchived(id) {
+      return readStore().archived.indexOf(id) !== -1;
+    }
+
+    function archiveProject(id) {
+      var data = readStore();
+      if (data.archived.indexOf(id) === -1) data.archived.push(id);
+      writeStore(data);
+    }
+
+    function restoreProject(id) {
+      var data = readStore();
+      var i = data.archived.indexOf(id);
+      if (i !== -1) data.archived.splice(i, 1);
+      writeStore(data);
+    }
+
+    function activeTabName() {
+      var tab = document.querySelector("[role='tab'][aria-selected='true']");
+      if (!tab || !tab.id) return "latest";
+      return tab.id.replace(/^tab-/, "");
+    }
+
+    function refreshTab() {
+      showTab(activeTabName());
     }
 
     function writeStore(data) {
@@ -230,6 +266,26 @@
         return Number(b.getAttribute("data-seq") || 0) - Number(a.getAttribute("data-seq") || 0);
       });
       cards.forEach(function (card) { grid.appendChild(card); });
+    }
+
+    function ensureCardArchiveButtons() {
+      document.querySelectorAll(".card").forEach(function (card) {
+        if (card.querySelector(".card-foot")) return;
+        var foot = document.createElement("div");
+        foot.className = "card-foot";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mini-action archive-btn";
+        btn.textContent = "Archive";
+        btn.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          archiveProject(card.getAttribute("data-id"));
+          refreshTab();
+        });
+        foot.appendChild(btn);
+        card.appendChild(foot);
+      });
     }
 
     function paintStars() {
@@ -268,7 +324,7 @@
       list.innerHTML = "";
       activity.forEach(function (entry) {
         var card = document.querySelector('.card[data-id="' + entry.id + '"]');
-        if (!card) return;
+        if (!card || isArchived(entry.id)) return;
         var link = card.querySelector(".card-link");
         var item = document.createElement("li");
         var a = document.createElement("a");
@@ -321,13 +377,53 @@
       var listEl = document.getElementById("activity-list");
       var empty = document.getElementById("activity-empty");
       var q = (filter || "").trim().toLowerCase();
+      var archived = readStore().archived;
       listEl.innerHTML = "";
       var shown = 0;
       catalogProjects().forEach(function (project) {
+        var isArch = archived.indexOf(project.id) !== -1;
+        if (!q && isArch) return;
         var hay = (project.title + " " + project.blurb + " " + project.id).toLowerCase();
         if (q && hay.indexOf(q) === -1) return;
         shown += 1;
         var item = document.createElement("li");
+        item.className = "activity-row";
+        var a = document.createElement("a");
+        a.className = "activity-item";
+        a.href = resolveHref(project);
+        var title = document.createElement("b");
+        title.textContent = project.title + (isArch ? " · Archived" : "");
+        var detail = document.createElement("span");
+        detail.textContent = project.blurb;
+        a.appendChild(title);
+        a.appendChild(detail);
+        item.appendChild(a);
+        var action = document.createElement("button");
+        action.type = "button";
+        action.className = "mini-action" + (isArch ? " restore-btn" : " archive-btn");
+        action.textContent = isArch ? "Restore" : "Archive";
+        action.addEventListener("click", function () {
+          if (isArch) restoreProject(project.id);
+          else archiveProject(project.id);
+          renderActivity(document.getElementById("activity-search").value);
+        });
+        item.appendChild(action);
+        listEl.appendChild(item);
+      });
+      empty.hidden = shown > 0;
+    }
+
+    function renderArchived() {
+      var listEl = document.getElementById("archived-list");
+      var empty = document.getElementById("archived-empty");
+      var archived = readStore().archived;
+      listEl.innerHTML = "";
+      var shown = 0;
+      catalogProjects().forEach(function (project) {
+        if (archived.indexOf(project.id) === -1) return;
+        shown += 1;
+        var item = document.createElement("li");
+        item.className = "archived-row";
         var a = document.createElement("a");
         a.className = "activity-item";
         a.href = resolveHref(project);
@@ -338,6 +434,15 @@
         a.appendChild(title);
         a.appendChild(detail);
         item.appendChild(a);
+        var restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "mini-action restore-btn";
+        restore.textContent = "Restore";
+        restore.addEventListener("click", function () {
+          restoreProject(project.id);
+          renderArchived();
+        });
+        item.appendChild(restore);
         listEl.appendChild(item);
       });
       empty.hidden = shown > 0;
@@ -347,6 +452,7 @@
       var catalog = document.getElementById("catalog");
       var recent = document.getElementById("recent");
       var activity = document.getElementById("activity");
+      var archivedPanel = document.getElementById("archived");
       var favEmpty = document.getElementById("favorites-empty");
       var favorites = readStore().favorites;
       document.querySelectorAll("[role='tab']").forEach(function (tab) {
@@ -354,14 +460,17 @@
       });
       var recentOn = name === "recent";
       var activityOn = name === "activity";
-      catalog.hidden = recentOn || activityOn;
+      var archivedOn = name === "archived";
+      catalog.hidden = recentOn || activityOn || archivedOn;
       recent.hidden = !recentOn;
       activity.hidden = !activityOn;
+      archivedPanel.hidden = !archivedOn;
       favEmpty.hidden = name !== "favorites";
       var shown = 0;
-      if (!recentOn && !activityOn) {
+      if (!recentOn && !activityOn && !archivedOn) {
         document.querySelectorAll(".card").forEach(function (card) {
-          var keep = name !== "favorites" || favorites.indexOf(card.getAttribute("data-id")) !== -1;
+          var id = card.getAttribute("data-id");
+          var keep = !isArchived(id) && (name !== "favorites" || favorites.indexOf(id) !== -1);
           card.hidden = !keep;
           if (keep) shown += 1;
         });
@@ -369,6 +478,7 @@
       }
       if (recentOn) renderRecent();
       if (activityOn) renderActivity(document.getElementById("activity-search").value);
+      if (archivedOn) renderArchived();
     }
 
     var onPreview = location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:";
@@ -382,6 +492,7 @@
     }
 
     sortCards();
+    ensureCardArchiveButtons();
     paintStars();
     document.querySelectorAll(".star").forEach(function (star) {
       star.addEventListener("click", function () {
@@ -399,12 +510,14 @@
     document.getElementById("tab-favorites").addEventListener("click", function () { showTab("favorites"); });
     document.getElementById("tab-recent").addEventListener("click", function () { showTab("recent"); });
     document.getElementById("tab-activity").addEventListener("click", function () { showTab("activity"); });
+    document.getElementById("tab-archived").addEventListener("click", function () { showTab("archived"); });
     document.getElementById("activity-search").addEventListener("input", function () {
       if (document.getElementById("tab-activity").getAttribute("aria-selected") === "true") {
         renderActivity(document.getElementById("activity-search").value);
       }
     });
     if (location.hash === "#activity") showTab("activity");
+    else if (location.hash === "#archived") showTab("archived");
     else showTab("latest");
   </script>
 </body>
