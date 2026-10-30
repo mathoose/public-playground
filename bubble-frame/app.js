@@ -24,6 +24,9 @@ import {
   stlTriangleCount,
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
+import { installModelPick } from "../shared/model-pick.js";
+import { inspectBubble, measureBubble } from "./pick-map.js";
+import * as THREE from "three";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
   lastSettings,
@@ -32,15 +35,23 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wirePanelSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "bubble-frame";
+const SLIDER_KEYS = Object.keys(defaultParams());
+
+function mergeParams(raw) {
+  return clampParams({ ...defaultParams(), ...(raw || {}) });
+}
 
 const lastExports = {};
 
 const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
+let pick = null;
 let preview;
+let savesUi;
 
 function roundForInput(mm, units) {
   const v = mmToDisplay(mm, units);
@@ -145,8 +156,31 @@ function refresh(opts = {}) {
   renderForm();
   const layout = preview.update(params);
   renderReadout(layout);
+  if (pick) pick.refresh();
+  savesUi?.renderList();
   if (opts.fit) preview.fit();
   return layout;
+}
+
+function presentPick(info) {
+  if (!info?.box) return info;
+  return { ...info, box: preview.worldBox(info.box) };
+}
+
+function syncViewChips(shown) {
+  const on = (key) => shown?.[key] !== false;
+  const all = on("cover") && on("back") && on("stand") && on("photo");
+  const cover = on("cover") && !on("back") && !on("stand") && on("photo");
+  const back = !on("cover") && on("back") && on("stand") && !on("photo");
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    const part = btn.getAttribute("data-part");
+    btn.classList.toggle(
+      "active",
+      (part === "assembled" && all) ||
+        (part === "cover" && cover) ||
+        (part === "back" && back)
+    );
+  });
 }
 
 function num(id) {
@@ -403,7 +437,7 @@ function init() {
   if (!q.has("capture") && !q.has("shot")) {
     if (wantsRestore()) {
       const saved = lastSettings(APP_ID);
-      if (saved) params = saved;
+      if (saved) params = mergeParams(saved);
     }
     rememberVisit(APP_ID);
   }
@@ -420,10 +454,44 @@ function init() {
   bind();
   refresh({ fit: true });
   pairSlidersWithNumbers(document.querySelector(".panel"));
+  const panel = document.querySelector(".panel");
+  savesUi = wirePanelSaves({
+    appId: APP_ID,
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      params = mergeParams(p);
+      refresh();
+    },
+    panel,
+  });
+  pick = installModelPick({
+    THREE,
+    panel,
+    canvas: $("view3d"),
+    camera: preview.camera,
+    scene: preview.scene,
+    getParts: () => [
+      { id: "cover", label: "Cover", objects: [{ object: preview.coverGroup, hit: "cover" }] },
+      { id: "back", label: "Back", objects: [{ object: preview.backGroup, hit: "back" }] },
+      { id: "stand", label: "Stand", objects: [{ object: preview.standGroup, hit: "stand" }] },
+      { id: "photo", label: "Photo", preview: true, objects: [{ object: preview.photoGroup, hit: "photo" }] },
+    ],
+    inspect: (hit) => presentPick(inspectBubble(preview.toContent(hit), preview.layout)),
+    measure: (a, b) => measureBubble(preview.toContent(a), preview.toContent(b), preview.layout),
+    onVisible: (shown) => {
+      preview.setShown(shown);
+      syncViewChips(shown);
+    },
+  });
+  window.__framePick = pick;
+  window.__framePreview = preview;
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      preview.setPartView(btn.getAttribute("data-part"));
-      document.querySelectorAll("[data-part]").forEach((b) => b.classList.toggle("active", b === btn));
+      const shown = preview.setPartView(btn.getAttribute("data-part"));
+      pick.setVisible(shown, { silent: true });
+      syncViewChips(shown);
     });
   });
   installUndo({

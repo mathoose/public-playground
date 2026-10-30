@@ -17,8 +17,13 @@ import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from ".
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { installModelPick } from "../shared/model-pick.js";
+import * as THREE from "three";
+import { inspectPhotive, measurePhotive } from "./pick-map.js";
 
 const APP_ID = "photive-snap-box";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 
 function skipLibrary() {
   const q = new URLSearchParams(location.search);
@@ -50,6 +55,8 @@ const VIEWS = {
 
 let params = mergeParams();
 let preview;
+let pick;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -89,6 +96,7 @@ function writeParams(p) {
     const row = $(key)?.closest(".row");
     if (row) row.hidden = i >= params.usbCount;
   });
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -134,9 +142,19 @@ function sectionAt() {
   return derive(params).outerL * 0.28;
 }
 
+function shownNow() {
+  const shown = pick?.visibility() || { base: true, lid: true, spacer: true, ghosts: true };
+  return {
+    base: shown.base !== false,
+    lid: shown.lid !== false,
+    spacer: shown.spacer !== false,
+    ghosts: shown.ghosts !== false,
+  };
+}
+
 function applyView() {
-  const v = VIEWS[partView];
-  preview?.setVisible(v);
+  const v = VIEWS[partView] || VIEWS.open;
+  preview?.setVisible(shownNow());
   preview?.setLidLift(v.lift);
   preview?.setSection(section ? sectionAt() : null);
 }
@@ -150,6 +168,7 @@ async function rebuild() {
     latest = result;
     preview.update(result);
     applyView();
+    pick?.refresh();
     renderReadout(result);
     setStatus("Live");
   } catch (err) {
@@ -172,9 +191,8 @@ async function downloadPart(part) {
     const { stl, volume } = await buildPartStl(params, part);
     const grams = ((volume / 1000) * 1.27).toFixed(1);
     const name = part === "spacer" ? "usb-spacer" : part;
-    const filename = `photive-snap-box-${name}-${APP_VERSION_TAG}.stl`;
-    downloadArrayBuffer(filename, stl);
-    noteDownload(filename);
+    downloadArrayBuffer(`photive-snap-box-${name}-${APP_VERSION_TAG}.stl`, stl);
+    noteDownload(`photive-snap-box-${name}-${APP_VERSION_TAG}.stl`);
     setStatus(`${part} · ${stlTriangleCount(stl)} tris · ~${grams} g PETG`);
   } catch (err) {
     console.error(err);
@@ -182,12 +200,30 @@ async function downloadPart(part) {
   }
 }
 
+function syncPresetChips() {
+  const shown = shownNow();
+  let matched = null;
+  for (const [name, v] of Object.entries(VIEWS)) {
+    if (v.base === shown.base && v.lid === shown.lid && v.spacer === shown.spacer && v.ghosts === shown.ghosts) {
+      matched = name;
+    }
+  }
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    btn.classList.toggle("active", !!matched && btn.getAttribute("data-part") === matched);
+  });
+  if (matched) partView = matched;
+}
+
 function setPartView(next) {
   partView = VIEWS[next] ? next : "open";
+  const v = VIEWS[partView];
+  pick?.setVisible({ base: v.base, lid: v.lid, spacer: v.spacer, ghosts: v.ghosts }, { silent: true });
+  preview?.setVisible(v);
+  preview?.setLidLift(v.lift);
+  preview?.setSection(section ? sectionAt() : null);
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.classList.toggle("active", btn.getAttribute("data-part") === partView);
   });
-  applyView();
 }
 
 function setSection(on) {
@@ -228,7 +264,47 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BoxPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas: $("view"),
+  camera: preview.camera,
+  scene: preview.scene,
+  toggleHost: document.querySelector(".view-group .group-body"),
+  getParts: () => [
+    { id: "base", label: "Tray", objects: [{ object: preview.meshes.base, hit: "base" }, { object: preview.caps.base, hit: "base" }] },
+    { id: "lid", label: "Lid", objects: [{ object: preview.meshes.lid, hit: "lid" }, { object: preview.caps.lid, hit: "lid" }] },
+    { id: "spacer", label: "Spacer", objects: [{ object: preview.meshes.spacer, hit: "spacer" }, { object: preview.caps.spacer, hit: "spacer" }] },
+    {
+      id: "ghosts",
+      label: "Charger",
+      preview: true,
+      objects: (preview.ghosts.children || []).map((object, i) => ({
+        object,
+        hit: i === 0 ? "brick" : "plug",
+      })),
+    },
+  ],
+  inspect: (hit) => inspectPhotive(hit, latest?.d || derive(params), preview.meshes.lid.position.z),
+  measure: (a, b) => measurePhotive(a, b, latest?.d || derive(params), preview.meshes.lid.position.z),
+  onVisible: () => {
+    preview.setVisible(shownNow());
+    syncPresetChips();
+  },
+});
+window.__pick = pick;
 bind();
+if (!skipLibrary()) rememberVisit(APP_ID);
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),
@@ -238,8 +314,6 @@ installUndo({
     scheduleRebuild();
   },
 });
-if (!skipLibrary()) rememberVisit(APP_ID);
-
 setPartView("open");
 setStatus("Loading CAD…");
 rebuild().catch((err) => {

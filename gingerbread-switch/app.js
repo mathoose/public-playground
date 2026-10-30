@@ -15,8 +15,12 @@ import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from ".
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves, wireFaceMeasure } from "../shared/wire-designer.js";
+import { measurePair } from "./pick-map.js";
+import * as THREE from "three";
 
 const APP_ID = "gingerbread-switch";
+const SLIDER_KEYS = [...SLIDERS.map((s) => s.key), "style"];
 
 function skipLibrary() {
   const q = new URLSearchParams(location.search);
@@ -37,6 +41,7 @@ const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -63,6 +68,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  savesUi?.renderList();
   for (const style of ["toggle", "rocker"]) {
     const btn = $(`style-${style}`);
     if (!btn) continue;
@@ -209,6 +215,35 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new HousePreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+wireFaceMeasure({
+  preview,
+  canvas: $("view"),
+  scene: preview.scene,
+  getTargets: () =>
+    [preview.ginger, preview.icing, preview.candy].filter(
+      (m) => m.geometry?.attributes?.position?.count > 0
+    ),
+  getBox: () => {
+    const box = new THREE.Box3();
+    for (const m of [preview.ginger, preview.icing, preview.candy]) {
+      if (m.visible && m.geometry?.attributes?.position?.count) box.expandByObject(m);
+    }
+    return box;
+  },
+  measurePair,
+  getParams: () => params,
+  THREE,
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
