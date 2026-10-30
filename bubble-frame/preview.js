@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { plateLoop, socketShellBoxes } from "../shared/frame-clip.js";
-import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly, standPolygon } from "./geometry.js";
+import { pegStandPlateBoxes, plateLoop } from "../shared/frame-clip.js";
+import { frameClipFor, hangHoleLayout, layoutBeads, outerPerimeterPoly } from "./geometry.js";
 
 function hemiGeometry(radius, segments) {
   const g = new THREE.SphereGeometry(
@@ -38,8 +38,10 @@ export class FramePreview {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
-    this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(40, 25, 300);
+    this.persp = new THREE.PerspectiveCamera(32, 1, 1, 4000);
+    this.persp.position.set(40, 25, 300);
+    this.ortho = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 5000);
+    this.camera = this.persp;
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -80,8 +82,8 @@ export class FramePreview {
       metalness: 0.05,
     });
     this.standMat = new THREE.MeshStandardMaterial({
-      color: 0xa8a29e,
-      roughness: 0.62,
+      color: 0x44403c,
+      roughness: 0.55,
       metalness: 0.04,
     });
     this.holeMat = new THREE.MeshBasicMaterial({
@@ -149,8 +151,9 @@ export class FramePreview {
   }
 
   setPartView(mode) {
-    this.partView = mode === "cover" || mode === "back" ? mode : "assembled";
+    this.partView = mode === "cover" || mode === "back" || mode === "side" ? mode : "assembled";
     this._applyPartView();
+    this._applyPose();
     this.fit();
   }
 
@@ -158,9 +161,20 @@ export class FramePreview {
     if (!this.coverGroup) return;
     const mode = this.partView;
     this.coverGroup.visible = mode !== "back";
-    this.photoGroup.visible = mode === "assembled" || mode === "cover";
+    this.photoGroup.visible = mode === "assembled" || mode === "cover" || mode === "side";
     this.backGroup.visible = mode !== "cover";
-    this.standGroup.visible = mode !== "cover";
+    // The photo view stays clear. The easel only shows on the back and from the side.
+    this.standGroup.visible = (mode === "back" || mode === "side") && Boolean(this._clip?.pegStand?.cut);
+  }
+
+  _applyPose() {
+    if (!this.pose || !this.layout) return;
+    const lean = this.partView === "assembled" || this.partView === "side";
+    const theta = lean && this._clip?.pegStand?.cut ? this._clip.pegStand.angleRad : 0;
+    const pivotY = -this.layout.outer.h / 2;
+    this.content.position.y = -pivotY;
+    this.pose.position.y = pivotY;
+    this.pose.rotation.x = -theta;
   }
 
   resize() {
@@ -169,24 +183,43 @@ export class FramePreview {
     const w = Math.max(1, parent.clientWidth);
     const h = Math.max(1, parent.clientHeight);
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.persp.aspect = w / h;
+    this.persp.updateProjectionMatrix();
+    if (this.partView === "back") this.fit();
     this._draw2d();
   }
 
   fit() {
     if (!this.layout) return;
-    const extra = this.layout.params.standEnabled ? this.layout.params.standHeight * 0.35 : 0;
-    const span = Math.max(this.layout.outer.w, this.layout.outer.h + extra, 40);
+    const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
     const dist = span * 1.85;
-    this.camera.up.set(0, 1, 0);
+    const leg = this._clip?.pegStand?.legReach || span * 0.3;
     const back = this.partView === "back";
-    this.camera.position.set(
-      back ? dist * 0.18 : dist * 0.16,
-      back ? -dist * 0.22 : -dist * 0.06,
-      dist * (back ? 0.95 : 1.02)
-    );
-    this.controls.target.set(0, back ? -span * 0.08 : 0, this.layout.radius * 0.2);
+    const cam = back ? this.ortho : this.persp;
+    if (this.controls.object !== cam) this.controls.object = cam;
+    this.camera = cam;
+    cam.up.set(0, 1, 0);
+    if (back) {
+      const aspect = this.persp.aspect || 1;
+      const half = span * 0.62;
+      this.ortho.left = -half * aspect;
+      this.ortho.right = half * aspect;
+      this.ortho.top = half;
+      this.ortho.bottom = -half;
+      this.ortho.position.set(0, 0, -dist);
+      this.controls.target.set(0, 0, 0);
+      this.ortho.lookAt(0, 0, 0);
+      this.ortho.updateProjectionMatrix();
+    } else if (this.partView === "side") {
+      this.camera.position.set(dist * 0.72, span * 0.05, -dist * 0.62);
+      this.controls.target.set(0, -span * 0.02, -leg * 0.2);
+    } else if (this.partView === "assembled") {
+      this.camera.position.set(0, span * 0.05, dist);
+      this.controls.target.set(0, 0, 0);
+    } else {
+      this.camera.position.set(0, 0, dist);
+      this.controls.target.set(0, 0, this.layout.radius * 0.2);
+    }
     this.controls.update();
   }
 
@@ -233,16 +266,21 @@ export class FramePreview {
     this._clearTemps();
     this.beadMeshes = [];
     const clip = frameClipFor(layout);
+    this._clip = clip;
 
+    this.pose = new THREE.Group();
+    this.content = new THREE.Group();
+    this.pose.add(this.content);
+    this.group.add(this.pose);
     this.coverGroup = new THREE.Group();
     this.coverGroup.position.z = clip.frameBackZ;
     this.backGroup = new THREE.Group();
     this.standGroup = new THREE.Group();
     this.photoGroup = new THREE.Group();
-    this.group.add(this.backGroup);
-    this.group.add(this.standGroup);
-    this.group.add(this.photoGroup);
-    this.group.add(this.coverGroup);
+    this.content.add(this.backGroup);
+    this.content.add(this.standGroup);
+    this.content.add(this.photoGroup);
+    this.content.add(this.coverGroup);
 
     const previewSegs = Math.min(28, Math.max(16, Math.round(layout.params.segments / 2)));
     const geom = this._hemiGeom(layout.radius, previewSegs);
@@ -265,12 +303,8 @@ export class FramePreview {
       this._addBox(this.backGroup, rail.stop, this.slotMat);
       for (const lip of rail.lips) this._addBox(this.backGroup, lip, this.slotMat);
     }
-    if (clip.socket) {
-      for (const part of socketShellBoxes(clip.socket)) this._addBox(this.backGroup, part, this.slotMat);
-      const stand = new THREE.Mesh(this._standGeom(layout.params), this.standMat);
-      stand.rotation.y = -Math.PI / 2;
-      stand.position.set(0, clip.socket.standPlace.py, clip.socket.standPlace.pz);
-      this.standGroup.add(stand);
+    if (clip.pegStand?.cut) {
+      for (const part of pegStandPlateBoxes(clip.pegStand)) this._addBox(this.standGroup, part, this.standMat);
     }
 
     const photoGeom = this._trackGeom(new THREE.PlaneGeometry(layout.photo.w, layout.photo.h));
@@ -287,6 +321,7 @@ export class FramePreview {
       this.backGroup.add(ring);
     }
     this._applyPartView();
+    this._applyPose();
   }
 
   _plateGeom(layout, clip) {
@@ -302,25 +337,26 @@ export class FramePreview {
       path.absarc(hole.x, hole.y, hole.r, 0, Math.PI * 2, false);
       shape.holes.push(path);
     }
+    if (clip.pegStand?.cut) {
+      for (const hole of clip.pegStand.holes) {
+        const path = new THREE.Path();
+        const x0 = hole.x - hole.w / 2;
+        const x1 = hole.x + hole.w / 2;
+        const y0 = hole.y - hole.h / 2;
+        const y1 = hole.y + hole.h / 2;
+        path.moveTo(x0, y0);
+        path.lineTo(x1, y0);
+        path.lineTo(x1, y1);
+        path.lineTo(x0, y1);
+        path.closePath();
+        shape.holes.push(path);
+      }
+    }
     const geom = new THREE.ExtrudeGeometry(shape, {
       depth: t,
       bevelEnabled: false,
       curveSegments: 20,
     });
-    return this._trackGeom(geom);
-  }
-
-  _standGeom(params) {
-    const poly = standPolygon(params);
-    const shape = new THREE.Shape();
-    shape.moveTo(poly[0][0], poly[0][1]);
-    for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], poly[i][1]);
-    shape.closePath();
-    const geom = new THREE.ExtrudeGeometry(shape, {
-      depth: params.standWidth,
-      bevelEnabled: false,
-    });
-    geom.translate(0, 0, -params.standWidth / 2);
     return this._trackGeom(geom);
   }
 

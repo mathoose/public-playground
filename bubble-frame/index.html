@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: bubble-frame-v4 -->
+<!-- build: bubble-frame-v5-oct30 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -20,6 +20,7 @@
           <p class="hint">Preview only. Downloads are still separate STLs.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" data-part="assembled">Assembled</button>
+            <button class="chip" type="button" data-part="side">Side</button>
             <button class="chip" type="button" data-part="cover">Cover</button>
             <button class="chip" type="button" data-part="back">Back</button>
           </div>
@@ -176,18 +177,23 @@
         </div>
       </div>
 
-      <div class="section">
-        <h2>Stand</h2>
-        <label class="check"><input id="standEnabled" type="checkbox" /> Easel stand (separate print)</label>
-        <div id="standFields">
-          <div class="field">
-            <label>Lean angle <span class="val" id="standAngleLabel">18°</span></label>
-            <input id="standAngleRange" type="range" min="8" max="32" step="1" />
-            <input id="standAngleDeg" type="number" min="8" max="32" step="1" />
-            <div class="hint">Print the side profile flat. The tab slides up into the cleat under the back plate.</div>
+      <details class="settings-group" id="standSettings" open>
+        <summary>Stand</summary>
+        <div class="group-body">
+          <label class="check"><input id="standEnabled" type="checkbox" /> Easel stand (separate print)</label>
+          <div id="standFields">
+            <div class="field">
+              <label>Lean</label>
+              <div class="seg view-seg" id="standHoles">
+                <button class="chip active" type="button" data-stand="0">Slight</button>
+                <button class="chip" type="button" data-stand="1">Medium</button>
+                <button class="chip" type="button" data-stand="2">More</button>
+              </div>
+              <div class="hint">The stand clips into holes on the back, so the photo view stays clear. Higher holes tilt the frame more.</div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
 
       <div class="field">
         <label>Mesh quality (export segments)</label>
@@ -219,12 +225,13 @@
       <p class="notes">
         Print the cover and the back <b>flat on the bed</b>, no supports, 0.2 mm layers.
         The back is smaller than the beads, so it hides behind the frame.
-        Print the stand on its <b>side profile</b>. Drop the photo on the back, then
+        Print the stand <b>flat</b>. It lives on the back, never under the photo.
+        Drop the photo on the back, then
         <b>slide the cover down</b> into the side rails until it hits the stops.
-        Slide the stand up into the cleat under the back. Lift the cover out to change the photo.
+        Push the stand pegs into a pair of holes on the back. Higher holes lean it more. Lift the cover out to change the photo.
         STL units are millimeters.
       </p>
-      <p class="foot" id="app-version">Bubble frame v4 · Oct 18, 2026</p>
+      <p class="foot" id="app-version">Bubble frame v5 · Oct 30, 2026</p>
     </aside>
 
     <main class="stage">

@@ -1,5 +1,5 @@
-import { addCoverTongues, buildSlideBack } from "../shared/frame-clip-solid.js";
-import { clampParams, frameClipFor, hangHoleLayout, layoutBeads, standPolygon } from "./geometry.js";
+import { addCoverTongues, buildPegStand, buildSlideBack } from "../shared/frame-clip-solid.js";
+import { clampParams, frameClipFor, hangHoleLayout, layoutBeads } from "./geometry.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
 const MANIFOLD_WASM = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.wasm";
@@ -168,15 +168,12 @@ export async function buildStandStl(params) {
   if (!p.standEnabled) {
     throw new Error("Stand is turned off.");
   }
-  const poly = standPolygon(p);
+  const clip = frameClipFor(layoutBeads(p));
   const wasm = await loadManifold();
-  const { CrossSection } = wasm;
+  const { Manifold } = wasm;
   const temps = [];
   try {
-    const cs = new CrossSection([poly]);
-    temps.push(cs);
-    const solid = cs.extrude(p.standWidth);
-    temps.push(solid);
+    const solid = buildPegStand(Manifold, clip, temps);
     const status = solid.status ? solid.status() : "NoError";
     if (status && status !== "NoError") throw new Error(`Stand manifold error: ${status}`);
     const mesh = solid.getMesh();

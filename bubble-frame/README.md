@@ -6,7 +6,7 @@ This **whole folder** is the project. In Finder, put it here:
 
 Keep other prints as sibling folders (`postit-wall-clip`, the next thing you make, …).
 
-A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** that slides onto tongues on the cover, and an **easel stand** whose tab slides into a cleat under the plate.
+A browser tool that generates printable STLs: a **flat-backed bubble (hemisphere) frame** around a photo, a **back plate** that slides onto tongues on the cover, and an **easel stand** whose pegs fit holes in the back.
 
 **Latest files (always the merged main copy):** [github.com/mathoose/public-playground/tree/main/bubble-frame](https://github.com/mathoose/public-playground/tree/main/bubble-frame)
 
@@ -35,8 +35,8 @@ Default **4×6 in** files are already in this folder (open it in Finder):
 | File | What it is |
 | --- | --- |
 | [`bubble-frame-4x6in-frame.stl`](bubble-frame-4x6in-frame.stl) | Hemispheres + thin bed web. Print flat on the bed. |
-| [`bubble-frame-4x6in-back.stl`](bubble-frame-4x6in-back.stl) | Back with side rails, two hanging holes, and a stand cleat fused to the plate. |
-| [`bubble-frame-4x6in-stand.stl`](bubble-frame-4x6in-stand.stl) | Easel: tab slides up into the cleat under the plate. Print the **side profile** flat on the bed. |
+| [`bubble-frame-4x6in-back.stl`](bubble-frame-4x6in-back.stl) | Back with side rails, two hanging holes, and three rows of stand holes. |
+| [`bubble-frame-4x6in-stand.stl`](bubble-frame-4x6in-stand.stl) | Easel: pegs press into a hole row on the back. Print it **flat** on the bed. |
 
 The app can download other sizes as `bubble-frame-…-frame.stl` / `-back.stl` / `-stand.stl`.
 
@@ -44,7 +44,7 @@ The app can download other sizes as `bubble-frame-…-frame.stl` / `-back.stl` /
 - 0.2 mm layers, 0.4 mm nozzle, 3+ walls
 - PLA is fine; higher infill on the beads looks better
 
-Put the photo on the back, then slide the cover **down** into the side rails until the tongues hit the stops. Hang from the holes in the back (the cover rests on the stops), or slide the stand tab up into the cleat under the plate. Lift the cover out to change the photo.
+Put the photo on the back, then slide the cover **down** into the side rails until the tongues hit the stops. Hang from the holes in the back (the cover rests on the stops), or press the stand pegs into a hole row on the back. The stand stays behind the photo. Higher holes lean the frame more. Lift the cover out to change the photo.
 
 ## Parameters
 
@@ -56,7 +56,7 @@ Put the photo on the back, then slide the cover **down** into the side rails unt
 - **Colors** — two bead colors, alternating along the path around the frame
 - **Back plate** — thickness of the plate. It sits behind the beads, with the slide rails tucked under the border
 - **Hanging holes** — 1 centered hole or 2 near the top; diameter and insets
-- **Easel stand** — lean angle; a tab slides into the cleat under the back plate
+- **Easel stand** — three hole rows on the back; the row you peg sets the lean
 - **Mesh quality** — sphere segments used only on export
 
 STLs are millimeters. Geometry lives in [`geometry.js`](geometry.js); union happens in [`stl.js`](stl.js) via [manifold-3d](https://github.com/elalish/manifold).
