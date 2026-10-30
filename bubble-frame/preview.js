@@ -39,8 +39,10 @@ export class FramePreview {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe9e1d4);
-    this.camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
-    this.camera.position.set(40, 25, 300);
+    this.persp = new THREE.PerspectiveCamera(32, 1, 1, 4000);
+    this.persp.position.set(40, 25, 300);
+    this.ortho = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 5000);
+    this.camera = this.persp;
     this.controls = new OrbitControls(this.camera, canvas3d);
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 6);
@@ -103,7 +105,7 @@ export class FramePreview {
     this.photoMesh = null;
     this.plateMesh = null;
     this.partView = "assembled";
-    this._userShow = { ...PART_SHOW.assembled };
+    this._userShow = { ...PART_SHOW.assembled, stand: false };
     this._v = new THREE.Vector3();
     this._n = new THREE.Vector3();
     this.tempGeoms = [];
@@ -151,7 +153,9 @@ export class FramePreview {
 
   setPartView(mode) {
     this.partView = mode === "cover" || mode === "back" || mode === "side" ? mode : "assembled";
-    this.setShown(PART_SHOW[this.partView] || PART_SHOW.assembled);
+    const shown = { ...(PART_SHOW[this.partView] || PART_SHOW.assembled) };
+    if (this.partView === "assembled") shown.stand = false;
+    this.setShown(shown);
     this._applyPose();
     this.fit();
     return { ...this._userShow };
@@ -234,8 +238,9 @@ export class FramePreview {
     const w = Math.max(1, parent.clientWidth);
     const h = Math.max(1, parent.clientHeight);
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.persp.aspect = w / h;
+    this.persp.updateProjectionMatrix();
+    if (this.partView === "back") this.fit();
     this._draw2d();
   }
 
@@ -244,16 +249,31 @@ export class FramePreview {
     const span = Math.max(this.layout.outer.w, this.layout.outer.h, 40);
     const dist = span * 1.85;
     const leg = this._clip?.pegStand?.legReach || span * 0.3;
-    this.camera.up.set(0, 1, 0);
-    if (this.partView === "side") {
-      this.camera.position.set(dist * 0.78, span * 0.04, -dist * 0.7);
-      this.controls.target.set(0, -span * 0.02, -leg * 0.22);
-    } else if (this.partView === "back") {
-      this.camera.position.set(dist * 0.14, -dist * 0.02, -dist);
-      this.controls.target.set(0, 0, -leg * 0.18);
+    const back = this.partView === "back";
+    const cam = back ? this.ortho : this.persp;
+    if (this.controls.object !== cam) this.controls.object = cam;
+    this.camera = cam;
+    cam.up.set(0, 1, 0);
+    if (back) {
+      const aspect = this.persp.aspect || 1;
+      const half = span * 0.62;
+      this.ortho.left = -half * aspect;
+      this.ortho.right = half * aspect;
+      this.ortho.top = half;
+      this.ortho.bottom = -half;
+      this.ortho.position.set(0, 0, -dist);
+      this.controls.target.set(0, 0, 0);
+      this.ortho.lookAt(0, 0, 0);
+      this.ortho.updateProjectionMatrix();
+    } else if (this.partView === "side") {
+      this.camera.position.set(dist * 0.72, span * 0.05, -dist * 0.62);
+      this.controls.target.set(0, -span * 0.02, -leg * 0.2);
+    } else if (this.partView === "assembled") {
+      this.camera.position.set(0, span * 0.05, dist);
+      this.controls.target.set(0, 0, 0);
     } else {
       this.camera.position.set(0, 0, dist);
-      this.controls.target.set(0, 0, this.partView === "cover" ? this.layout.radius * 0.2 : 0);
+      this.controls.target.set(0, 0, this.layout.radius * 0.2);
     }
     this.controls.update();
   }

@@ -15,12 +15,12 @@
  * the outer face on the bed. Tongues are in the cover's back layers (flat on
  * the bed). Nothing is a disconnected island.
  *
- * The stand is a separate flat sheet. Two pegs slip into rectangular holes in
- * the back plate; the legs stick straight out the back and prop the frame.
- * Three hole rows change how far up the plate the pegs sit, which changes the
- * lean. Nothing on the stand hangs below the front silhouette. Clearance, lip
- * angle, and minimum tongue stay fixed; rail position, hole rows, and leg
- * length follow width, height, and border.
+ * The stand is a separate flat flap. Two pegs slip into rectangular holes in
+ * the back plate; a wedge on the same face holds the bottom of the flap off
+ * the plate so the frame leans. Three hole rows change how high the flap
+ * sits, which changes the lean. The flap stays on the back, inside the front
+ * silhouette. Clearance, lip angle, and minimum tongue stay fixed; rail
+ * position, hole rows, and flap size follow width, height, and border.
  *
  * Plate print coordinates: z = 0 is the outer back on the bed, +z faces the cover.
  * Cover coordinates: z = 0 is the cover's back face. The preview seats the cover
@@ -69,7 +69,7 @@ function lipSteps(side, xWallIn, xWallOut, y0, y1, z0, reach) {
 
 function standHoleIndex(value) {
   const n = Math.round(Number(value));
-  if (!Number.isFinite(n)) return 1;
+  if (!Number.isFinite(n)) return 0;
   return clamp(0, 2, n);
 }
 
@@ -78,51 +78,53 @@ function boxVolume(b) {
 }
 
 /**
- * Peg-and-leg easel. Print boxes are a flat sheet: X is plate X, Y runs from
- * the foot (0) to the peg, Z is the sheet thickness. Installed, print +Y goes
- * into the plate (+Z) and the foot sits at plate z = -legReach.
+ * Back easel. Print boxes lie on the bed: X is the flap width, Y runs from the
+ * foot (0) up to the pegs, Z is up. A wedge on the top face is tall at the foot
+ * and fades out at the pegs. Installed, that face goes against the plate: pegs
+ * enter the holes and the wedge holds the foot off the back.
  */
 function layoutPegStand(o, plateT, plateW, plateH, outerH, xWallIn) {
-  const sheetT = clamp(2.6, 5.2, Number(o.standThickness) || 4);
-  const pegW = 3.8;
-  const xyClear = 0.7;
+  const sheetT = clamp(2.8, 4.2, Number(o.standThickness) || 3.2);
+  const pegW = 3.4;
+  const pegH = 2.8;
+  const xyClear = 0.55;
   const holeW = pegW + xyClear;
-  const holeH = sheetT + xyClear;
-  let pegLen = plateT - 0.25;
-  if (!(pegLen < plateT - 0.08) || pegLen < 0.22) pegLen = Math.max(0.18, plateT * 0.62);
-  const legW = pegW + 3.4;
-  const footH = 7.5;
-  const fuse = 0.4;
-  const neck = 8;
-  const legReach = clamp(40, 90, outerH * 0.38);
+  const holeH = pegH + xyClear;
+  let pegLen = plateT - 0.22;
+  if (!(pegLen < plateT - 0.06) || pegLen < 0.2) pegLen = Math.max(0.16, plateT * 0.62);
   const outerBottom = -outerH / 2;
-  const yMin = -plateH / 2 + holeH / 2 + 1.6;
-  const yTop = plateH / 2 - holeH / 2 - 3;
-  const yCap = Math.min(yTop, -plateH / 2 + Math.max(holeH * 3.2, plateH * 0.46));
-  const targets = [8, 12, 18];
-  let ys = targets.map((deg) => {
-    const sLower = legReach * Math.tan((deg * Math.PI) / 180);
-    return clamp(yMin, yCap, outerBottom + sLower + sheetT / 2);
-  });
-  const minGap = holeH + 1.6;
-  for (let i = 1; i < ys.length; i++) {
-    if (ys[i] < ys[i - 1] + minGap) ys[i] = ys[i - 1] + minGap;
+  const plateBottom = -plateH / 2;
+  const kick = clamp(36, 64, outerH * 0.32);
+  const reach = kick + sheetT;
+  const gap = holeH + 7;
+  let drop = clamp(34, Math.min(72, plateH * 0.4), plateH * 0.34);
+  const yFootMin = Math.max(outerBottom + 3.2, plateBottom + 1.1);
+  let yHole0 = yFootMin + drop;
+  const yHoleMax = plateH / 2 - holeH / 2 - 3.5;
+  if (yHole0 + 2 * gap > yHoleMax) {
+    drop = Math.max(28, yHoleMax - 2 * gap - yFootMin);
+    yHole0 = yFootMin + drop;
   }
-  if (ys[ys.length - 1] > yCap + 1e-6) {
-    const room = Math.max(minGap * 0.5, yCap - yMin);
-    ys = [0, 1, 2].map((i) => yMin + (room * i) / 2);
+  if (yHole0 + 2 * gap > yHoleMax) {
+    const room = Math.max(gap, yHoleMax - yHole0);
+    drop = Math.max(24, yHoleMax - room - yFootMin);
+    yHole0 = yFootMin + drop;
   }
-  for (let i = 1; i < ys.length; i++) {
-    if (ys[i] < ys[i - 1] + 0.9) ys[i] = ys[i - 1] + 0.9;
-  }
+  const ys = [0, 1, 2].map((i) => Math.min(yHoleMax, yHole0 + i * gap));
+  const maxHalf = Math.max(8, xWallIn - 3);
+  const halfSpan = clamp(11, maxHalf, plateW * 0.2);
+  const xs = [-halfSpan * 0.62, halfSpan * 0.62];
+  const steps = 8;
 
   const holeIndex = standHoleIndex(o.standHole);
   const rows = ys.map((y, index) => {
-    const s = y - sheetT / 2 - outerBottom;
-    const angleRad = Math.atan(Math.max(0.4, s) / legReach);
+    const yFoot = y - drop;
+    const s = yFoot - outerBottom;
+    const angleRad = Math.atan(Math.max(0.8, s) / reach);
     return {
       index,
       y,
+      yFoot,
       s,
       angleRad,
       angleDeg: (angleRad * 180) / Math.PI,
@@ -130,9 +132,6 @@ function layoutPegStand(o, plateT, plateW, plateH, outerH, xWallIn) {
     };
   });
   const active = rows[holeIndex];
-  const maxHalf = Math.max(7, xWallIn - legW / 2 - 1.5);
-  const halfSpan = clamp(9, maxHalf, plateW * 0.2);
-  const xs = [-halfSpan, halfSpan];
   const holes = [];
   for (const row of rows) {
     for (const x of xs) {
@@ -148,53 +147,75 @@ function layoutPegStand(o, plateT, plateW, plateH, outerH, xWallIn) {
           x + holeW / 2,
           row.y - holeH / 2,
           row.y + holeH / 2,
-          -0.5,
-          plateT + 0.45
+          -0.4,
+          plateT + 0.35
         ),
       });
     }
   }
-  const boxes = [
-    box(-halfSpan - legW / 2, halfSpan + legW / 2, 0, footH, 0, sheetT),
-  ];
+
+  const boxes = [box(-halfSpan, halfSpan, 0, drop, 0, sheetT)];
+  for (let i = 0; i < steps; i++) {
+    const y0 = (drop * i) / steps;
+    const y1 = (drop * (i + 1)) / steps + 0.35;
+    const h = kick * (1 - i / steps);
+    if (h < 0.35) continue;
+    boxes.push(box(-halfSpan, halfSpan, y0, Math.min(drop, y1), sheetT - 0.25, sheetT + h));
+  }
   for (const x of xs) {
-    boxes.push(box(x - legW / 2, x + legW / 2, footH - fuse, legReach - neck, 0, sheetT));
-    boxes.push(box(x - pegW / 2, x + pegW / 2, legReach - neck - fuse, legReach + pegLen, 0, sheetT));
+    boxes.push(box(x - pegW / 2, x + pegW / 2, drop - pegH, drop + 0.2, sheetT - 0.25, sheetT + pegLen));
   }
   let volume = 0;
   for (const b of boxes) volume += boxVolume(b);
-  volume -= 2 * legW * fuse * sheetT;
-  volume -= 2 * pegW * fuse * sheetT;
+  volume -= steps * (2 * halfSpan) * 0.25 * (drop / steps);
+
+  const plateBoxes = [];
+  for (let i = 0; i < steps; i++) {
+    const t0 = i / steps;
+    const t1 = (i + 1) / steps;
+    const y0 = active.yFoot + drop * t0;
+    const y1 = Math.min(active.yFoot + drop * t1, active.y - holeH / 2 - 1.2);
+    if (y1 <= y0 + 0.4) continue;
+    const zOuter = -(kick * (1 - t0) + sheetT);
+    plateBoxes.push(box(-halfSpan, halfSpan, y0, y1, zOuter, -0.04));
+  }
+  for (const x of xs) {
+    plateBoxes.push(
+      box(x - pegW / 2, x + pegW / 2, active.y - pegH / 2, active.y + pegH / 2, -0.2, pegLen)
+    );
+  }
 
   return {
     cut: o.standEnabled !== false,
     holeIndex,
     sheetT,
     pegW,
+    pegH,
     pegLen,
-    legW,
-    legReach,
-    footH,
+    legW: sheetT,
+    legReach: reach,
+    footH: drop / steps,
     halfSpan,
+    drop,
+    kick,
     holeW,
     holeH,
     rows,
     holes,
     boxes,
+    plateBoxes,
     yHole: active.y,
+    yFoot: active.yFoot,
     angleRad: active.angleRad,
     angleDeg: active.angleDeg,
     volume: Math.max(0, volume),
   };
 }
 
-/** Print-space stand boxes placed on the plate (peg in the active holes). */
+/** Installed flap, pegs in the active holes, sitting on the back of the plate. */
 export function pegStandPlateBoxes(stand) {
   if (!stand) return [];
-  const y0 = stand.yHole - stand.sheetT / 2;
-  return stand.boxes.map((b) =>
-    box(b.x0, b.x1, y0 + b.z0, y0 + b.z1, b.y0 - stand.legReach, b.y1 - stand.legReach)
-  );
+  return stand.plateBoxes || [];
 }
 
 /**

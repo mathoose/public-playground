@@ -47,9 +47,9 @@ function span(title, axis, end0, end1, params, extra = {}) {
 }
 
 export function legReachInfo(outerH) {
-  const raw = Math.max(1, Number(outerH) || 0) * 0.38;
-  const capped = raw < 40 || raw > 90;
-  const leg = Math.min(90, Math.max(40, raw));
+  const raw = Math.max(1, Number(outerH) || 0) * 0.32;
+  const capped = raw < 36 || raw > 64;
+  const leg = Math.min(64, Math.max(36, raw));
   return { raw, capped, leg };
 }
 
@@ -122,31 +122,32 @@ export function inspectSharedFrame(hit, spec) {
     const leg = legReachInfo(clip.outerH);
     const params = ["standHoles"];
     let title = "Stand";
-    let detail = "Lean uses the Slight / Medium / More buttons, which move the peg row.";
+    let detail = "Pegs go in a hole row on the back. Slight, Medium, and More change the lean.";
     if (face === "y") {
-      title = "Stand sheet";
-      detail = `Sheet is ${stand.sheetT.toFixed(1)} mm thick. No slider sets that thickness. ${detail}`;
+      title = "Stand flap";
+      detail = `The flap is ${stand.sheetT.toFixed(1)} mm thick. No slider sets that thickness. ${detail}`;
     } else if (face === "z") {
       title = "Stand leg";
       if (leg.capped) {
-        detail = `Leg length is capped at ${leg.leg.toFixed(1)} mm (40–90 mm), so frame size is not changing it. ${detail}`;
+        detail = `The kick is capped at ${leg.leg.toFixed(1)} mm (36–64 mm), so frame size is not changing it. ${detail}`;
       } else {
-        detail = `Leg length follows the frame height (${leg.leg.toFixed(1)} mm). ${detail}`;
+        detail = `The kick follows the frame height (${leg.leg.toFixed(1)} mm). ${detail}`;
         params.push(...heightParams);
       }
     } else {
       title = "Stand width";
-      detail = `Leg spacing follows the back width (${(stand.halfSpan * 2).toFixed(1)} mm across). ${detail}`;
+      detail = `The flap follows the back width (${(stand.halfSpan * 2).toFixed(1)} mm across). ${detail}`;
       params.push(...widthParams);
     }
-    const y0 = stand.yHole - stand.sheetT / 2;
+    const y0 = stand.yFoot ?? stand.yHole - stand.sheetT / 2;
+    const y1 = stand.yHole + (stand.pegH || stand.sheetT) / 2;
     return {
       title,
       detail,
       params,
       box: {
-        min: [-stand.halfSpan - stand.legW / 2, y0, -stand.legReach],
-        max: [stand.halfSpan + stand.legW / 2, y0 + stand.sheetT, stand.pegLen],
+        min: [-stand.halfSpan, y0, -stand.legReach],
+        max: [stand.halfSpan, y1, stand.pegLen],
       },
     };
   }
@@ -256,9 +257,9 @@ export function sharedFrameMeasurements(spec) {
       span("Stand leg", "z", -stand.legReach, 0, leg.capped ? [] : heightParams, {
         parts: ["stand"],
         note: leg.capped
-          ? `Leg length is capped at ${leg.leg.toFixed(1)} mm (40–90 mm). No slider changes it at this size.`
+          ? `Kick is capped at ${leg.leg.toFixed(1)} mm (36–64 mm). No slider changes it at this size.`
           : "",
-        when: (a, b) => Math.abs(a.point.x - b.point.x) < stand.legW && Math.abs(a.point.y - b.point.y) < stand.sheetT + 2,
+        when: (a, b) => Math.abs(a.point.x - b.point.x) < Math.max(stand.legW, 8) && Math.abs(a.point.y - b.point.y) < stand.sheetT + 2,
       })
     );
     list.push(

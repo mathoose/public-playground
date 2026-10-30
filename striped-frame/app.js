@@ -9,14 +9,14 @@ import {
   hangHoleLayout,
   mmToDisplay,
   plaGrams,
-  polygonArea,
   setColorCount,
   setColorHeight,
   setColorSwatch,
   setColorThickness,
   setSharedHeight,
   sizeLabel,
-  standPolygon,
+  standRows,
+  standVolume,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
 import {
@@ -47,7 +47,6 @@ function mergeParams(raw) {
 }
 
 const APP_ID = "striped-frame";
-
 const lastExports = {};
 const $ = (id) => document.getElementById(id);
 
@@ -213,9 +212,14 @@ function renderForm(opts = {}) {
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
-  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
-  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
-  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  const leanNames = ["Slight", "Medium", "More"];
+  const rows = standRows(params);
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    const i = Number(btn.dataset.stand);
+    btn.classList.toggle("active", i === params.standHole);
+    const row = rows[i];
+    if (row) btn.textContent = `${leanNames[i]} ${Math.round(row.angleDeg)}°`;
+  }
   $("dlStand").hidden = !params.standEnabled;
 
   for (const btn of document.querySelectorAll("[data-preset]")) {
@@ -234,9 +238,7 @@ function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout));
   const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
   const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
-  const standG = params.standEnabled
-    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
-    : 0;
+  const standG = params.standEnabled ? plaGrams(standVolume(params)) : 0;
   const pattern = layout.colors
     .map((c) => `${(c.thickness * layout.scale).toFixed(1)}`)
     .join(" / ");
@@ -429,14 +431,12 @@ function bind() {
     params.standEnabled = $("standEnabled").checked;
     refresh({ fit: true });
   });
-  $("standAngleRange").addEventListener("input", () => {
-    params.standAngleDeg = Number($("standAngleRange").value);
-    refresh({ skipColorRebuild: true });
-  });
-  $("standAngleDeg").addEventListener("change", () => {
-    params.standAngleDeg = num("standAngleDeg");
-    refresh();
-  });
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    btn.addEventListener("click", () => {
+      params.standHole = Number(btn.dataset.stand);
+      refresh({ fit: preview.partView === "side" });
+    });
+  }
 
   $("resetView").addEventListener("click", () => preview.fit());
   $("photoFile").addEventListener("change", async (e) => {
@@ -568,6 +568,7 @@ function init() {
     panel,
     canvas: $("view3d"),
     camera: preview.camera,
+    getCamera: () => preview.camera,
     scene: preview.scene,
     getParts: () => [
       { id: "cover", label: "Cover", objects: [{ object: preview.coverGroup, hit: "cover" }] },
@@ -591,6 +592,14 @@ function init() {
       syncViewChips(shown);
     });
   });
+  const shot = q.get("shot");
+  if (shot === "front" || shot === "back" || shot === "side" || shot === "cover") {
+    const mode = shot === "front" ? "assembled" : shot;
+    preview.setPartView(mode);
+    document.querySelectorAll("[data-part]").forEach((b) =>
+      b.classList.toggle("active", b.getAttribute("data-part") === mode)
+    );
+  }
   installUndo({
     panel: document.querySelector(".panel"),
     before: document.getElementById("viewSettings"),

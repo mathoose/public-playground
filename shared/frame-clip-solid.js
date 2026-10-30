@@ -79,7 +79,8 @@ export function addCoverTongues(Manifold, solid, clip, temps) {
 
 /**
  * Back plate in print coordinates (z = 0 outer face on the bed).
- * Rails, stops, and the stand cleat are fused to the slab. Hang holes are cut last.
+ * Rails and stops are fused to the slab. Stand holes are cut through the plate.
+ * Hang holes are cut last.
  */
 export function buildSlideBack(Manifold, clip, holes, temps) {
   let solid = cubeFromBox(Manifold, clip.slab, temps);
@@ -89,11 +90,8 @@ export function buildSlideBack(Manifold, clip, holes, temps) {
     for (const lip of rail.lips) solid = addBox(Manifold, solid, lip, temps);
     solid = addBox(Manifold, solid, rail.stop, temps);
   }
-  if (clip.socket) {
-    solid = addBox(Manifold, solid, clip.socket.housing, temps);
-    if (clip.socket.tower) solid = addBox(Manifold, solid, clip.socket.tower, temps);
-    solid = subBox(Manifold, solid, clip.socket.void, temps);
-    for (const lip of clip.socket.lips) solid = addBox(Manifold, solid, lip, temps);
+  if (clip.pegStand && clip.pegStand.cut) {
+    for (const hole of clip.pegStand.holes) solid = subBox(Manifold, solid, hole.box, temps);
   }
   if (holes && holes.length) {
     const drills = holes.map((h) => {
@@ -109,6 +107,17 @@ export function buildSlideBack(Manifold, clip, holes, temps) {
     if (cutter !== drills[0]) temps.push(cutter);
     solid = solid.subtract(cutter);
     temps.push(solid);
+  }
+  return solid;
+}
+
+/** Flat peg stand, one solid. Print it on the bed (Z is the sheet thickness). */
+export function buildPegStand(Manifold, clip, temps) {
+  const stand = clip.pegStand;
+  if (!stand || !stand.cut) return null;
+  let solid = null;
+  for (const b of stand.boxes) {
+    solid = solid ? addBox(Manifold, solid, b, temps) : cubeFromBox(Manifold, b, temps);
   }
   return solid;
 }
