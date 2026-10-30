@@ -209,7 +209,7 @@ export function attachFaceMeasure(host, { THREE, canvas, scene, getTargets, getB
   return host;
 }
 
-/** Wire the Measure chip and optional slider highlight from a pick-map. */
+/** Wire the Measure chip. `onPair` runs for a finished distance. `onReset` runs when that pair is cleared. */
 export function bindFaceMeasureUI({
   preview,
   panel,
@@ -217,6 +217,7 @@ export function bindFaceMeasureUI({
   hintEl = "hint",
   defaultHint = "Drag to orbit · pinch or scroll to zoom",
   onPair,
+  onReset,
 }) {
   const $ = (id) => (typeof id === "string" ? document.getElementById(id) : id);
   const btn = $(measureBtn);
@@ -226,6 +227,7 @@ export function bindFaceMeasureUI({
     const on = !preview.measureMode;
     preview.setMeasureMode(on);
     btn.classList.toggle("active", on);
+    if (!on) onReset?.();
     if (hint) {
       hint.textContent = on ? "Click one face, then another" : defaultHint;
     }
@@ -233,8 +235,14 @@ export function bindFaceMeasureUI({
 
   preview.onMeasure = (info) => {
     if (!hint || !preview.measureMode) return;
-    if (info.phase === "cleared") hint.textContent = "Click one face, then another";
-    if (info.phase === "first") hint.textContent = "Click the second face";
+    if (info.phase === "cleared") {
+      hint.textContent = "Click one face, then another";
+      onReset?.();
+    }
+    if (info.phase === "first") {
+      hint.textContent = "Click the second face";
+      onReset?.();
+    }
     if (info.phase === "pair") {
       hint.textContent = `${info.label} · drag still orbits`;
       onPair?.(info, panel);

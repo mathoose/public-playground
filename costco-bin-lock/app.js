@@ -22,8 +22,9 @@ import {
 } from "../shared/library-activity.js";
 import { sameSliderParams } from "./saves.js";
 import { mountDesignerSaves } from "../shared/designer-saves.js";
-import { bindFaceMeasureUI, highlightMeasureParams } from "../shared/face-measure.js";
+import { bindFaceMeasureUI } from "../shared/face-measure.js";
 import { measurePair } from "./pick-map.js";
+import { identifyFace, slidersAffecting } from "./measure-lock.js";
 
 const APP_ID = "costco-bin-lock";
 const $ = (id) => document.getElementById(id);
@@ -31,6 +32,9 @@ const pageSearch = new URLSearchParams(location.search);
 const skipLibrary = pageSearch.has("capture") || pageSearch.has("shot");
 
 let params = mergeParams(!skipLibrary && wantsRestore() ? lastSettings(APP_ID) || {} : {});
+let affectKeys = [];
+let affectFilter = false;
+let affectTitle = "";
 let preview;
 let latest = null;
 let rebuildTimer = 0;
@@ -155,6 +159,61 @@ async function downloadStl() {
   }
 }
 
+function sliderLabel(key) {
+  return document.querySelector(`label[for="${key}"]`)?.textContent?.trim() || key;
+}
+
+function affectPhrase() {
+  const lead = affectTitle ? `${affectTitle} · ` : "";
+  if (!affectKeys.length) return `${lead}no slider changes this`;
+  const names = affectKeys.map(sliderLabel).join(", ");
+  if (affectFilter) return `${lead}only ${names} · click for all`;
+  return `${lead}${names} · click to show only these`;
+}
+
+function paintAffect() {
+  document.querySelectorAll(".panel .row").forEach((row) => {
+    const key = row.querySelector('input[type="range"]')?.id;
+    const hot = Boolean(key && affectKeys.includes(key));
+    row.classList.toggle("measure-hot", hot);
+    row.hidden = Boolean(affectFilter && key && !hot);
+  });
+  document.querySelectorAll(".settings-group").forEach((group) => {
+    const rows = [...group.querySelectorAll(".row")];
+    if (!rows.length) {
+      group.hidden = false;
+      return;
+    }
+    group.hidden = affectFilter && rows.every((row) => row.hidden);
+  });
+  const bubble = $("measureBubble");
+  bubble?.classList.toggle("filtering", affectFilter);
+  bubble?.setAttribute("aria-pressed", affectFilter ? "true" : "false");
+  const phrase = affectKeys.length || preview?.picks?.length === 2 ? affectPhrase() : "";
+  if (preview) preview.kindText = phrase;
+  const kind = $("measureKind");
+  if (kind && phrase) kind.textContent = phrase;
+}
+
+function clearAffect() {
+  affectKeys = [];
+  affectFilter = false;
+  affectTitle = "";
+  paintAffect();
+}
+
+function showAffect(picks) {
+  const d = preview.d;
+  const a = identifyFace(picks[0].point, picks[0].normal, picks[0].part || "lock", d);
+  const b = identifyFace(picks[1].point, picks[1].normal, picks[1].part || "lock", d);
+  affectKeys = slidersAffecting(params, a, b);
+  affectFilter = false;
+  const mapped = measurePair(picks[0], picks[1], params);
+  affectTitle = mapped?.title && mapped.title !== "Between the two clicks" ? mapped.title : "";
+  paintAffect();
+  document.querySelector(".panel .row.measure-hot")?.scrollIntoView({ block: "nearest" });
+}
+
 function bind() {
   writeParams(params);
   for (const { key } of SLIDERS) {
@@ -191,11 +250,16 @@ function bind() {
     measureBtn: "measure",
     hintEl: "hint",
     defaultHint: "Drag to orbit · pinch or scroll to zoom",
-    onPair: (info) => {
-      if (!info.picks?.[0] || !info.picks?.[1]) return;
-      const mapped = measurePair(info.picks[0], info.picks[1], params);
-      highlightMeasureParams(document.querySelector(".panel"), mapped.params);
+    onReset: () => clearAffect(),
+    onPair: () => {
+      if (preview.picks?.length === 2) showAffect(preview.picks);
     },
+  });
+  $("measureBubble")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!affectKeys.length) return;
+    affectFilter = !affectFilter;
+    paintAffect();
   });
 }
 
