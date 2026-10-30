@@ -20,6 +20,7 @@ await esbuild.build({
     three: threeRoot,
     "three/addons": join(threeRoot, "examples/jsm"),
   },
+  external: ["node:fs", "node:path", "node:url"],
   logLevel: "info",
 });
 

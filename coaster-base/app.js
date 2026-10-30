@@ -1,131 +1,167 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { STLLoader } from "three/addons/loaders/STLLoader.js";
+import {
+  APP_NAME,
+  APP_VERSION,
+  APP_VERSION_TAG,
+  DEFAULT_PARAMS,
+  SLIDERS,
+  derive,
+  formatMm,
+  mergeParams,
+  warnings,
+} from "./geometry.js";
+import { CoasterPreview } from "./preview.js";
+import { buildCoaster, buildCoasterStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
+  lastSettings,
   rememberExport,
   rememberSettings,
   rememberVisit,
+  wantsRestore,
 } from "../shared/library-activity.js";
 
 const APP_ID = "coaster-base";
-const FILENAME = "coaster-base-v1.stl";
-const params = { legs: "2x" };
+const $ = (id) => document.getElementById(id);
 
-const query = new URLSearchParams(location.search);
-const shot = query.has("capture") || query.has("shot");
-if (shot) document.body.classList.add("capture");
-if (!shot) rememberVisit(APP_ID);
-
-const canvas = document.getElementById("view");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setClearColor(0xe6dfd2, 1);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 4000);
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 12, 0);
-
-scene.add(new THREE.HemisphereLight(0xfff7ee, 0xc8bba8, 0.9));
-const key = new THREE.DirectionalLight(0xffffff, 1.45);
-key.position.set(90, 180, 70);
-scene.add(key);
-const fill = new THREE.DirectionalLight(0xffe4c8, 0.45);
-fill.position.set(-120, 60, -80);
-scene.add(fill);
-
-const bed = new THREE.Mesh(
-  new THREE.CircleGeometry(80, 72),
-  new THREE.MeshStandardMaterial({ color: 0xd9d0c2, roughness: 1 }),
-);
-bed.rotation.x = -Math.PI / 2;
-bed.position.y = -0.05;
-scene.add(bed);
-
-const VIEWS = {
-  angle: new THREE.Vector3(150, 110, 150),
-  front: new THREE.Vector3(0, 80, 210),
-  top: new THREE.Vector3(0.1, 280, 0.1),
-};
-
-function frame(name) {
-  camera.position.copy(VIEWS[name] || VIEWS.angle);
-  controls.target.set(0, 12, 0);
-  controls.update();
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
 }
 
-function resize() {
-  const w = canvas.clientWidth || 1;
-  const h = canvas.clientHeight || 1;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+let params = mergeParams(!skipLibrary() && wantsRestore() ? lastSettings(APP_ID) || {} : {});
+let preview;
+let latest = null;
+let rebuildTimer = 0;
+let rebuildGen = 0;
+
+function fmtValue(key, n) {
+  const step = SLIDERS.find((s) => s.key === key)?.step ?? 0.1;
+  const digits = step >= 1 ? 0 : step < 0.1 ? 2 : 1;
+  return formatMm(n, digits);
 }
 
-const stage = canvas.parentElement;
-if (typeof ResizeObserver !== "undefined") {
-  new ResizeObserver(resize).observe(stage);
+function writeParams(p) {
+  params = mergeParams(p);
+  for (const spec of SLIDERS) {
+    const el = $(spec.key);
+    const out = $(`${spec.key}-out`);
+    if (el) {
+      el.min = String(spec.min);
+      el.max = String(spec.max);
+      el.step = String(spec.step);
+      el.dataset.unit = spec.unit;
+      el.value = String(params[spec.key]);
+    }
+    if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
+  }
 }
-resize();
-frame("angle");
 
-new STLLoader().load(FILENAME, (geo) => {
-  geo.computeVertexNormals();
-  const mesh = new THREE.Mesh(
-    geo,
-    new THREE.MeshStandardMaterial({
-      color: 0xc4895a,
-      roughness: 0.52,
-      metalness: 0.02,
-    }),
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  scene.add(mesh);
-  const status = document.getElementById("status");
-  if (status) status.textContent = "Ready · 112 × 112 × 31 mm";
-});
+function setStatus(text, kind = "") {
+  const el = $("status");
+  if (!el) return;
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
 
-document.querySelectorAll("[data-view]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-view]").forEach((other) => {
-      other.classList.toggle("active", other === button);
-    });
-    frame(button.getAttribute("data-view"));
-  });
-});
+function renderReadout(result) {
+  const d = result?.d || derive(params);
+  const warnEl = $("warnings");
+  if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
+  const el = $("readout");
+  if (!el) return;
+  const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
+  el.innerHTML = `
+    <b>${d.outerSize.toFixed(0)} × ${d.outerSize.toFixed(0)} × ${d.totalZ.toFixed(1)} mm.</b>
+    Deck ${formatMm(d.deckT, 0)} · each arm rises ${formatMm(d.p.armHeight)} above it,
+    wall ${formatMm(d.p.armWidth)} thick · ~${grams} g PLA
+  `;
+}
 
-document.getElementById("resetView").addEventListener("click", () => {
+async function rebuild() {
+  const gen = ++rebuildGen;
+  setStatus("Updating…");
+  try {
+    const result = await buildCoaster(params, { quality: "preview" });
+    if (gen !== rebuildGen) return;
+    latest = result;
+    preview.update(result);
+    renderReadout(result);
+    setStatus("Live");
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+function scheduleRebuild() {
+  renderReadout(latest);
+  window.clearTimeout(rebuildTimer);
+  rebuildTimer = window.setTimeout(rebuild, 40);
+}
+
+async function downloadStl() {
+  setStatus("Building STL…");
+  try {
+    const { stl, volume } = await buildCoasterStl(params);
+    const filename = `coaster-base-${APP_VERSION_TAG}.stl`;
+    downloadArrayBuffer(filename, stl);
+    rememberSettings(APP_ID, params);
+    rememberExport(APP_ID, { filename, params });
+    setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${((volume / 1000) * 1.24).toFixed(1)} g PLA`);
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+function bindUi() {
+  writeParams(params);
+  preview = new CoasterPreview({ canvas: $("view") });
+  if (!skipLibrary()) rememberVisit(APP_ID);
+
   document.querySelectorAll("[data-view]").forEach((button) => {
-    button.classList.toggle("active", button.getAttribute("data-view") === "angle");
+    button.addEventListener("click", () => {
+      document.querySelectorAll("[data-view]").forEach((other) => {
+        other.classList.toggle("active", other === button);
+      });
+      preview.setView(button.getAttribute("data-view"));
+    });
   });
-  frame("angle");
-});
 
-document.getElementById("download").addEventListener("click", () => {
-  rememberSettings(APP_ID, params);
-  rememberExport(APP_ID, { filename: FILENAME, params });
-  const link = document.createElement("a");
-  link.href = FILENAME;
-  link.download = FILENAME;
-  link.click();
-});
+  $("resetView")?.addEventListener("click", () => {
+    document.querySelectorAll("[data-view]").forEach((button) => {
+      button.classList.toggle("active", button.getAttribute("data-view") === "angle");
+    });
+    preview.setView("angle");
+  });
 
-const panel = document.querySelector(".panel");
-pairSlidersWithNumbers(panel);
-installUndo({
-  panel,
-  read: () => params,
-  apply: () => {},
-});
+  for (const spec of SLIDERS) {
+    const el = $(spec.key);
+    el?.addEventListener("input", () => {
+      params = mergeParams({ ...params, [spec.key]: Number(el.value) });
+      writeParams(params);
+      scheduleRebuild();
+    });
+  }
 
-function draw() {
-  resize();
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(draw);
+  $("download")?.addEventListener("click", downloadStl);
+
+  const panel = document.querySelector(".panel");
+  pairSlidersWithNumbers(panel);
+  installUndo({
+    panel,
+    read: () => params,
+    apply: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+  });
+
+  const foot = $("app-version");
+  if (foot) foot.textContent = `${APP_NAME} ${APP_VERSION}`;
+
+  scheduleRebuild();
 }
-draw();
+
+bindUi();
