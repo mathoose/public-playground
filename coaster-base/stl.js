@@ -220,7 +220,47 @@ async function loadReferenceMesh() {
   return copyMesh(parseBinaryStl(buf));
 }
 
+async function buildCoasterParametric(raw, { quality = "preview" } = {}) {
+  const wasm = await loadManifold();
+  const segs = quality === "export" ? 72 : 48;
+  if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(segs);
+  const temps = [];
+  try {
+    const core = await loadCoreMesh();
+    const { solid, d } = buildArmsSolid(wasm, raw, temps, segs);
+    const armMesh = copyMesh(solid.getMesh());
+    const mesh = mergeMeshes(core, armMesh);
+    const volume = meshVolume(mesh);
+    return {
+      d,
+      mesh,
+      volume,
+      genus: 0,
+      tris: mesh.triVerts.length / 3,
+      armTopZ: meshMaxZ(armMesh),
+    };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
+function meshMaxZ(mesh) {
+  const v = mesh.vertProperties;
+  const stride = mesh.numProp || 3;
+  let max = 0;
+  for (let i = stride - 1; i < v.length; i += stride) {
+    max = Math.max(max, v[i]);
+  }
+  return max;
+}
+
+/** Preview + most exports: always rebuild arms from sliders (core mesh + Manifold arms). */
 export async function buildCoaster(raw, { quality = "preview" } = {}) {
+  return buildCoasterParametric(raw, { quality });
+}
+
+/** Exact baked STL at default slider values only. */
+export async function buildCoasterExportMesh(raw) {
   if (isDefaultParams(raw)) {
     const mesh = await loadReferenceMesh();
     const d = derive(raw);
@@ -232,25 +272,11 @@ export async function buildCoaster(raw, { quality = "preview" } = {}) {
       tris: mesh.triVerts.length / 3,
     };
   }
-
-  const wasm = await loadManifold();
-  const segs = quality === "export" ? 72 : 48;
-  if (typeof wasm.setCircularSegments === "function") wasm.setCircularSegments(segs);
-  const temps = [];
-  try {
-    const core = await loadCoreMesh();
-    const { solid, d } = buildArmsSolid(wasm, raw, temps, segs);
-    const armMesh = copyMesh(solid.getMesh());
-    const mesh = mergeMeshes(core, armMesh);
-    const volume = meshVolume(mesh);
-    return { d, mesh, volume, genus: 0, tris: mesh.triVerts.length / 3 };
-  } finally {
-    deleteAll(temps);
-  }
+  return buildCoasterParametric(raw, { quality: "export" });
 }
 
 export async function buildCoasterStl(raw) {
-  const { mesh, volume, d } = await buildCoaster(raw, { quality: "export" });
+  const { mesh, volume, d } = await buildCoasterExportMesh(raw);
   return { stl: meshToStl(mesh, "coaster-base"), volume, mesh, d };
 }
 

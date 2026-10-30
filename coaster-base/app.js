@@ -65,12 +65,13 @@ function setStatus(text, kind = "") {
 }
 
 function renderReadout(result) {
-  const d = result?.d || derive(params);
+  const d = derive(params);
   const warnEl = $("warnings");
   if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
   const el = $("readout");
   if (!el) return;
-  const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
+  const grams =
+    result?.volume != null ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
   el.innerHTML = `
     <b>${d.outerSize.toFixed(0)} × ${d.outerSize.toFixed(0)} × ${d.totalZ.toFixed(1)} mm.</b>
     Deck ${formatMm(d.deckT, 0)} · each arm rises ${formatMm(d.p.armHeight)} above it,
@@ -97,7 +98,7 @@ async function rebuild() {
 function scheduleRebuild() {
   renderReadout(latest);
   window.clearTimeout(rebuildTimer);
-  rebuildTimer = window.setTimeout(rebuild, 40);
+  rebuildTimer = window.setTimeout(rebuild, 120);
 }
 
 async function downloadStl() {

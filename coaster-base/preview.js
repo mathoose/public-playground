@@ -87,9 +87,12 @@ export class CoasterPreview {
 
   update(result) {
     if (!result?.mesh) return;
+    const totalZ = result.d?.totalZ ?? 31;
+    const geo = geomFrom(result.mesh);
     this.mesh.geometry.dispose();
-    this.mesh.geometry = geomFrom(result.mesh);
-    if (!this.fitted) this.fit();
+    this.mesh.geometry = geo;
+    this.controls.target.set(0, 0, Math.max(8, totalZ * 0.38));
+    this.setView(this.view);
   }
 
   _loop() {

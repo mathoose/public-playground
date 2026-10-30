@@ -2,7 +2,7 @@
  * Merry Christmas coaster: fixed deck + lettering mesh, four parametric corner arms.
  */
 
-export const APP_VERSION = "2 · Oct 30, 2026";
+export const APP_VERSION = "3 · Oct 30, 2026";
 export const APP_VERSION_TAG = "v2";
 export const APP_NAME = "Coaster base";
 
