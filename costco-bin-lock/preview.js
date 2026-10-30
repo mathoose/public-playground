@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { calloutShift, faceGap } from "./measure.js";
+import { calloutShift, faceGap } from "../shared/measure.js";
 import { manifoldMeshToPositions } from "./stl.js";
 
 function geomFrom(mesh) {
@@ -259,6 +259,10 @@ export class LockPreview {
       parallel: gap.parallel,
       mm: gap.primary,
       label: `${gap.primary.toFixed(1)} mm`,
+      picks: this.picks.map((p) => ({
+        point: { x: p.point.x, y: p.point.y, z: p.point.z },
+        normal: p.normal ? { x: p.normal.x, y: p.normal.y, z: p.normal.z } : null,
+      })),
     };
     this._placeBubble();
     this.onMeasure?.(this.measureReadout);

@@ -17,8 +17,13 @@ import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { installModelPick } from "../shared/model-pick.js";
+import * as THREE from "three";
+import { inspectPowerBank, measurePowerBank } from "./pick-map.js";
 
 const APP_ID = "power-bank-wrap";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 
 function skipLibrary() {
   const q = new URLSearchParams(location.search);
@@ -41,6 +46,8 @@ const UNITS = Object.fromEntries(SLIDERS.map((s) => [s.key, s.unit]));
 
 let params = mergeParams();
 let preview;
+let pick;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -68,6 +75,7 @@ function writeParams(p) {
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
   syncPresetButtons();
+  savesUi?.renderList();
 }
 
 function syncPresetButtons() {
@@ -120,6 +128,8 @@ async function rebuild() {
     if (gen !== rebuildGen) return;
     latest = result;
     preview.update(result);
+    preview.setUserParts(pick.visibility());
+    pick.refresh();
     renderReadout(result);
     setStatus("Live");
   } catch (err) {
@@ -141,9 +151,8 @@ async function downloadStl() {
   try {
     const { stl, volume } = await buildCaseStl(params);
     const grams = ((volume / 1000) * 1.24).toFixed(1);
-    const filename = `power-bank-wrap-${APP_VERSION_TAG}.stl`;
-    downloadArrayBuffer(filename, stl);
-    noteDownload(filename);
+    downloadArrayBuffer(`power-bank-wrap-${APP_VERSION_TAG}.stl`, stl);
+    noteDownload(`power-bank-wrap-${APP_VERSION_TAG}.stl`);
     setStatus(`STL · ${stlTriangleCount(stl)} tris · ~${grams} g PETG`);
   } catch (err) {
     console.error(err);
@@ -188,7 +197,51 @@ if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new CasePreview({ canvas: $("view") });
 window.__wrapPreview = preview;
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas: $("view"),
+  camera: preview.camera,
+  scene: preview.scene,
+  getParts: () => [
+    { id: "sleeve", label: "Sleeve", objects: [{ object: preview.caseMesh, hit: "sleeve" }] },
+    {
+      id: "bank",
+      label: "Power bank",
+      preview: true,
+      objects: [
+        { object: preview.bankMesh, hit: "bank" },
+        { object: preview.glassMesh, hit: "glass" },
+        { object: preview.portGroup, hit: "ports" },
+      ],
+    },
+    {
+      id: "cord",
+      label: "Cord",
+      preview: true,
+      objects: [
+        { object: preview.cordA, hit: "cord" },
+        { object: preview.cordB, hit: "cord" },
+      ],
+    },
+  ],
+  inspect: (hit) => inspectPowerBank(hit, preview.d || derive(params)),
+  measure: (a, b) => measurePowerBank(a, b, preview.d || derive(params)),
+  onVisible: (shown) => preview.setUserParts(shown),
+});
+window.__pick = pick;
 bind();
+if (!skipLibrary()) rememberVisit(APP_ID);
 pairSlidersWithNumbers(document.querySelector(".panel"));
 window.__wrapHistory = installUndo({
   panel: document.querySelector(".panel"),
@@ -199,8 +252,6 @@ window.__wrapHistory = installUndo({
   },
 });
 setStatus("Loading CAD…");
-
-if (!skipLibrary()) rememberVisit(APP_ID);
 
 const shot = new URLSearchParams(location.search).get("shot");
 if (shot) document.body.classList.add("capture");

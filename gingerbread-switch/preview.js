@@ -130,6 +130,7 @@ export class HousePreview {
   _loop() {
     if (!this.running) return;
     this.controls.update();
+    if (this.picks?.length === 2) this._placeMeasureBubble?.();
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this._loop);
   }
