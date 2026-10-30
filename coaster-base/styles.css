@@ -164,6 +164,32 @@ body.capture .stage { height: 100dvh; }
   color: var(--muted);
   line-height: 1.35;
 }
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 10px 0 0;
+}
+.row label { font-size: 0.9rem; }
+.row output {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+input[type="range"] {
+  width: 100%;
+  grid-column: 1 / -1;
+  accent-color: var(--accent-2);
+}
+.warn {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.82rem;
+}
 
 .actions, .ready {
   display: flex;
@@ -210,6 +236,7 @@ button.wide { background: var(--accent-2); }
   min-height: 1.2em;
   margin: 8px 0 0;
 }
+.status[data-kind="err"] { color: #b91c1c; }
 .notes { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin: 12px 0 0; }
 .foot { margin: 12px 0 0; color: var(--muted); font-size: 0.8rem; }
 

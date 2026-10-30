@@ -18,7 +18,7 @@ Browser apps for parts you can customize and download as STL.
 | [`../gingerbread-switch/`](../gingerbread-switch/) | Gingerbread house light switch cover: standard plate, house in relief past the edges, three STLs or one joint 3MF |
 | [`../baroque-frame/`](../baroque-frame/) | Baroque picture frame: width and height change the opening, moulding width stays put, thickness scales the border and the depth |
 | [`../costco-bin-lock/`](../costco-bin-lock/) | Costco bin lid lock: hook engagement under the slot, a square-end size slider, and a two-face distance measure |
-| [`../coaster-base/`](../coaster-base/) | Merry Christmas coaster: the four corner legs are twice as tall, twice as thick, and twice as wide |
+| [`../coaster-base/`](../coaster-base/) | Merry Christmas coaster: sliders for corner arm height and wall width |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
 On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, `/costco-bin-lock/`, `/coaster-base/`, and `/private/` (behind the small lock in the footer).
