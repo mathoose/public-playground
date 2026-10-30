@@ -21,9 +21,10 @@ Browser apps for parts you can customize and download as STL.
 | [`../coaster-base/`](../coaster-base/) | Merry Christmas coaster: sliders for corner arm height and wall width |
 | [`../poop-bag-holder/`](../poop-bag-holder/) | Poop bag holder: screw-cap tube, S-slot rim, keyring tab |
 | [`../bone-side-bag/`](../bone-side-bag/) | Bone side bag: skeleton cup or phone cage, snap-together bone chain, separate STLs or one joint 3MF |
+| [`lamp.html`](lamp.html) | Shade list for BambooSegD / Bambu LED Lamp Kit-001 |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
-On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, `/costco-bin-lock/`, `/coaster-base/`, `/poop-bag-holder/`, `/bone-side-bag/`, and `/private/` (behind the small lock in the footer).
+On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, `/costco-bin-lock/`, `/coaster-base/`, `/poop-bag-holder/`, `/bone-side-bag/`, `/lamp.html`, and `/private/` (behind the small lock in the footer).
 
 ## Add another app
 
