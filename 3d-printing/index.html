@@ -17,10 +17,23 @@
     <button type="button" role="tab" id="tab-latest" aria-selected="true" aria-controls="catalog">Latest</button>
     <button type="button" role="tab" id="tab-favorites" aria-selected="false" aria-controls="catalog">Favorites</button>
     <button type="button" role="tab" id="tab-recent" aria-selected="false" aria-controls="recent">Last you worked on</button>
+    <button type="button" role="tab" id="tab-activity" aria-selected="false" aria-controls="activity">Activity</button>
   </div>
 
   <main>
     <div class="grid" id="catalog">
+      <article class="card" data-id="coaster-base" data-title="Coaster base" data-updated="2026-10-30" data-seq="11">
+        <a class="card-link" href="./coaster-base/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/hub-activity-39ca/coaster-base/index.html">
+          <img class="thumb" src="./coaster-base/thumb.png" data-htmlpreview-img="../coaster-base/thumb.png" alt="" />
+          <div class="body">
+            <h2>Coaster base</h2>
+            <p>Merry Christmas coaster. The four corner legs are twice as tall, twice as thick, and twice as wide. The lettering stays the same.</p>
+            <span class="go">Open designer</span>
+          </div>
+        </a>
+        <button type="button" class="star" aria-pressed="false" aria-label="Favorite Coaster base">☆</button>
+      </article>
+
       <article class="card" data-id="costco-bin-lock" data-title="Costco bin lock" data-updated="2026-10-27" data-seq="10">
         <a class="card-link" href="./costco-bin-lock/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bin-clip-measure-0644/costco-bin-lock/index.html">
           <img class="thumb" src="./costco-bin-lock/iso.png" data-htmlpreview-img="../costco-bin-lock/iso.png" alt="" />
@@ -148,6 +161,13 @@
       <ol class="recent-list" id="recent-list"></ol>
       <p class="empty-note" id="recent-empty" hidden>Open a designer or download a file and it will show up here.</p>
     </section>
+
+    <section class="activity" id="activity" hidden>
+      <label class="activity-search-label" for="activity-search">Search projects</label>
+      <input type="search" id="activity-search" class="activity-search" placeholder="Name or keyword — coaster, frame, bag…" autocomplete="off" />
+      <ol class="activity-list" id="activity-list"></ol>
+      <p class="empty-note" id="activity-empty" hidden>No projects match that search.</p>
+    </section>
   </main>
 
   <footer>
@@ -157,6 +177,30 @@
 
   <script>
     var STORE_KEY = "mathoose-public-playground:print-library";
+
+    var ACTIVITY_EXTRA = [
+      {
+        id: "bone-side-bag",
+        title: "Bone side bag",
+        blurb: "Small skeleton side bag on a snap-together bone chain, or the same bones as a phone cage. STLs or one joint 3MF.",
+        href: "../bone-side-bag/",
+        htmlpreview: "https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bone-side-bag-0b38/bone-side-bag/index.html"
+      },
+      {
+        id: "lamp-kit-shades",
+        title: "Lamp kit shades",
+        blurb: "Halloween, fall, and winter shades for the BambooSegD / Bambu LED Lamp Kit-001, plus kit dimensions from the box.",
+        href: "./lamp.html",
+        htmlpreview: "https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/lamp-kit-shades-d511/3d-printing/lamp.html"
+      },
+      {
+        id: "project-hub",
+        title: "Project Hub",
+        blurb: "News feed of PRs and commits across repos, notes, project compare, and borrow-this-feature prompts.",
+        href: "../project-hub/",
+        htmlpreview: "https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/main/project-hub/index.html"
+      }
+    ];
 
     function readStore() {
       try {
@@ -244,25 +288,87 @@
       empty.hidden = list.children.length > 0;
     }
 
+    function resolveHref(entry) {
+      if (onPreview && entry.htmlpreview) return entry.htmlpreview;
+      return entry.href;
+    }
+
+    function catalogProjects() {
+      var list = [];
+      document.querySelectorAll(".card").forEach(function (card) {
+        var link = card.querySelector(".card-link");
+        var blurbEl = card.querySelector(".body p");
+        list.push({
+          id: card.getAttribute("data-id"),
+          title: card.getAttribute("data-title") || card.getAttribute("data-id"),
+          blurb: blurbEl ? blurbEl.textContent.trim() : "",
+          href: link ? link.getAttribute("href") : "",
+          htmlpreview: link ? link.getAttribute("data-htmlpreview") : ""
+        });
+      });
+      var seen = {};
+      list.forEach(function (p) { seen[p.id] = true; });
+      ACTIVITY_EXTRA.forEach(function (extra) {
+        if (!seen[extra.id]) list.push(extra);
+      });
+      list.sort(function (a, b) {
+        return (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" });
+      });
+      return list;
+    }
+
+    function renderActivity(filter) {
+      var listEl = document.getElementById("activity-list");
+      var empty = document.getElementById("activity-empty");
+      var q = (filter || "").trim().toLowerCase();
+      listEl.innerHTML = "";
+      var shown = 0;
+      catalogProjects().forEach(function (project) {
+        var hay = (project.title + " " + project.blurb + " " + project.id).toLowerCase();
+        if (q && hay.indexOf(q) === -1) return;
+        shown += 1;
+        var item = document.createElement("li");
+        var a = document.createElement("a");
+        a.className = "activity-item";
+        a.href = resolveHref(project);
+        var title = document.createElement("b");
+        title.textContent = project.title;
+        var detail = document.createElement("span");
+        detail.textContent = project.blurb;
+        a.appendChild(title);
+        a.appendChild(detail);
+        item.appendChild(a);
+        listEl.appendChild(item);
+      });
+      empty.hidden = shown > 0;
+    }
+
     function showTab(name) {
       var catalog = document.getElementById("catalog");
       var recent = document.getElementById("recent");
+      var activity = document.getElementById("activity");
       var favEmpty = document.getElementById("favorites-empty");
       var favorites = readStore().favorites;
       document.querySelectorAll("[role='tab']").forEach(function (tab) {
         tab.setAttribute("aria-selected", tab.id === "tab-" + name ? "true" : "false");
       });
       var recentOn = name === "recent";
-      catalog.hidden = recentOn;
+      var activityOn = name === "activity";
+      catalog.hidden = recentOn || activityOn;
       recent.hidden = !recentOn;
+      activity.hidden = !activityOn;
+      favEmpty.hidden = name !== "favorites";
       var shown = 0;
-      document.querySelectorAll(".card").forEach(function (card) {
-        var keep = name !== "favorites" || favorites.indexOf(card.getAttribute("data-id")) !== -1;
-        card.hidden = !keep;
-        if (keep) shown += 1;
-      });
-      favEmpty.hidden = name !== "favorites" || shown > 0;
+      if (!recentOn && !activityOn) {
+        document.querySelectorAll(".card").forEach(function (card) {
+          var keep = name !== "favorites" || favorites.indexOf(card.getAttribute("data-id")) !== -1;
+          card.hidden = !keep;
+          if (keep) shown += 1;
+        });
+        if (name === "favorites") favEmpty.hidden = shown > 0;
+      }
       if (recentOn) renderRecent();
+      if (activityOn) renderActivity(document.getElementById("activity-search").value);
     }
 
     var onPreview = location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:";
@@ -292,7 +398,14 @@
     document.getElementById("tab-latest").addEventListener("click", function () { showTab("latest"); });
     document.getElementById("tab-favorites").addEventListener("click", function () { showTab("favorites"); });
     document.getElementById("tab-recent").addEventListener("click", function () { showTab("recent"); });
-    showTab("latest");
+    document.getElementById("tab-activity").addEventListener("click", function () { showTab("activity"); });
+    document.getElementById("activity-search").addEventListener("input", function () {
+      if (document.getElementById("tab-activity").getAttribute("aria-selected") === "true") {
+        renderActivity(document.getElementById("activity-search").value);
+      }
+    });
+    if (location.hash === "#activity") showTab("activity");
+    else showTab("latest");
   </script>
 </body>
 </html>
