@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!-- build: poop-bag-holder-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Poop bag holder designer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/poop-bag-holder-a333/3d-printing/index.html">← 3D printing library</a>
+        <h1>Poop bag holder</h1>
+      </div>
+      <p>v1 · Oct 6, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group view-group" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="group-note">3D preview only — does not change STL exports. Green ghost = bag roll.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" data-part="open">Open</button>
+            <button class="chip" type="button" data-part="closed">Closed</button>
+            <button class="chip" type="button" data-part="body">Body</button>
+            <button class="chip" type="button" data-part="cap">Cap</button>
+            <button class="chip" type="button" id="sectionBtn">Section</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Bag roll</summary>
+        <div class="group-body" id="g-roll">
+          <p class="group-note">Measure your roll with calipers. Clearance is the gap per side between roll and bore.</p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Slot &amp; windows</summary>
+        <div class="group-body" id="g-slot">
+          <p class="group-note">The slot runs from the top rim down into the pull window. Because it cuts through the rim, the threaded top is split and <b>flexes instead of cracking</b>.</p>
+          <div class="seg">
+            <button class="chip" type="button" data-slotShape="s">S-curve slot</button>
+            <button class="chip" type="button" data-slotShape="straight">Straight slot</button>
+          </div>
+          <label class="check"><input type="checkbox" id="winTeardrop" /> Teardrop window top (no sag)</label>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Keyring tab</summary>
+        <div class="group-body" id="g-tab">
+          <p class="group-note">Radial fin with a 45° underside so it prints upright without support. Angle is measured around the body from the pull window.</p>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Thread &amp; cap</summary>
+        <div class="group-body" id="g-thread">
+          <p class="group-note">Raise thread clearance if the cap binds; lower it if it rattles. 0.3 mm suits most PETG/PLA printers.</p>
+          <div class="seg">
+            <button class="chip" type="button" data-knurlStyle="ribs">Ribbed cap</button>
+            <button class="chip" type="button" data-knurlStyle="diamond">Diamond knurl</button>
+            <button class="chip" type="button" data-knurlStyle="smooth">Smooth</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group">
+        <summary>Body</summary>
+        <div class="group-body" id="g-body"></div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="dlBody">Download body STL</button>
+            <button type="button" class="wide" id="dlCap">Download cap STL</button>
+            <button type="button" class="secondary" id="reset">Reset holder</button>
+          </div>
+          <div class="ready">
+            <a href="poop-bag-holder-body.stl" download>Default body</a>
+            <a href="poop-bag-holder-cap.stl" download>Default cap</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>PETG</b> (or PLA), 0.2 mm layers, 3–4 walls, no supports.
+            <b>Body:</b> flat base on the bed. <b>Cap:</b> exported upside down — closed top on the bed, threads up.
+            Screw the cap on before loading the roll once to check the fit.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Poop bag holder v1 · Oct 6, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

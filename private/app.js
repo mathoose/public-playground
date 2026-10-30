@@ -8,11 +8,13 @@ import { decodeMsh, stlFromIndexed, manifoldCheck, downloadArrayBuffer, bounds }
 import { unlockIndex, openBytes, vaultBase, WrongPinError } from "./vault.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 import { installModelPick } from "../shared/model-pick.js";
 import * as THREE from "three";
 import { inspectHolder, measureHolder } from "./pick-map.js";
 
 const $ = (id) => document.getElementById(id);
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 const state = (window.__privateState = { unlocked: false, holderReady: false, pumpkinReady: false, error: "" });
 
 const BASE = vaultBase();
@@ -126,6 +128,7 @@ function setTab(name) {
 /* ---------------- phone holder ---------------- */
 
 let params = mergeParams();
+let savesUi;
 let holderSrc = null; // { positions, indices, base }
 let srcFlat = null;
 let checkTimer = 0;
@@ -157,6 +160,7 @@ function writeParams(p) {
     const pr = PRESETS[b.dataset.preset];
     b.classList.toggle("active", ["depth", "width", "phoneT", "phones", "phoneW"].every((k) => params[k] === pr[k]));
   });
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -367,6 +371,18 @@ function startApp() {
   $("privateApp").hidden = false;
   preview = new Preview({ canvas: $("view") });
   window.__preview = preview;
+  savesUi = wireHeaderSaves({
+    appId: "private",
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      const baseChanged = p.base !== params.base;
+      writeParams(p);
+      if (baseChanged) showHolder();
+      else applyStretch();
+    },
+  });
   pick = installModelPick({
     THREE,
     panel: document.querySelector(".panel"),

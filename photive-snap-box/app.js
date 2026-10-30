@@ -16,9 +16,29 @@ import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 import { installModelPick } from "../shared/model-pick.js";
 import * as THREE from "three";
 import { inspectPhotive, measurePhotive } from "./pick-map.js";
+
+const APP_ID = "photive-snap-box";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
+
+function skipLibrary() {
+  const q = new URLSearchParams(location.search);
+  return q.has("capture") || q.has("shot");
+}
+
+function startingParams(fallback) {
+  if (skipLibrary() || !wantsRestore()) return fallback;
+  return lastSettings(APP_ID) || fallback;
+}
+
+function noteDownload(filename) {
+  rememberSettings(APP_ID, params);
+  rememberExport(APP_ID, { filename, params });
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,6 +55,8 @@ const VIEWS = {
 
 let params = mergeParams();
 let preview;
+let pick;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -74,6 +96,7 @@ function writeParams(p) {
     const row = $(key)?.closest(".row");
     if (row) row.hidden = i >= params.usbCount;
   });
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -169,6 +192,7 @@ async function downloadPart(part) {
     const grams = ((volume / 1000) * 1.27).toFixed(1);
     const name = part === "spacer" ? "usb-spacer" : part;
     downloadArrayBuffer(`photive-snap-box-${name}-${APP_VERSION_TAG}.stl`, stl);
+    noteDownload(`photive-snap-box-${name}-${APP_VERSION_TAG}.stl`);
     setStatus(`${part} · ${stlTriangleCount(stl)} tris · ~${grams} g PETG`);
   } catch (err) {
     console.error(err);
@@ -209,7 +233,7 @@ function setSection(on) {
 }
 
 function bind() {
-  writeParams(DEFAULT_PARAMS);
+  writeParams(startingParams(DEFAULT_PARAMS));
   for (const { key } of SLIDERS) {
     const el = $(key);
     if (!el) continue;
@@ -240,7 +264,17 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BoxPreview({ canvas: $("view") });
-const pick = installModelPick({
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
+pick = installModelPick({
   THREE,
   panel: document.querySelector(".panel"),
   canvas: $("view"),
@@ -270,6 +304,7 @@ const pick = installModelPick({
 });
 window.__pick = pick;
 bind();
+if (!skipLibrary()) rememberVisit(APP_ID);
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
   panel: document.querySelector(".panel"),

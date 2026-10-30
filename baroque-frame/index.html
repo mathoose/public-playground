@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!-- build: baroque-frame-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Baroque frame</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/printing-hub-lists-0644/3d-printing/index.html">← 3D printing library</a>
+        <h1>Baroque frame</h1>
+      </div>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version">v1 · Oct 27, 2026</p>
+      </div>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint" id="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="measure-bubble" id="measureBubble" hidden>
+        <b id="measureValue"></b>
+        <span id="measureKind"></span>
+      </div>
+      <div class="view-bar">
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" id="measure">Measure</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Frame</summary>
+        <div class="group-body">
+          <p class="group-note">Width and height change the picture size. The moulding stays the same width, so a wider frame does not grow a thicker border. Frame thickness is the separate control for that border and the depth.</p>
+          <div class="row">
+            <label for="width">Width</label>
+            <output id="width-out">78.2 mm</output>
+            <input id="width" type="range" min="56" max="400" step="0.5" value="78.2" />
+          </div>
+          <div class="row">
+            <label for="height">Height</label>
+            <output id="height-out">100 mm</output>
+            <input id="height" type="range" min="54" max="500" step="0.5" value="100" />
+          </div>
+          <div class="row">
+            <label for="thickness">Frame thickness</label>
+            <output id="thickness-out">100 %</output>
+            <input id="thickness" type="range" min="60" max="160" step="1" value="100" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download-stl">Download STL</button>
+            <button type="button" class="wide" id="download-3mf">Download 3MF</button>
+            <button type="button" class="secondary" id="reset">Reset frame</button>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print <b>flat, face up</b>. The original sculpture is Mari3d’s miniature baroque frame. Width and height stretch only the quiet parts of each side. Corners and the center ornaments keep their shape. Frame thickness scales the moulding and how far it stands off the wall.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Baroque frame v1 · Oct 27, 2026</p>
+    </aside>
+  </div>
+  <script>
+    if (!Uint8Array.fromBase64) {
+      Uint8Array.fromBase64 = function (s) {
+        var bin = atob(s);
+        var out = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+      };
+    }
+  </script>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

@@ -144,6 +144,7 @@ export function installModelPick({
   panel,
   canvas,
   camera,
+  getCamera = null,
   scene,
   getParts,
   inspect,
@@ -154,6 +155,7 @@ export function installModelPick({
 }) {
   ensureStyle();
   const visible = {};
+  const viewCamera = () => (getCamera ? getCamera() : camera);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   const tmp = new THREE.Vector3();
@@ -299,7 +301,7 @@ export function installModelPick({
     const rows = [];
     for (const key of keys || []) {
       const input = panel.querySelector(`#${CSS.escape(key)}`);
-      const row = input?.closest(".row");
+      const row = input?.closest(".row, .field, label.check, .color-card");
       if (!row || row.hidden || row.closest("[hidden]")) continue;
       row.classList.add("mp-hot");
       const details = row.closest("details");
@@ -323,7 +325,7 @@ export function installModelPick({
   function placeTag(el, point, on) {
     el.hidden = !on || !point;
     if (!point) return;
-    tmp.set(point.x, point.y, point.z).project(camera);
+    tmp.set(point.x, point.y, point.z).project(viewCamera());
     const rect = canvas.getBoundingClientRect();
     const stageRect = stage.getBoundingClientRect();
     const x = ((tmp.x * 0.5 + 0.5) * rect.width) + (rect.left - stageRect.left);
@@ -397,7 +399,7 @@ export function installModelPick({
     if (!rect.width || !rect.height) return;
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
+    raycaster.setFromCamera(pointer, viewCamera());
     tagObjects();
     const targets = [];
     for (const part of partsNow()) {
@@ -493,7 +495,7 @@ export function installModelPick({
       pickAt(clientX, clientY);
     },
     project(x, y, z) {
-      tmp.set(x, y, z).project(camera);
+      tmp.set(x, y, z).project(viewCamera());
       const rect = canvas.getBoundingClientRect();
       return {
         x: rect.left + (tmp.x * 0.5 + 0.5) * rect.width,

@@ -15,10 +15,12 @@
  * the outer face on the bed. Tongues are in the cover's back layers (flat on
  * the bed). Nothing is a disconnected island.
  *
- * The stand cleat is on the same face as the rails, under the bottom edge, and
- * overlaps the plate so the back export is one solid. Clearance, lip angle,
- * and minimum tongue stay fixed; rail position and length follow width, height,
- * and border so the fit does not collapse when those change.
+ * The stand is a separate flat flap. Two pegs slip into rectangular holes in
+ * the back plate; a wedge on the same face holds the bottom of the flap off
+ * the plate so the frame leans. Three hole rows change how high the flap
+ * sits, which changes the lean. The flap stays on the back, inside the front
+ * silhouette. Clearance, lip angle, and minimum tongue stay fixed; rail
+ * position, hole rows, and flap size follow width, height, and border.
  *
  * Plate print coordinates: z = 0 is the outer back on the bed, +z faces the cover.
  * Cover coordinates: z = 0 is the cover's back face. The preview seats the cover
@@ -51,20 +53,6 @@ function box(x0, x1, y0, y1, z0, z1) {
   };
 }
 
-function polygonArea(poly) {
-  let a = 0;
-  for (let i = 0; i < poly.length; i++) {
-    const p0 = poly[i];
-    const p1 = poly[(i + 1) % poly.length];
-    a += p0[0] * p1[1] - p1[0] * p0[1];
-  }
-  return a / 2;
-}
-
-function ensureCcw(poly) {
-  return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
-}
-
 function lipSteps(side, xWallIn, xWallOut, y0, y1, z0, reach) {
   const steps = [];
   for (let i = 0; i < LIP_STEPS; i++) {
@@ -79,33 +67,155 @@ function lipSteps(side, xWallIn, xWallOut, y0, y1, z0, reach) {
   return steps;
 }
 
-/** Side profile of the easel. +x faces the cover, y = 0 is the foot on the table. */
-export function clipStandProfile(thickness, angleDeg, standHeight, insertH) {
-  const tabT = thickness;
-  const insert = Math.max(7.2, insertH - 0.55);
-  // Straight neck below the tab so the leg can kick back without
-  // passing through the cleat floor.
-  const neck = 6.5;
-  const join = 2.4;
-  const legBottom = Math.max(18, Math.min(40, standHeight * 0.38));
-  const neckTop = legBottom + neck;
-  const tabTop = neckTop + insert;
-  const theta = (clamp(8, 32, angleDeg) * Math.PI) / 180;
-  const heelX = -Math.max(22, standHeight) * Math.tan(theta) - 8;
-  const poly = ensureCcw([
-    [tabT, legBottom],
-    [tabT, tabTop],
-    [0, tabTop],
-    [0, legBottom + join],
-    [-tabT, legBottom],
-    [heelX - tabT, 0],
-    [heelX, 0],
-    [0, legBottom],
-  ]);
+function standHoleIndex(value) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 0;
+  return clamp(0, 2, n);
+}
+
+function boxVolume(b) {
+  return Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0) * Math.max(0, b.z1 - b.z0);
+}
+
+/**
+ * Back easel. Print boxes lie on the bed: X is the flap width, Y runs from the
+ * foot (0) up to the pegs, Z is up. A wedge on the top face is tall at the foot
+ * and fades out at the pegs. Installed, that face goes against the plate: pegs
+ * enter the holes and the wedge holds the foot off the back.
+ */
+function layoutPegStand(o, plateT, plateW, plateH, outerH, xWallIn) {
+  const sheetT = clamp(2.8, 4.2, Number(o.standThickness) || 3.2);
+  const pegW = 3.4;
+  const pegH = 2.8;
+  const xyClear = 0.55;
+  const holeW = pegW + xyClear;
+  const holeH = pegH + xyClear;
+  let pegLen = plateT - 0.22;
+  if (!(pegLen < plateT - 0.06) || pegLen < 0.2) pegLen = Math.max(0.16, plateT * 0.62);
+  const outerBottom = -outerH / 2;
+  const plateBottom = -plateH / 2;
+  const kick = clamp(36, 64, outerH * 0.32);
+  const reach = kick + sheetT;
+  const gap = holeH + 7;
+  let drop = clamp(34, Math.min(72, plateH * 0.4), plateH * 0.34);
+  const yFootMin = Math.max(outerBottom + 3.2, plateBottom + 1.1);
+  let yHole0 = yFootMin + drop;
+  const yHoleMax = plateH / 2 - holeH / 2 - 3.5;
+  if (yHole0 + 2 * gap > yHoleMax) {
+    drop = Math.max(28, yHoleMax - 2 * gap - yFootMin);
+    yHole0 = yFootMin + drop;
+  }
+  if (yHole0 + 2 * gap > yHoleMax) {
+    const room = Math.max(gap, yHoleMax - yHole0);
+    drop = Math.max(24, yHoleMax - room - yFootMin);
+    yHole0 = yFootMin + drop;
+  }
+  const ys = [0, 1, 2].map((i) => Math.min(yHoleMax, yHole0 + i * gap));
+  const maxHalf = Math.max(8, xWallIn - 3);
+  const halfSpan = clamp(11, maxHalf, plateW * 0.2);
+  const xs = [-halfSpan * 0.62, halfSpan * 0.62];
+  const steps = 8;
+
+  const holeIndex = standHoleIndex(o.standHole);
+  const rows = ys.map((y, index) => {
+    const yFoot = y - drop;
+    const s = yFoot - outerBottom;
+    const angleRad = Math.atan(Math.max(0.8, s) / reach);
+    return {
+      index,
+      y,
+      yFoot,
+      s,
+      angleRad,
+      angleDeg: (angleRad * 180) / Math.PI,
+      active: index === holeIndex,
+    };
+  });
+  const active = rows[holeIndex];
+  const holes = [];
+  for (const row of rows) {
+    for (const x of xs) {
+      holes.push({
+        x,
+        y: row.y,
+        row: row.index,
+        active: row.active,
+        w: holeW,
+        h: holeH,
+        box: box(
+          x - holeW / 2,
+          x + holeW / 2,
+          row.y - holeH / 2,
+          row.y + holeH / 2,
+          -0.4,
+          plateT + 0.35
+        ),
+      });
+    }
+  }
+
+  const boxes = [box(-halfSpan, halfSpan, 0, drop, 0, sheetT)];
+  for (let i = 0; i < steps; i++) {
+    const y0 = (drop * i) / steps;
+    const y1 = (drop * (i + 1)) / steps + 0.35;
+    const h = kick * (1 - i / steps);
+    if (h < 0.35) continue;
+    boxes.push(box(-halfSpan, halfSpan, y0, Math.min(drop, y1), sheetT - 0.25, sheetT + h));
+  }
+  for (const x of xs) {
+    boxes.push(box(x - pegW / 2, x + pegW / 2, drop - pegH, drop + 0.2, sheetT - 0.25, sheetT + pegLen));
+  }
+  let volume = 0;
+  for (const b of boxes) volume += boxVolume(b);
+  volume -= steps * (2 * halfSpan) * 0.25 * (drop / steps);
+
+  const plateBoxes = [];
+  for (let i = 0; i < steps; i++) {
+    const t0 = i / steps;
+    const t1 = (i + 1) / steps;
+    const y0 = active.yFoot + drop * t0;
+    const y1 = Math.min(active.yFoot + drop * t1, active.y - holeH / 2 - 1.2);
+    if (y1 <= y0 + 0.4) continue;
+    const zOuter = -(kick * (1 - t0) + sheetT);
+    plateBoxes.push(box(-halfSpan, halfSpan, y0, y1, zOuter, -0.04));
+  }
+  for (const x of xs) {
+    plateBoxes.push(
+      box(x - pegW / 2, x + pegW / 2, active.y - pegH / 2, active.y + pegH / 2, -0.2, pegLen)
+    );
+  }
+
   return {
-    poly,
-    tab: { x0: 0, x1: tabT, y0: neckTop, y1: tabTop },
+    cut: o.standEnabled !== false,
+    holeIndex,
+    sheetT,
+    pegW,
+    pegH,
+    pegLen,
+    legW: sheetT,
+    legReach: reach,
+    footH: drop / steps,
+    halfSpan,
+    drop,
+    kick,
+    holeW,
+    holeH,
+    rows,
+    holes,
+    boxes,
+    plateBoxes,
+    yHole: active.y,
+    yFoot: active.yFoot,
+    angleRad: active.angleRad,
+    angleDeg: active.angleDeg,
+    volume: Math.max(0, volume),
   };
+}
+
+/** Installed flap, pegs in the active holes, sitting on the back of the plate. */
+export function pegStandPlateBoxes(stand) {
+  if (!stand) return [];
+  return stand.plateBoxes || [];
 }
 
 /**
@@ -235,66 +345,7 @@ export function frameClipLayout(o) {
     relief.push(box(rail.stop.x0, rail.stop.x1, rail.stop.y0, rail.stop.y1, 0, tongueT + 0.1));
   }
 
-  const standEnabled = o.standEnabled !== false;
-  const standThickness = clamp(2.4, 10, Number(o.standThickness) || 4);
-  const standWidth = clamp(16, 60, Number(o.standWidth) || 28);
-  const standHeight = clamp(22, 120, Number(o.standHeight) || 40);
-  const angleDeg = clamp(8, 32, Number(o.standAngleDeg) || 18);
-  const insertH = clamp(8.5, 12, 9 + Math.min(border, 12) * 0.12);
-  const profile = clipStandProfile(standThickness, angleDeg, standHeight, insertH);
-  const tabLen = profile.tab.y1 - profile.tab.y0;
-  const floorZ = plateT;
-  const slotClear = 0.28;
-  // The tall slot stays below the front silhouette. A low bridge, no taller
-  // than the plate, ties that slot into the slab so the back is one solid.
-  const outerBottom = -outerH / 2;
-  const yFuseTop = -plateH / 2 + 2.4;
-  const yStop = Math.min(-plateH / 2 - 0.2, outerBottom - 0.35);
-  const yTabTop = yStop - CLEAR;
-  const yTabBot = yTabTop - tabLen;
-  const yOpen = yTabBot - 3.4;
-  const slotW = standWidth + CLEAR;
-  const sideWall = 1.8;
-  const sockReach = 1.5;
-  const slotZ1 = floorZ + standThickness + slotClear;
-  const xSock0 = -(slotW / 2 + sideWall);
-  const xSock1 = slotW / 2 + sideWall;
-
-  const socket = standEnabled
-    ? {
-        insertH,
-        floorZ,
-        yOpen,
-        yStop,
-        yTabTop,
-        yTabBot,
-        slotW,
-        slotZ0: floorZ,
-        slotZ1,
-        housing: box(xSock0, xSock1, yStop - 0.4, yFuseTop, 0, plateT),
-        tower: box(xSock0, xSock1, yOpen, yStop, 0, slotZ1 + 0.35),
-        void: box(-slotW / 2, slotW / 2, yOpen - 1.2, yStop + 0.05, floorZ, slotZ1 + 3),
-        lips: [-1, 1].flatMap((side) =>
-          lipSteps(
-            side,
-            slotW / 2,
-            slotW / 2 + sideWall,
-            yOpen,
-            yStop,
-            slotZ1,
-            sockReach
-          )
-        ),
-        standPoly: profile.poly,
-        standTab: profile.tab,
-        standPlace: {
-          // After rotating the extruded profile −90° about Y:
-          // worldZ = polyX + pz, worldY = polyY + py.
-          pz: floorZ + slotClear * 0.5,
-          py: yTabBot - profile.tab.y0,
-        },
-      }
-    : null;
+  const pegStand = layoutPegStand(o, plateT, plateW, plateH, outerH, xWallIn);
 
   return {
     clearance: CLEAR,
@@ -323,33 +374,11 @@ export function frameClipLayout(o) {
     tongues,
     rails,
     relief,
-    socket,
-    standPoly: profile.poly,
-    standTab: profile.tab,
+    pegStand,
     border,
     outerW,
     outerH,
   };
-}
-
-/** Cleat boxes with the slot left open, for the live preview. */
-export function socketShellBoxes(socket) {
-  if (!socket) return [];
-  const h = socket.housing;
-  const v = socket.void;
-  const tower = socket.tower;
-  const shells = [
-    box(h.x0, h.x1, h.y0, h.y1, h.z0, h.z1),
-  ];
-  if (tower) {
-    shells.push(
-      box(tower.x0, tower.x1, tower.y0, v.y0, tower.z0, tower.z1),
-      box(tower.x0, v.x0, v.y0, tower.y1, tower.z0, tower.z1),
-      box(v.x1, tower.x1, v.y0, tower.y1, tower.z0, tower.z1),
-      box(v.x0, v.x1, v.y0, tower.y1, tower.z0, socket.floorZ)
-    );
-  }
-  return [...shells, ...socket.lips];
 }
 
 /** Outline of the back plate, CCW, with rounded corners when the cover has them. */
