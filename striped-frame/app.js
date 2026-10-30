@@ -9,14 +9,14 @@ import {
   hangHoleLayout,
   mmToDisplay,
   plaGrams,
-  polygonArea,
   setColorCount,
   setColorHeight,
   setColorSwatch,
   setColorThickness,
   setSharedHeight,
   sizeLabel,
-  standPolygon,
+  standRows,
+  standVolume,
 } from "./geometry.js";
 import { FramePreview } from "./preview.js";
 import {
@@ -28,12 +28,32 @@ import {
 } from "./stl.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import {
+  lastSettings,
+  rememberExport as noteLibraryExport,
+  rememberSettings,
+  rememberVisit,
+  wantsRestore,
+} from "../shared/library-activity.js";
+import { wirePanelSaves } from "../shared/wire-designer.js";
+import { installModelPick } from "../shared/model-pick.js";
+import { inspectStriped, measureStriped } from "./pick-map.js";
+import * as THREE from "three";
 
+const SLIDER_KEYS = Object.keys(defaultParams());
+
+function mergeParams(raw) {
+  return clampParams({ ...defaultParams(), ...(raw || {}) });
+}
+
+const APP_ID = "striped-frame";
 const lastExports = {};
 const $ = (id) => document.getElementById(id);
 
 let params = defaultParams();
 let preview;
+let pick = null;
+let savesUi;
 let colorRowsBound = false;
 let lastColorCount = -1;
 
@@ -192,9 +212,14 @@ function renderForm(opts = {}) {
   }
   $("standEnabled").checked = params.standEnabled;
   $("standFields").hidden = !params.standEnabled;
-  $("standAngleDeg").value = String(Math.round(params.standAngleDeg));
-  $("standAngleRange").value = String(Math.round(params.standAngleDeg));
-  $("standAngleLabel").textContent = `${Math.round(params.standAngleDeg)}°`;
+  const leanNames = ["Slight", "Medium", "More"];
+  const rows = standRows(params);
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    const i = Number(btn.dataset.stand);
+    btn.classList.toggle("active", i === params.standHole);
+    const row = rows[i];
+    if (row) btn.textContent = `${leanNames[i]} ${Math.round(row.angleDeg)}°`;
+  }
   $("dlStand").hidden = !params.standEnabled;
 
   for (const btn of document.querySelectorAll("[data-preset]")) {
@@ -213,9 +238,7 @@ function renderReadout(layout) {
   const grams = plaGrams(estimateVolumeMm3(layout));
   const holeArea = hangHoleLayout(params).reduce((a, h) => a + Math.PI * h.r * h.r, 0);
   const plateG = plaGrams((params.photoW * params.photoH - holeArea) * params.plateThickness);
-  const standG = params.standEnabled
-    ? plaGrams(Math.abs(polygonArea(standPolygon(params))) * params.standWidth)
-    : 0;
+  const standG = params.standEnabled ? plaGrams(standVolume(params)) : 0;
   const pattern = layout.colors
     .map((c) => `${(c.thickness * layout.scale).toFixed(1)}`)
     .join(" / ");
@@ -235,8 +258,31 @@ function refresh(opts = {}) {
   renderForm(opts);
   const layout = preview.update(params);
   renderReadout(layout);
+  if (pick) pick.refresh();
+  savesUi?.renderList();
   if (opts.fit) preview.fit();
   return layout;
+}
+
+function presentPick(info) {
+  if (!info?.box) return info;
+  return { ...info, box: preview.worldBox(info.box) };
+}
+
+function syncViewChips(shown) {
+  const on = (key) => shown?.[key] !== false;
+  const all = on("cover") && on("back") && on("stand") && on("photo");
+  const cover = on("cover") && !on("back") && !on("stand") && on("photo");
+  const back = !on("cover") && on("back") && on("stand") && !on("photo");
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    const part = btn.getAttribute("data-part");
+    btn.classList.toggle(
+      "active",
+      (part === "assembled" && all) ||
+        (part === "cover" && cover) ||
+        (part === "back" && back)
+    );
+  });
 }
 
 function num(id) {
@@ -385,14 +431,12 @@ function bind() {
     params.standEnabled = $("standEnabled").checked;
     refresh({ fit: true });
   });
-  $("standAngleRange").addEventListener("input", () => {
-    params.standAngleDeg = Number($("standAngleRange").value);
-    refresh({ skipColorRebuild: true });
-  });
-  $("standAngleDeg").addEventListener("change", () => {
-    params.standAngleDeg = num("standAngleDeg");
-    refresh();
-  });
+  for (const btn of document.querySelectorAll("[data-stand]")) {
+    btn.addEventListener("click", () => {
+      params.standHole = Number(btn.dataset.stand);
+      refresh({ fit: preview.partView === "side" });
+    });
+  }
 
   $("resetView").addEventListener("click", () => preview.fit());
   $("photoFile").addEventListener("change", async (e) => {
@@ -425,6 +469,7 @@ function rememberExport(kind, filename, buffer) {
   a.click();
   a.remove();
   renderExportLinks();
+  noteLibraryExport(APP_ID, { filename, params });
 }
 
 function renderExportLinks() {
@@ -447,6 +492,7 @@ async function exportStls(which) {
   const status = $("status");
   const buttons = [$("dlFrame"), $("dlColors"), $("dlPlate"), $("dlStand"), $("dlBoth")];
   buttons.forEach((b) => (b.disabled = true));
+  rememberSettings(APP_ID, params);
   try {
     const parts = [];
     if (which === "plate" || which === "all") {
@@ -488,6 +534,14 @@ async function exportStls(which) {
 }
 
 function init() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("capture") && !q.has("shot")) {
+    if (wantsRestore()) {
+      const saved = lastSettings(APP_ID);
+      if (saved) params = mergeParams(saved);
+    }
+    rememberVisit(APP_ID);
+  }
   const versionEl = $("app-version");
   if (versionEl) versionEl.textContent = `Striped frame v${APP_VERSION}`;
   preview = new FramePreview({
@@ -497,8 +551,58 @@ function init() {
   bind();
   refresh({ fit: true });
   pairSlidersWithNumbers(document.querySelector(".panel"));
+  const panel = document.querySelector(".panel");
+  savesUi = wirePanelSaves({
+    appId: APP_ID,
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      params = mergeParams(p);
+      refresh();
+    },
+    panel,
+  });
+  pick = installModelPick({
+    THREE,
+    panel,
+    canvas: $("view3d"),
+    camera: preview.camera,
+    getCamera: () => preview.camera,
+    scene: preview.scene,
+    getParts: () => [
+      { id: "cover", label: "Cover", objects: [{ object: preview.coverGroup, hit: "cover" }] },
+      { id: "back", label: "Back", objects: [{ object: preview.backGroup, hit: "back" }] },
+      { id: "stand", label: "Stand", objects: [{ object: preview.standGroup, hit: "stand" }] },
+      { id: "photo", label: "Photo", preview: true, objects: [{ object: preview.photoGroup, hit: "photo" }] },
+    ],
+    inspect: (hit) => presentPick(inspectStriped(preview.toContent(hit), preview.layout)),
+    measure: (a, b) => measureStriped(preview.toContent(a), preview.toContent(b), preview.layout),
+    onVisible: (shown) => {
+      preview.setShown(shown);
+      syncViewChips(shown);
+    },
+  });
+  window.__framePick = pick;
+  window.__framePreview = preview;
+  document.querySelectorAll("[data-part]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const shown = preview.setPartView(btn.getAttribute("data-part"));
+      pick.setVisible(shown, { silent: true });
+      syncViewChips(shown);
+    });
+  });
+  const shot = q.get("shot");
+  if (shot === "front" || shot === "back" || shot === "side" || shot === "cover") {
+    const mode = shot === "front" ? "assembled" : shot;
+    preview.setPartView(mode);
+    document.querySelectorAll("[data-part]").forEach((b) =>
+      b.classList.toggle("active", b.getAttribute("data-part") === mode)
+    );
+  }
   installUndo({
     panel: document.querySelector(".panel"),
+    before: document.getElementById("viewSettings"),
     read: () => params,
     apply: (snapshot) => {
       params = snapshot;

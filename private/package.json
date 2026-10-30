@@ -1,0 +1,16 @@
+{
+  "name": "private-models",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test_geometry.mjs",
+    "seal": "node scripts/seal-vault.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.2",
+    "manifold-3d": "^3.2.1",
+    "three": "^0.186.0"
+  }
+}

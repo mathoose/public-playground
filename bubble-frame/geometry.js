@@ -1,7 +1,9 @@
 /** Layout math for a flat-backed bubble picture frame. Units are millimeters. */
 
-export const APP_VERSION = "2 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v2";
+import { frameClipLayout } from "../shared/frame-clip.js";
+
+export const APP_VERSION = "5 · Oct 30, 2026";
+export const APP_VERSION_TAG = "v5";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -75,10 +77,20 @@ export function defaultParams() {
     hangInsetTop: 12,
     hangInsetSide: 18,
     standEnabled: true,
-    standAngleDeg: 18,
+    standHole: 0,
     standThickness: 4,
     outerCornerRadius: 1.5,
+    alternate: true,
+    colorA: "#292524",
+    colorB: "#b45309",
   };
+}
+
+function normalizeHex(value, fallback) {
+  const s = String(value || "").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(s)) return `#${s.toLowerCase()}`;
+  return fallback;
 }
 
 export function clampParams(p) {
@@ -108,10 +120,9 @@ export function clampParams(p) {
     Math.max(minInset, Number(p.hangInsetSide) || 18)
   );
   next.standEnabled = p.standEnabled !== false;
-  next.standAngleDeg = Math.min(32, Math.max(8, Number(p.standAngleDeg) || 18));
+  const hole = Math.round(Number(p.standHole));
+  next.standHole = Number.isFinite(hole) ? Math.min(2, Math.max(0, hole)) : 0;
   next.standThickness = Math.min(10, Math.max(2.4, Number(p.standThickness) || 4));
-  next.standHeight = Math.min(120, Math.max(28, 0.4 * next.photoH));
-  next.standWidth = Math.min(60, Math.max(22, 0.32 * next.photoW));
   for (const key of ["countTop", "countBottom", "countLeft", "countRight"]) {
     next[key] = Math.min(40, Math.max(2, Math.round(Number(p[key]) || 2)));
   }
@@ -123,6 +134,9 @@ export function clampParams(p) {
     Math.min(next.photoW, next.photoH) / 2
   );
   next.outerCornerRadius = Math.min(maxCorner, Math.max(0, Number(p.outerCornerRadius) || 0));
+  next.alternate = p.alternate !== false;
+  next.colorA = normalizeHex(p.colorA, "#292524");
+  next.colorB = normalizeHex(p.colorB, "#b45309");
   return next;
 }
 
@@ -237,6 +251,25 @@ export function layoutBeads(p) {
     warnings.push("Large outer corner radius may cut deeply into the corner beads.");
   }
 
+  const byId = new Map(beads.map((b) => [b.id, b]));
+  const path = [];
+  const pushBead = (id) => {
+    const bead = byId.get(id);
+    if (bead) path.push(bead);
+  };
+  pushBead("corner-tl");
+  for (let i = 1; i < params.countTop - 1; i++) pushBead(`top-${i}`);
+  pushBead("corner-tr");
+  for (let i = params.countRight - 2; i >= 1; i--) pushBead(`right-${i}`);
+  pushBead("corner-br");
+  for (let i = params.countBottom - 2; i >= 1; i--) pushBead(`bottom-${i}`);
+  pushBead("corner-bl");
+  for (let i = 1; i < params.countLeft - 1; i++) pushBead(`left-${i}`);
+  path.forEach((bead, index) => {
+    bead.pathIndex = index;
+    bead.colorIndex = params.alternate ? index % 2 : 0;
+  });
+
   return {
     params,
     beads,
@@ -257,6 +290,7 @@ export function layoutBeads(p) {
     enabledCount: enabled.length,
     outerCornerRadius: params.outerCornerRadius,
     warnings,
+    path,
   };
 }
 
@@ -356,80 +390,33 @@ export function ensureCcw(poly) {
   return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
 }
 
-/**
- * Back-plate pocket the stand tab slides into. Open at the bottom and the
- * back; the front of the plate stays solid so beads hide the joint.
- */
-export function standSlotLayout(p) {
-  const params = clampParams(p);
-  if (!params.standEnabled) return null;
-  const wall = 2.4;
-  const clearance = 0.4;
-  const insertH = Math.min(24, Math.max(12, 0.12 * params.photoH));
-  const slotW = params.standWidth + clearance;
-  const slotD = params.standThickness + clearance;
-  const bossW = slotW + 2 * wall;
-  const bossH = insertH + 3.5;
-  const bossD = slotD + wall;
-  // Distance from the table (bead bottoms) to the plate’s bottom edge, so the
-  // tab meets the pocket mouth and nothing extra hangs in front of the beads.
-  const lift = Math.max(2.5, params.ballDiameter - params.imageOverlap);
-  return {
-    wall,
-    clearance,
-    insertH,
-    slotW,
-    slotD,
-    bossW,
-    bossH,
-    bossD,
-    lift,
-  };
+/** Slide-rail mate for this bead layout. Shared with the striped frame. */
+export function frameClipFor(layout) {
+  const p = layout.params;
+  const border = (layout.outer.w - layout.photo.w) / 2;
+  return frameClipLayout({
+    outerW: layout.outer.w,
+    outerH: layout.outer.h,
+    border,
+    beadRadius: layout.radius,
+    coverHeight: layout.radius,
+    plateT: p.plateThickness,
+    cornerRadius: p.outerCornerRadius,
+    standThickness: p.standThickness,
+    standEnabled: p.standEnabled,
+    standHole: p.standHole,
+  });
 }
 
-/**
- * Easel stand side profile. Print this polygon on the bed and extrude
- * `standWidth` in Z. After printing, stand it on the y=0 edge.
- * +x is toward the front of the photo; +y is up.
- * The tab (x >= 0) slides up into the back-plate pocket. The kickstand stays
- * at x <= 0 so nothing reads from the front — only the beads.
- */
-export function standPolygon(p) {
-  const params = clampParams(p);
-  const slot = standSlotLayout({ ...params, standEnabled: true });
-  const tabT = params.standThickness;
-  const insertH = slot.insertH - 0.7;
-  const lift = slot.lift;
-  // Short below-plate stub so the tab and kickstand share a real rectangle
-  // (a point joint would snap). It sits in the pocket’s open mouth, behind
-  // the plate, so it does not read from the front.
-  const join = Math.min(2.4, lift);
-  const tabBottom = lift - join;
-  const thick = params.standThickness;
-  const θ = (params.standAngleDeg * Math.PI) / 180;
-  const heelX = -params.standHeight * Math.tan(θ) - 10;
-  const poly = [
-    [tabT, tabBottom],
-    [tabT, lift + insertH],
-    [0, lift + insertH],
-    [0, lift],
-    [-thick, tabBottom],
-    [heelX - thick, 0],
-    [heelX, 0],
-    [0, tabBottom],
-  ];
-  return ensureCcw(poly);
+/** Hole rows for the easel. Higher rows lean the frame back more. */
+export function standRows(p) {
+  const params = clampParams({ ...p, standEnabled: true });
+  return frameClipFor(layoutBeads(params)).pegStand.rows;
 }
 
-export function standBounds(poly) {
-  const xs = poly.map((p) => p[0]);
-  const ys = poly.map((p) => p[1]);
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-  };
+/** Cubic millimeters of the flat peg stand. */
+export function standVolume(p) {
+  const params = clampParams(p);
+  if (!params.standEnabled) return 0;
+  return frameClipFor(layoutBeads(params)).pegStand.volume;
 }

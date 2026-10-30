@@ -7,19 +7,18 @@ import {
   clampParams,
   defaultParams,
   edgeFinishSizes,
+  frameClipFor,
   hangHoleLayout,
   layoutStripes,
   outerPerimeterPoly,
   pathLength,
-  polygonArea,
   setColorCount,
   setColorHeight,
   setColorThickness,
   setSharedHeight,
-  standBounds,
-  standPolygon,
-  standSlotLayout,
+  standVolume,
 } from "./geometry.js";
+import { pegStandPlateBoxes } from "../shared/frame-clip.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
 
 let failed = 0;
@@ -33,8 +32,8 @@ function almost(a, b, eps, msg) {
   assert(Math.abs(a - b) <= eps, `${msg}: ${a} vs ${b}`);
 }
 
-assert(APP_VERSION_TAG === "v3", "version tag");
-assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
+assert(APP_VERSION_TAG === "v7", "version tag");
+assert(APP_VERSION.includes("Oct 30, 2026"), "version date");
 
 const p = defaultParams();
 assert(p.colorCount === 2, "default 2 colors");
@@ -86,10 +85,16 @@ const clamped = clampParams({ ...defaultParams(), colorCount: 9, sharedHeight: 1
 assert(clamped.colorCount === 4, "color count clamp");
 assert(clamped.sharedHeight === 40, "height clamp");
 
+const clip = frameClipFor(layout);
+assert(clip.plate.w < layout.outer.w - 0.5, "back is narrower than the front");
+assert(clip.plate.h < layout.outer.h - 0.5, "back is shorter than the front");
+assert(clip.xWallOut < layout.outer.w / 2 - 0.3, "rails stay inside the moulding");
 assert(hangHoleLayout(p).length === 2, "hang holes");
-assert(standSlotLayout(p).lift > 0, "stand slot");
-assert(Math.abs(polygonArea(standPolygon(p))) > 0, "stand area");
-assert(standBounds(standPolygon(p)).w > 0, "stand bounds");
+assert(clip.pegStand.holes.length === 6, "three rows of peg holes");
+assert(clip.pegStand.rows[2].angleDeg > clip.pegStand.rows[0].angleDeg, "higher holes lean more");
+assert(clip.pegStand.holes.every((h) => h.box.y0 > -layout.outer.h / 2), "holes stay behind the front");
+assert(pegStandPlateBoxes(clip.pegStand).every((b) => b.y0 > -layout.outer.h / 2 + 2), "stand sits on the back, above the moulding bottom");
+assert(standVolume(p) > 500, "stand volume");
 assert(stlTriangleCount(boxStl(10, 10, 2, "t")) === 12, "box tris");
 
 // Adjacent segments alternate color index in the repeating pattern

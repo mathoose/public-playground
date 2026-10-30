@@ -1,7 +1,9 @@
 /** Path-stripe picture frame: alternating bands along the moulding loop. Units mm. */
 
-export const APP_VERSION = "4 · Oct 6, 2026";
-export const APP_VERSION_TAG = "v3";
+import { frameClipLayout } from "../shared/frame-clip.js";
+
+export const APP_VERSION = "7 · Oct 30, 2026";
+export const APP_VERSION_TAG = "v7";
 
 /** Front-face edge finish modes. */
 export const EDGE_MODES = [
@@ -66,7 +68,7 @@ export function defaultParams() {
     hangInsetTop: 12,
     hangInsetSide: 18,
     standEnabled: true,
-    standAngleDeg: 18,
+    standHole: 0,
     standThickness: 4,
     outerCornerRadius: 0,
     insideEdgeMode: "none",
@@ -114,10 +116,9 @@ export function clampParams(p) {
     Math.max(minInset, Number(p.hangInsetSide) || 18)
   );
   next.standEnabled = p.standEnabled !== false;
-  next.standAngleDeg = Math.min(32, Math.max(8, Number(p.standAngleDeg) || 18));
+  const hole = Math.round(Number(p.standHole));
+  next.standHole = Number.isFinite(hole) ? Math.min(2, Math.max(0, hole)) : 0;
   next.standThickness = Math.min(10, Math.max(2.4, Number(p.standThickness) || 4));
-  next.standHeight = Math.min(120, Math.max(28, 0.4 * next.photoH));
-  next.standWidth = Math.min(60, Math.max(22, 0.32 * next.photoW));
 
   const src = Array.isArray(p.colors) ? p.colors : [];
   let colors = resizeColors(src, next.colorCount, next.sharedHeight).map((c, i) => {
@@ -572,66 +573,31 @@ export function ensureCcw(poly) {
   return polygonArea(poly) >= 0 ? poly : poly.slice().reverse();
 }
 
-export function standSlotLayout(p) {
-  const params = clampParams(p);
-  if (!params.standEnabled) return null;
-  const wall = 2.4;
-  const clearance = 0.4;
-  const insertH = Math.min(24, Math.max(12, 0.12 * params.photoH));
-  const slotW = params.standWidth + clearance;
-  const slotD = params.standThickness + clearance;
-  const bossW = slotW + 2 * wall;
-  const bossH = insertH + 3.5;
-  const bossD = slotD + wall;
-  const lift = Math.max(2.5, params.mouldingWidth - params.lip);
-  return {
-    wall,
-    clearance,
-    insertH,
-    slotW,
-    slotD,
-    bossW,
-    bossH,
-    bossD,
-    lift,
-  };
+/** Slide-rail mate for this moulding layout. Shared with the bubble frame. */
+export function frameClipFor(layout) {
+  const p = layout.params;
+  return frameClipLayout({
+    outerW: layout.outer.w,
+    outerH: layout.outer.h,
+    border: p.mouldingWidth,
+    coverHeight: layout.maxHeight,
+    plateT: p.plateThickness,
+    cornerRadius: p.outerCornerRadius,
+    standThickness: p.standThickness,
+    standEnabled: p.standEnabled,
+    standHole: p.standHole,
+  });
 }
 
-export function standPolygon(p) {
-  const params = clampParams(p);
-  const slot = standSlotLayout({ ...params, standEnabled: true });
-  const tabT = params.standThickness;
-  const insertH = slot.insertH - 0.7;
-  const lift = slot.lift;
-  const join = Math.min(2.4, lift);
-  const tabBottom = lift - join;
-  const thick = params.standThickness;
-  const θ = (params.standAngleDeg * Math.PI) / 180;
-  const heelX = -params.standHeight * Math.tan(θ) - 10;
-  const poly = [
-    [tabT, tabBottom],
-    [tabT, lift + insertH],
-    [0, lift + insertH],
-    [0, lift],
-    [-thick, tabBottom],
-    [heelX - thick, 0],
-    [heelX, 0],
-    [0, tabBottom],
-  ];
-  return ensureCcw(poly);
+export function standRows(p) {
+  const params = clampParams({ ...p, standEnabled: true });
+  return frameClipFor(layoutStripes(params)).pegStand.rows;
 }
 
-export function standBounds(poly) {
-  const xs = poly.map((pt) => pt[0]);
-  const ys = poly.map((pt) => pt[1]);
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-  };
+export function standVolume(p) {
+  const params = clampParams(p);
+  if (!params.standEnabled) return 0;
+  return frameClipFor(layoutStripes(params)).pegStand.volume;
 }
 
 /**

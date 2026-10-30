@@ -3,6 +3,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { APP_VERSION, APP_VERSION_TAG, DEFAULT_PARAMS, facesToPositions, meshFor, stlBytes } from "./clip.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { installModelPick } from "../shared/model-pick.js";
+import { inspectClip, measureClip } from "./pick-map.js";
+import { mergeParams } from "./clip.js";
 
 const KEYS = [
   "thickness",
@@ -17,6 +22,9 @@ const KEYS = [
   "tip_standoff",
   "tip_angle_deg",
 ];
+
+const APP_ID = "postit-wall-clip";
+const SLIDER_KEYS = KEYS;
 
 const UNITS = {
   thickness: "mm",
@@ -33,12 +41,11 @@ const UNITS = {
 };
 
 function readParams() {
-  const p = { ...DEFAULT_PARAMS };
-  for (const key of KEYS) {
-    const el = document.getElementById(key);
-    p[key] = Number(el.value);
-  }
-  return p;
+  return mergeParams(
+    Object.fromEntries(
+      KEYS.map((key) => [key, Number(document.getElementById(key).value)])
+    )
+  );
 }
 
 function writeParams(p) {
@@ -50,6 +57,7 @@ function writeParams(p) {
     const text = Number.isInteger(n) || el.step === "1" ? n.toFixed(0) : n.toFixed(2);
     out.textContent = `${text} ${UNITS[key]}`;
   }
+  savesUi?.renderList();
 }
 
 const canvas = document.getElementById("view");
@@ -89,6 +97,8 @@ const mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
 scene.add(mesh);
 
 let latest = meshFor();
+let savesUi;
+let pick;
 
 function applyMesh(result) {
   latest = result;
@@ -97,6 +107,8 @@ function applyMesh(result) {
   geo.computeVertexNormals();
   mesh.geometry.dispose();
   mesh.geometry = geo;
+  mesh.visible = pick.visibility().clip !== false;
+  pick.refresh();
 
   const [sx, sy, sz] = result.bbox.size;
   const stats = document.getElementById("stats");
@@ -131,6 +143,8 @@ function downloadStl() {
   a.download = `postit-wall-clip-${APP_VERSION_TAG}-${Math.round(p.width)}mm.stl`;
   a.click();
   URL.revokeObjectURL(a.href);
+  rememberSettings(APP_ID, p);
+  rememberExport(APP_ID, { filename: a.download, params: p });
 }
 
 const versionEl = document.getElementById("app-version");
@@ -139,11 +153,47 @@ if (versionEl) {
 }
 
 function setPreset(overrides) {
-  writeParams({ ...DEFAULT_PARAMS, ...overrides });
+  writeParams(mergeParams({ ...DEFAULT_PARAMS, ...overrides }));
   rebuild();
 }
 
-writeParams(DEFAULT_PARAMS);
+const bootQuery = new URLSearchParams(location.search);
+let bootParams = DEFAULT_PARAMS;
+if (!bootQuery.has("capture") && !bootQuery.has("shot")) {
+  if (wantsRestore()) {
+    const saved = lastSettings(APP_ID);
+    if (saved) bootParams = mergeParams(saved);
+  }
+  rememberVisit(APP_ID);
+}
+
+pick = installModelPick({
+  THREE,
+  panel: document.querySelector(".panel"),
+  canvas,
+  camera,
+  scene,
+  getParts: () => [{ id: "clip", label: "Clip", objects: [{ object: mesh, hit: "clip" }] }],
+  inspect: (hit) => inspectClip(hit, latest?.params || readParams()),
+  measure: (a, b) => measureClip(a, b, latest?.params || readParams()),
+  onVisible: (shown) => {
+    mesh.visible = shown.clip !== false;
+  },
+});
+window.__pick = pick;
+
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: readParams,
+  setParams: (p) => {
+    writeParams(p);
+    rebuild();
+  },
+});
+
+writeParams(bootParams);
 for (const key of KEYS) {
   document.getElementById(key).addEventListener("input", () => {
     writeParams(readParams());

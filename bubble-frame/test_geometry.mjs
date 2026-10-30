@@ -14,12 +14,12 @@ import {
   hangHoleLayout,
   layoutBeads,
   outerPerimeterPoly,
-  polygonArea,
-  standBounds,
-  standPolygon,
-  standSlotLayout,
+  frameClipFor,
+  standRows,
+  standVolume,
   toggleDisabled,
 } from "./geometry.js";
+import { aabbOverlapVolume, frameClipLayout, pegStandPlateBoxes } from "../shared/frame-clip.js";
 import { boxStl, stlTriangleCount } from "./stl.js";
 
 let failed = 0;
@@ -88,7 +88,7 @@ const roundedLayout = layoutBeads(roundedP);
 assert(roundedLayout.outerCornerRadius === 8, "layout exposes corner radius");
 const poly = outerPerimeterPoly(roundedLayout.outer.w, roundedLayout.outer.h, 8, 8);
 assert(poly.length > 8, "rounded outer perimeter has arc points");
-assert(APP_VERSION.includes("Oct 6, 2026"), "version date");
+assert(APP_VERSION.includes("Oct 30, 2026"), "version date");
 
 const topEdge = layout.beads.filter((b) => b.id.startsWith("top-") || b.id === "corner-tl" || b.id === "corner-tr");
 assert(topEdge.length === 8, "top side includes corners");
@@ -134,23 +134,170 @@ const holes1 = hangHoleLayout({ ...p, hangHoles: true, hangHoleCount: 1 });
 assert(holes1.length === 1 && holes1[0].x === 0, "single centered hole");
 assert(hangHoleLayout({ ...p, hangHoles: false }).length === 0, "holes can be turned off");
 
-const stand = standPolygon(p);
-assert(stand.length >= 4, "stand has a tab and a foot");
-assert(polygonArea(stand) > 50, "stand profile has positive area");
-const sb = standBounds(stand);
-assert(sb.minY >= -1e-6, "stand sits on y=0 for a flat print");
-assert(sb.maxX <= p.standThickness + 0.05, "tab does not stick in front of the plate");
-assert(sb.minX < 0, "foot stays behind the beads");
-assert(sb.h > 20, "stand is tall enough to prop the frame");
-const slot = standSlotLayout(p);
-assert(slot && slot.insertH >= 12, "back plate has an insert pocket");
-assert(slot.bossH > slot.insertH, "pocket is taller than the tab");
-assert(slot.slotW > p.standWidth, "slot is wider than the tab for clearance");
-assert(stand.every((pt) => pt[0] <= p.standThickness + 0.05), "no stand geometry in front of the plate");
-const belowPlate = stand.filter((pt) => pt[1] < slot.lift - 2.5);
-assert(belowPlate.every((pt) => pt[0] <= 0.05), "kickstand stays behind the plate below the pocket");
-const steeper = standBounds(standPolygon({ ...p, standAngleDeg: 28 }));
-assert(steeper.minX < sb.minX, "a steeper lean makes a deeper back foot");
+const peg = frameClipFor(layout).pegStand;
+assert(peg.cut, "stand holes are cut when the easel is on");
+assert(peg.holes.length === 6, "three rows of two peg holes");
+assert(peg.holeIndex === 0, "the slight holes are the default lean");
+assert(peg.rows[0].angleDeg < peg.rows[1].angleDeg, "a higher hole leans more");
+assert(peg.rows[1].angleDeg < peg.rows[2].angleDeg, "the top hole leans the most");
+assert(peg.pegLen < peg.holes[0].box.z1 - 0.2, "pegs stop inside the plate");
+assert(peg.pegW + 0.2 < peg.holeW, "pegs are narrower than the holes");
+assert(peg.pegH + 0.2 < peg.holeH, "pegs are shorter than the holes");
+assert(standVolume(p) > 1000, "stand has volume");
+assert(standVolume({ ...p, standEnabled: false }) === 0, "stand volume is off with the easel");
+for (const hole of peg.holes) {
+  assert(hole.box.y0 >= -layout.outer.h / 2, "peg holes stay inside the front silhouette");
+  assert(Math.abs(hole.x) + hole.w / 2 < peg.halfSpan + peg.legW, "holes sit on the leg span");
+}
+const placed = peg.boxes;
+assert(placed[0].y0 >= -1e-6, "stand prints flat from the foot");
+const low = frameClipFor(layoutBeads({ ...p, standHole: 0 })).pegStand;
+const high = frameClipFor(layoutBeads({ ...p, standHole: 2 })).pegStand;
+assert(high.angleDeg > low.angleDeg + 2, "choosing a higher hole changes the lean");
+assert(Math.abs(standRows(p)[0].angleDeg - peg.angleDeg) < 1e-6, "stand rows match the active lean");
+const bigger = frameClipFor(layoutBeads({ ...p, photoW: 8 * IN, photoH: 10 * IN })).pegStand;
+assert(bigger.legReach > peg.legReach + 5, "a taller photo gets longer legs");
+assert(bigger.halfSpan > peg.halfSpan + 2, "a wider photo spreads the pegs");
+
+function leanedMinY(stand, outerH) {
+  const pivot = -outerH / 2;
+  const c = Math.cos(stand.angleRad);
+  const s = Math.sin(stand.angleRad);
+  let minY = Infinity;
+  for (const b of pegStandPlateBoxes(stand)) {
+    for (const y of [b.y0, b.y1]) {
+      for (const z of [b.z0, b.z1]) {
+        const y2 = (y - pivot) * c + z * s + pivot;
+        if (y2 < minY) minY = y2;
+      }
+    }
+  }
+  return minY;
+}
+const floor = -layout.outer.h / 2;
+assert(pegStandPlateBoxes(peg).every((b) => b.y0 > floor + 2), "unleaned stand sits above the bead bottoms");
+assert(leanedMinY(peg, layout.outer.h) >= floor - 0.15, "leaned stand does not hang below the front");
+assert(leanedMinY(high, layout.outer.h) >= floor - 0.15, "steeper lean still stays at the floor line");
+
+function assertMate(label, spec) {
+  const clip = frameClipLayout(spec);
+  const tongue = clip.tongues.find((t) => t.x1 > 0);
+  assert(tongue.y1 - tongue.y0 > 8, `${label} tongue is long enough to grip`);
+  const hook = clip.lip - clip.clearance;
+  if ((spec.border || 0) >= 6 || spec.beadRadius) {
+    assert(hook > 1.05, `${label} lip still hooks the tongue (${hook.toFixed(2)} mm)`);
+  } else {
+    assert(hook > 0.4, `${label} lip still overlaps the tongue on a thin border`);
+  }
+  assert(Math.abs(clip.xWallIn - clip.xTip - clip.clearance) < 1e-6, `${label} wall clearance stays fixed`);
+  assert(clip.xWallOut < clip.outerW / 2 - 0.3, `${label} rail stays inside the front`);
+  assert(clip.plate.w < clip.outerW - 0.6, `${label} plate is narrower than the front`);
+  assert(clip.plate.h < clip.outerH - 0.6, `${label} plate is shorter than the front`);
+  assert(clip.stopY1 <= clip.y0 - clip.clearance + 1e-6, `${label} stop sits under the tongue`);
+  assert(aabbOverlapVolume(clip.rails[0].wall, clip.slab) > 0, `${label} rail is fused to the plate`);
+  assert(aabbOverlapVolume(clip.rails[0].lips[0], clip.rails[0].wall) > 0, `${label} lip is fused to the wall`);
+  if (spec.beadRadius) {
+    const r = spec.beadRadius;
+    const dx = clip.plate.w / 2 - (clip.outerW / 2 - r);
+    const dy = clip.plate.h / 2 - (clip.outerH / 2 - r);
+    assert(Math.hypot(dx, dy) < r - 0.15, `${label} plate corner hides behind the corner bead`);
+  }
+}
+assertMate("default", {
+  outerW: layout.outer.w,
+  outerH: layout.outer.h,
+  border: (layout.outer.w - layout.photo.w) / 2,
+  beadRadius: layout.radius,
+  coverHeight: layout.radius,
+  plateT: p.plateThickness,
+  cornerRadius: p.outerCornerRadius,
+  standThickness: p.standThickness,
+  standEnabled: true,
+  standHole: p.standHole,
+});
+assertMate("wallet thin border", {
+  outerW: 70,
+  outerH: 90,
+  border: 2,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standWidth: 22,
+  standThickness: 3,
+  standEnabled: true,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+assertMate("large thick border", {
+  outerW: 280,
+  outerH: 340,
+  border: 22,
+  plateT: 4,
+  cornerRadius: 8,
+  standWidth: 50,
+  standThickness: 6,
+  standEnabled: true,
+  standAngleDeg: 24,
+  standHeight: 90,
+});
+const thin = frameClipLayout({
+  outerW: 70,
+  outerH: 90,
+  border: 2,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standEnabled: true,
+  standWidth: 22,
+  standThickness: 3,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+const thick = frameClipLayout({
+  outerW: 70,
+  outerH: 90,
+  border: 22,
+  plateT: 0.8,
+  cornerRadius: 0,
+  standEnabled: true,
+  standWidth: 22,
+  standThickness: 3,
+  standAngleDeg: 12,
+  standHeight: 36,
+});
+assert(thick.tongueW > thin.tongueW, "a thicker border gets a deeper tongue");
+const roomy = frameClipLayout({
+  outerW: 180,
+  outerH: 220,
+  border: 8,
+  plateT: 1.2,
+  cornerRadius: 0,
+  standEnabled: false,
+});
+const roomier = frameClipLayout({ ...{
+  outerW: 180,
+  outerH: 220,
+  border: 22,
+  plateT: 1.2,
+  cornerRadius: 0,
+  standEnabled: false,
+} });
+assert(roomy.lip === roomier.lip, "lip reach stays printable when the border still has room");
+
+const ordered = layout.beads.slice().sort((a, b) => a.pathIndex - b.pathIndex);
+assert(ordered.length === layout.beads.length, "every bead is on the path");
+assert(layout.params.alternate === true, "colors alternate by default");
+for (let i = 0; i < ordered.length; i++) {
+  assert(ordered[i].colorIndex === i % 2, `bead ${i} follows the path`);
+  if (i > 0) {
+    const d = Math.hypot(ordered[i].x - ordered[i - 1].x, ordered[i].y - ordered[i - 1].y);
+    assert(d < layout.radius * 2.15, "path steps to the next bead");
+  }
+}
+const grown = layoutBeads({ ...p, countTop: p.countTop + 1 });
+assert(grown.beads.length === layout.beads.length + 2, "linked sides grow together");
+const grownPath = grown.beads.slice().sort((a, b) => a.pathIndex - b.pathIndex);
+assert(grownPath.every((b, i) => b.colorIndex === i % 2), "a new bead count still alternates");
+const single = layoutBeads({ ...p, alternate: false });
+assert(single.beads.every((b) => b.colorIndex === 0), "one color when alternate is off");
 
 const here = dirname(fileURLToPath(import.meta.url));
 for (const [name, minTris] of [
