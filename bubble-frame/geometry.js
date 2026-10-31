@@ -1,9 +1,10 @@
 /** Layout math for a flat-backed bubble picture frame. Units are millimeters. */
 
 import { frameClipLayout } from "../shared/frame-clip.js";
+import { CAPTION_DEFAULTS, mergeCaptionParams } from "../shared/frame-caption.js";
 
-export const APP_VERSION = "5 · Oct 30, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Oct 30, 2026";
+export const APP_VERSION_TAG = "v6";
 
 export const IN = 25.4;
 export const PLA_G_PER_CM3 = 1.24;
@@ -83,6 +84,7 @@ export function defaultParams() {
     alternate: true,
     colorA: "#292524",
     colorB: "#b45309",
+    ...CAPTION_DEFAULTS,
   };
 }
 
@@ -137,7 +139,7 @@ export function clampParams(p) {
   next.alternate = p.alternate !== false;
   next.colorA = normalizeHex(p.colorA, "#292524");
   next.colorB = normalizeHex(p.colorB, "#b45309");
-  return next;
+  return mergeCaptionParams(next);
 }
 
 export function applyTargetOverlap(p) {
@@ -181,9 +183,10 @@ export function layoutBeads(p) {
   const r = params.ballDiameter / 2;
   const lip = params.imageOverlap;
   const cl = centerLineSize(params.photoW, params.photoH, r, lip);
+  const chinExtra = params.chinExtra || 0;
   const x0 = -cl.w / 2;
   const x1 = cl.w / 2;
-  const y0 = -cl.h / 2;
+  const y0 = -cl.h / 2 - chinExtra;
   const y1 = cl.h / 2;
   const disabled = new Set(params.disabled);
 
@@ -279,8 +282,9 @@ export function layoutBeads(p) {
     overlap,
     outer: {
       w: cl.w + 2 * r,
-      h: cl.h + 2 * r,
+      h: cl.h + 2 * r + chinExtra,
     },
+    chinExtra,
     opening: {
       w: params.photoW - 2 * lip,
       h: params.photoH - 2 * lip,

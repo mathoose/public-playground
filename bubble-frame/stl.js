@@ -1,4 +1,13 @@
 import { addCoverTongues, buildPegStand, buildSlideBack } from "../shared/frame-clip-solid.js";
+import {
+  addChinPad,
+  buildCaptionPlateSolid,
+  buildFrontCaptionSolid,
+  cutCaptionSocket,
+  embossCaptionOnSolid,
+} from "../shared/frame-caption-solid.js";
+import { captionLayout } from "../shared/frame-caption.js";
+import { meshesTo3mf } from "../shared/threemf.js";
 import { clampParams, frameClipFor, hangHoleLayout, layoutBeads } from "./geometry.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
@@ -130,18 +139,94 @@ export async function buildFrameMesh(params) {
     const withTongues = addCoverTongues(Manifold, rounded, frameClipFor(layout), temps);
     if (withTongues !== rounded) temps.push(withTongues);
 
-    const status = withTongues.status ? withTongues.status() : "NoError";
+    let withChin = addChinPad(Manifold, withTongues, layout, temps);
+    if (withChin !== withTongues) temps.push(withChin);
+
+    const cap = captionLayout(layout);
+    const letterH = Math.max(0.55, Math.min(2.8, cap.text?.letterHeight * 0.32 || 1));
+    withChin = embossCaptionOnSolid(
+      Manifold,
+      CrossSection,
+      withChin,
+      layout,
+      layout.radius * 0.92,
+      letterH,
+      segs,
+      temps
+    );
+    withChin = cutCaptionSocket(Manifold, withChin, layout, temps);
+
+    const status = withChin.status ? withChin.status() : "NoError";
     if (status && status !== "NoError") {
       throw new Error(`Manifold error: ${status}`);
     }
 
-    const mesh = withTongues.getMesh();
-    const volume = withTongues.volume();
+    const mesh = withChin.getMesh();
+    const volume = withChin.volume();
     const stl = meshToStl(mesh, "bubble-frame");
-    return { stl, volume, layout };
+    return { stl, volume, layout, mesh };
   } finally {
     deleteAll(temps);
   }
+}
+
+export async function buildCaptionPlateStl(params) {
+  const layout = layoutBeads(params);
+  const cap = captionLayout(layout);
+  if (!cap.enabled || !cap.pegPlate) {
+    throw new Error("Caption peg plate is off — enable caption and check “Snap caption plate”.");
+  }
+  const wasm = await loadManifold();
+  const { Manifold, CrossSection, setCircularSegments } = wasm;
+  setCircularSegments(layout.params.segments);
+  const temps = [];
+  try {
+    const solid = buildCaptionPlateSolid(Manifold, CrossSection, layout, layout.params.segments, temps);
+    if (!solid) throw new Error("Could not build caption plate.");
+    const mesh = solid.getMesh();
+    return { stl: meshToStl(mesh, "bubble-frame-caption-plate"), volume: solid.volume(), mesh };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
+export async function buildFrontCaptionStl(params) {
+  const layout = layoutBeads(params);
+  const cap = captionLayout(layout);
+  if (!cap.enabled || !cap.frontOverlay) {
+    throw new Error("Text in front is off.");
+  }
+  const clip = frameClipFor(layout);
+  const wasm = await loadManifold();
+  const { Manifold, CrossSection, setCircularSegments } = wasm;
+  setCircularSegments(layout.params.segments);
+  const temps = [];
+  try {
+    const solid = buildFrontCaptionSolid(Manifold, CrossSection, layout, clip, layout.params.segments, temps);
+    if (!solid) throw new Error("Could not build front caption.");
+    const mesh = solid.getMesh();
+    return { stl: meshToStl(mesh, "bubble-frame-caption-front"), volume: solid.volume(), mesh };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
+export async function buildCaptionJoint3mf(params) {
+  const layout = layoutBeads(params);
+  const cap = captionLayout(layout);
+  if (!cap.enabled) throw new Error("Caption is off.");
+  const frame = await buildFrameMesh(params);
+  const parts = [{ name: "frame", color: "#292524FF", mesh: frame.mesh }];
+  if (cap.pegPlate) {
+    const plate = await buildCaptionPlateStl(params);
+    parts.push({ name: "caption-plate", color: "#B45309FF", mesh: plate.mesh });
+  }
+  if (cap.frontOverlay) {
+    const front = await buildFrontCaptionStl(params);
+    parts.push({ name: "caption-front", color: "#B45309FF", mesh: front.mesh });
+  }
+  if (parts.length < 2) throw new Error("Joint 3MF needs caption plate and/or text in front.");
+  return { threemf: meshesTo3mf(parts, "Bubble frame caption"), parts: parts.length };
 }
 
 export async function buildBackPlateStl(params) {
