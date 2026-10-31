@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: bone-side-bag-v1 -->
+<!-- build: bone-side-bag-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/bone-side-bag-0b38/3d-printing/index.html">← 3D printing library</a>
         <h1 id="piece-title">Side bag</h1>
       </div>
-      <p>v1 · Oct 29, 2026</p>
+      <p>v2 · Oct 31, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -109,6 +109,46 @@
       </details>
 
       <details class="settings-group" open>
+        <summary>Print — Snapmaker U1</summary>
+        <div class="group-body print-guide">
+          <p class="group-note">
+            In <b>Snapmaker Orca</b> (or Orca with U1 machine profile): typical workflow for a <b>PLA cup</b> with supports that snap off cleanly — same idea as MakerWorld bone bags, with sizes from this designer.
+            Full multimaterial guide:
+            <a href="https://wiki.snapmaker.com/en/snapmaker_u1/printing_guides/pla_and_petg" target="_blank" rel="noopener">PLA + PETG on U1</a>.
+          </p>
+          <p class="group-note"><b>Filament roles (PLA model)</b></p>
+          <ul>
+            <li><b>Model / body:</b> PLA (bone white or your color)</li>
+            <li><b>Support base:</b> PLA (default support material)</li>
+            <li><b>Support / raft interface only:</b> PETG — enable <b>Avoid interface filament for base</b> so PETG touches only the model interface, not the whole support tree</li>
+          </ul>
+          <p class="group-note"><b>Support settings (body only)</b></p>
+          <ul>
+            <li><b>Style:</b> Tree (Hybrid); if interface gaps misbehave, try Strong Trees</li>
+            <li><b>Top Z distance:</b> <b>0 mm</b> (critical on U1 multimaterial interface)</li>
+            <li><b>Top interface layers:</b> 2–3 · spacing <b>0</b> · pattern rectilinear</li>
+            <li><b>Independent support layer height:</b> on</li>
+            <li><b>On build plate only:</b> on (keeps support scars off the bag outer surface)</li>
+          </ul>
+          <p class="group-note"><b>PETG interface filament profile</b> (clone your PETG slot)</p>
+          <ul>
+            <li>Lower <b>max volumetric speed</b> for interface passes (~1.5–3 mm³/s)</li>
+            <li>Optional <b>+10–15 °C</b> on interface only</li>
+            <li><b>Flow ratio 1.0</b> for support/interface extrusion</li>
+            <li>Match <b>XY shrinkage</b> to your PLA profile (Snapmaker forum / wiki tuning)</li>
+          </ul>
+          <p class="group-note"><b>Prime / wipe tower:</b> PLA base + PETG interface needs a tower — use a <b>slower wipe tower</b> speed if you see weak bonds or color bleed.</p>
+          <p class="group-note"><b>Parts &amp; orientation</b> (download STLs separately; do not slice the joint 3MF for multimaterial unless you split objects yourself)</p>
+          <ul>
+            <li><b>Body STL</b> — side bag cup or phone cage (same export, depends on Piece mode). <b>Opening up</b> on the bed; supports under ribs / overhangs only</li>
+            <li><b>Chain STL</b> — lay links <b>flat</b>; usually no supports (minimal if a hook overhang flags)</li>
+            <li><b>Clasps STL</b> — flat; no supports</li>
+          </ul>
+          <p class="group-note"><b>Entire bag in PETG?</b> Reverse roles: PETG for the model, <b>PLA as support interface only</b> (same 0 mm top Z distance and interface layer recipe).</p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
         <summary>Download</summary>
         <div class="group-body">
           <div id="warnings"></div>
@@ -130,7 +170,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Bone side bag v1 · Oct 29, 2026</p>
+      <p class="foot" id="app-version">Bone side bag v2 · Oct 31, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
