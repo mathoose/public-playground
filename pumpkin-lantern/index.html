@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<!-- build: pumpkin-lantern-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pumpkin lantern</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/pumpkin-lantern-led-e00b/3d-printing/index.html">← 3D printing library</a>
+        <h1>Pumpkin lantern</h1>
+      </div>
+      <p>v1 · Nov 4, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="drop" id="drop">
+        <p><b>Drop the pumpkin 3MF</b></p>
+        <p>The With Hole lantern. The file stays on this device.</p>
+      </div>
+      <div class="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" data-view="bottom">Bottom</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Lantern file</summary>
+        <div class="group-body">
+          <p class="group-note">Use your copy of the With Hole pumpkin lantern. The bottom opening is resized to the whole LED disc, and a round hole is cut through the ring so the cord can leave and be plugged in. Nothing from the file is uploaded.</p>
+          <div class="actions">
+            <label class="file-btn">
+              Choose 3MF or STL
+              <input id="file" type="file" accept=".3mf,.stl,model/3mf,model/stl" />
+            </label>
+          </div>
+          <p class="file-name" id="fileName"></p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>LED disc</summary>
+        <div class="group-body">
+          <p class="group-note">Measure across the whole disc, rim included. 2.3 in is a common flat plug-in puck. Extra room is added so the disc drops into the opening.</p>
+          <div class="seg">
+            <button type="button" class="chip" data-preset="tealight">40 mm tea light</button>
+            <button type="button" class="chip active" data-preset="puck23">2.3 in puck</button>
+            <button type="button" class="chip" data-preset="puck275">2.75 in puck</button>
+          </div>
+          <div class="row">
+            <label for="ledDiameter">LED diameter</label>
+            <output id="ledDiameter-out"></output>
+            <input id="ledDiameter" type="range" min="20" max="80" step="0.1" value="58.4" />
+          </div>
+          <div class="row">
+            <label for="ledThickness">LED thickness</label>
+            <output id="ledThickness-out"></output>
+            <input id="ledThickness" type="range" min="2" max="30" step="0.1" value="7.6" />
+          </div>
+          <div class="row">
+            <label for="clearance">Extra room</label>
+            <output id="clearance-out"></output>
+            <input id="clearance" type="range" min="0" max="2" step="0.1" value="0.6" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Cord</summary>
+        <div class="group-body">
+          <p class="group-note">A circle through the bottom ring. 8 mm clears a typical low-voltage lead. Raise it if the plug itself has to pass through. Turn the direction until the hole exits a rib.</p>
+          <div class="row">
+            <label for="cordDiameter">Cord hole</label>
+            <output id="cordDiameter-out"></output>
+            <input id="cordDiameter" type="range" min="0" max="18" step="0.5" value="8" />
+          </div>
+          <div class="row">
+            <label for="cordHeight">Height from the table</label>
+            <output id="cordHeight-out"></output>
+            <input id="cordHeight" type="range" min="1" max="24" step="0.1" value="3.8" />
+          </div>
+          <div class="row">
+            <label for="cordAngle">Direction</label>
+            <output id="cordAngle-out"></output>
+            <input id="cordAngle" type="range" min="0" max="360" step="1" value="0" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div id="warnings"></div>
+          <div class="readout" id="readout"></div>
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download STL</button>
+          </div>
+          <p class="status" id="status"></p>
+          <p class="notes">Print it stem-up, the same way as the original lantern, 0.2 mm layers. The opening is the bottom, so the disc sits on the table inside the ring. Paint the stem in the slicer if you want two colors. Personal use of your own file.</p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Pumpkin lantern v1 · Nov 4, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>

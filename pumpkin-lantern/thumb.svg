@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Pumpkin lantern with a round opening and a cord hole">
+  <rect width="640" height="360" fill="#f6ecdf"/>
+  <ellipse cx="320" cy="250" rx="168" ry="28" fill="#eadccb"/>
+  <g fill="#ea580c">
+    <ellipse cx="250" cy="176" rx="46" ry="92"/>
+    <ellipse cx="292" cy="168" rx="42" ry="100"/>
+    <ellipse cx="334" cy="164" rx="40" ry="104"/>
+    <ellipse cx="376" cy="168" rx="42" ry="100"/>
+    <ellipse cx="418" cy="176" rx="46" ry="92"/>
+  </g>
+  <ellipse cx="334" cy="214" rx="36" ry="16" fill="#fff7ed"/>
+  <circle cx="392" cy="214" r="7" fill="#1c1917"/>
+  <path d="M392 214 H470" stroke="#1c1917" stroke-width="5" stroke-linecap="round"/>
+  <path d="M318 78c8 18 8 28 0 46 18-8 28-6 40 4-6-20-2-32 8-48-16 2-28 0-48-2z" fill="#3f6212"/>
+</svg>
