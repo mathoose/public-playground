@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- build: dollar-staff-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dollar staff</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/dollar-staff-8168/3d-printing/index.html">← 3D printing library</a>
+        <h1>Dollar staff</h1>
+      </div>
+      <p id="header-version">v1 · Nov 10, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group view-group" open>
+        <summary>View</summary>
+        <div class="group-body">
+          <p class="group-note">Preview only. The pale card is the ISO card in the pocket. Two STLs stay separate. The 3MF is one assembly of those shells, already closed around the card.</p>
+          <div class="seg view-seg">
+            <button class="chip active" type="button" data-part="closed" aria-pressed="true">Closed</button>
+            <button class="chip" type="button" data-part="open" aria-pressed="false">Open</button>
+            <button class="chip" type="button" data-part="front" aria-pressed="false">Front</button>
+            <button class="chip" type="button" data-part="back" aria-pressed="false">Back</button>
+            <button class="chip active" type="button" id="showCard" aria-pressed="true">Show card</button>
+            <button class="chip active" type="button" id="showBed" aria-pressed="true">Show bed</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Dollar sign</summary>
+        <div class="group-body" id="g-dollar">
+          <p class="group-note">Vertical S with a bar. The bar is wide enough that the card stays inside it, and the bar sticks out past the top and bottom of the S. Width grows the hooks.</p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Card slot</summary>
+        <div class="group-body" id="g-card">
+          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm. Clearance is extra plastic gap on each side of the length and width, and the same extra on the thickness. Drop the card in the back shell, then snap the front on.</p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Broom socket</summary>
+        <div class="group-body" id="g-thread">
+          <p class="group-note">Right-hand <b>3/4″-5 ACME</b> female thread in the back shell — the usual US broom and mop stick. Turn the staff clockwise onto the handle. Engagement is how far that thread runs up the socket.</p>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="dlFront">Download front STL</button>
+            <button type="button" class="wide" id="dlBack">Download back STL</button>
+            <button type="button" class="wide" id="dl3mf">Download joint 3MF</button>
+            <button type="button" class="secondary" id="reset">Reset</button>
+          </div>
+          <div class="ready">
+            <a href="dollar-staff-v1-front.stl" download>Front</a>
+            <a href="dollar-staff-v1-back.stl" download>Back</a>
+            <a href="dollar-staff-v1.3mf" download>3MF</a>
+          </div>
+          <div id="readout" class="readout"></div>
+          <div id="warnings"></div>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print the <b>back</b> with the socket mouth on the bed so the thread is vertical. Print the <b>front</b> flat, outside face down. Press the four posts through until they click. The card is trapped in the bar; the S counters stay open.
+            A plain wooden dowel with no thread will not hold — this socket is threaded, not a slip sleeve. Cut a 3/4″-5 ACME on the stick, or use a broom or mop handle that already has that thread.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Dollar staff v1 · Nov 10, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
