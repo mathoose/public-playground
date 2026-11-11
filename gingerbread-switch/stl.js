@@ -1,4 +1,4 @@
-import { derive, PLATE_H, PLATE_R, PLATE_W, SCREW_BORE, SCREW_D, SCREW_STOCK } from "./geometry.js";
+import { derive, PLATE_R, SCREW_BORE, SCREW_D, SCREW_STOCK } from "./geometry.js";
 import { meshesTo3mf } from "./threemf.js";
 
 const SINK = 0.08;
@@ -154,6 +154,25 @@ function windowCenters(d) {
   ];
 }
 
+function openingsOf(CS, d, segs, temps) {
+  const cuts = [];
+  for (const cx of d.toggles) {
+    const opening = openingOf(CS, { p: d.p }, segs, temps);
+    cuts.push(keep(temps, opening.translate([cx, 0])));
+  }
+  return unionAll(cuts, temps);
+}
+
+function doorFramesOf(CS, d, segs, temps) {
+  const frames = [];
+  for (const cx of d.toggles) {
+    const door = openingOf(CS, { p: d.p }, segs, temps);
+    const doorAt = keep(temps, door.translate([cx, 0]));
+    frames.push(keep(temps, doorAt.offset(3.4, "Round", 2, segs).subtract(doorAt)));
+  }
+  return unionAll(frames, temps);
+}
+
 /**
  * Three meshes, one coordinate system. Back is flat on z=0 so it sits on the
  * wall and prints face-up. Gingerbread is the plate plus the house. Icing and
@@ -164,7 +183,7 @@ export function buildParts(wasm, raw, temps, segs) {
   const d = derive(raw);
   const CS = CrossSection;
 
-  const plate = roundedRect(CS, PLATE_W, PLATE_H, PLATE_R, segs, temps);
+  const plate = roundedRect(CS, d.plateW, d.plateH, PLATE_R, segs, temps);
   const wallH = d.eaveY - d.wallBottom;
   const wall = keep(
     temps,
@@ -180,10 +199,8 @@ export function buildParts(wasm, raw, temps, segs) {
   const innerRoof = poly(CS, scaleAbout(d.roof, 0.6), temps);
   const roofBand = keep(temps, roof.subtract(innerRoof));
 
-  const door = openingOf(CS, d, segs, temps);
-  const doorFrame = keep(temps, door.offset(3.4, "Round", 2, segs).subtract(door));
-
-  const frames = [doorFrame];
+  const door = openingsOf(CS, d, segs, temps);
+  const frames = [doorFramesOf(CS, d, segs, temps)];
   const paneBoxes = [];
   for (const [x, y] of windowCenters(d)) {
     const size = 13;
@@ -215,8 +232,8 @@ export function buildParts(wasm, raw, temps, segs) {
   const bore = [];
   const holeR = SCREW_D / 2;
   const boreR = SCREW_BORE / 2;
-  for (const sy of [-1, 1]) {
-    const at = [0, sy * d.screwY];
+  for (const [sx, sy] of d.screws) {
+    const at = [sx, sy];
     cuts.push(keep(temps, CS.circle(holeR, segs).translate(at)));
     bore.push(keep(temps, CS.circle(boreR, segs).translate(at)));
   }
@@ -258,15 +275,17 @@ export function buildParts(wasm, raw, temps, segs) {
     candyParts.push(extrudeZ(disc, d.wallFront - SINK, d.wallFront + 2.1, temps));
   }
   // Gumdrops beside the door. A short stack of circles stands in for a sugar drop.
-  if (d.p.style === "toggle") {
-    for (const sx of [-1, 1]) {
-      const x = sx * (d.p.openingW / 2 + 8.5);
-      const y = -d.p.openingH / 2 + 6;
-      const blob = keep(temps, CS.circle(4.6, segs).translate([x, y]));
-      candyParts.push(extrudeZ(blob, d.wallFront - SINK, d.wallFront + 2.2, temps));
-      const ball = keep(temps, Manifold.sphere(4.2, Math.max(16, segs)));
-      const dome = keep(temps, ball.scale([1, 0.92, 0.62]));
-      candyParts.push(keep(temps, dome.translate([x, y, d.wallFront + 2.4])));
+  if (d.p.style === "toggle" || d.p.style === "double-toggle") {
+    for (const cx of d.toggles) {
+      for (const sx of [-1, 1]) {
+        const x = cx + sx * (d.p.openingW / 2 + 8.5);
+        const y = -d.p.openingH / 2 + 6;
+        const blob = keep(temps, CS.circle(4.6, segs).translate([x, y]));
+        candyParts.push(extrudeZ(blob, d.wallFront - SINK, d.wallFront + 2.2, temps));
+        const ball = keep(temps, Manifold.sphere(4.2, Math.max(16, segs)));
+        const dome = keep(temps, ball.scale([1, 0.92, 0.62]));
+        candyParts.push(keep(temps, dome.translate([x, y, d.wallFront + 2.4])));
+      }
     }
   }
   let candy = unionAll(candyParts, temps);
