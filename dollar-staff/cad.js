@@ -1,4 +1,4 @@
-import { CARD, derive, sPoint } from "./geometry.js";
+import { CARD, derive } from "./geometry.js";
 import { meshesTo3mf } from "../shared/threemf.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
@@ -52,16 +52,38 @@ function roundRect(CS, w, h, r, segs, temps) {
   return keep(temps, core.offset(rr, "Round", 2, segs));
 }
 
-/** Constant-width S. Disks along the centerline keep the stroke even on the tight bends. */
-function sRibbon(CS, d, steps, segs, temps) {
-  const disks = [];
+/** Constant-width circular hook. sign = 1 is the upper-left bowl; -1 is the lower-right bowl. */
+function hookPolygon(d, sign, steps) {
+  const { R, cux, cuy, half, a0, a1 } = d.hook;
+  const Ro = R + half;
+  const Ri = Math.max(1.2, R - half);
+  const cx = sign * cux;
+  const cy = sign * cuy;
+  const pts = [];
   for (let i = 0; i <= steps; i++) {
-    const [x, y] = sPoint(d.ax, d.ay, i / steps);
-    disks.push(keep(temps, CS.circle(d.half, segs).translate([x, y + d.barCenterZ])));
+    const a = a0 + ((a1 - a0) * i) / steps;
+    const aa = sign === 1 ? a : a + Math.PI;
+    pts.push([cx + Ro * Math.cos(aa), cy + Ro * Math.sin(aa) + d.barCenterZ]);
   }
-  const hulls = [];
-  for (let i = 0; i < disks.length - 1; i++) hulls.push(keep(temps, CS.hull(disks[i], disks[i + 1])));
-  return keep(temps, CS.union(hulls));
+  for (let i = steps; i >= 0; i--) {
+    const a = a0 + ((a1 - a0) * i) / steps;
+    const aa = sign === 1 ? a : a + Math.PI;
+    pts.push([cx + Ri * Math.cos(aa), cy + Ri * Math.sin(aa) + d.barCenterZ]);
+  }
+  return pts;
+}
+
+/** Sliding dovetail. Narrow at yRoot, wide at yTip. Extruded along Z. */
+function dovetailRail(CrossSection, { neck, tip, yRoot, yTip, z0, len }, temps) {
+  const poly = [
+    [-neck / 2, yRoot],
+    [neck / 2, yRoot],
+    [tip / 2, yTip],
+    [-tip / 2, yTip],
+  ];
+  if (polygonArea(poly) < 0) poly.reverse();
+  const cs = keep(temps, new CrossSection([poly]));
+  return keep(temps, cs.extrude(Math.max(0.4, len)).translate([0, 0, z0]));
 }
 
 function polygonArea(pts) {
@@ -147,25 +169,38 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const q = QUALITY[quality] || QUALITY.preview;
   const d = derive(raw);
 
-  const ribbon = sRibbon(CrossSection, d, q.arcSteps, Math.max(12, Math.round(q.segs / 3)), temps);
-  const leftLine = keep(
-    temps,
-    roundRect(CrossSection, d.lineW, d.lineH, d.lineW / 2, q.segs, temps).translate([-d.lineX, d.barCenterZ])
-  );
-  const rightLine = keep(
-    temps,
-    roundRect(CrossSection, d.lineW, d.lineH, d.lineW / 2, q.segs, temps).translate([d.lineX, d.barCenterZ])
-  );
-  const profile = keep(temps, CrossSection.union([ribbon, leftLine, rightLine]));
-  const extruded = keep(temps, profile.extrude(d.totalT));
-  const sign = standUp(extruded, d.yBack, temps);
+  const upperPts = hookPolygon(d, 1, q.arcSteps);
+  const lowerPts = hookPolygon(d, -1, q.arcSteps);
+  if (polygonArea(upperPts) < 0) upperPts.reverse();
+  if (polygonArea(lowerPts) < 0) lowerPts.reverse();
+  const upper = keep(temps, new CrossSection([upperPts]));
+  const lower = keep(temps, new CrossSection([lowerPts]));
+  const bar2d = keep(temps, roundRect(CrossSection, d.barW, d.barH, d.barR, q.segs, temps).translate([0, d.barCenterZ]));
+  const profile = keep(temps, CrossSection.union([upper, lower, bar2d]));
+  const extruded = keep(temps, profile.extrude(d.signT));
+  let sign = standUp(extruded, d.signBackY, temps);
 
+  const slot = dovetailRail(
+    CrossSection,
+    {
+      neck: d.neck + 2 * d.tailClear,
+      tip: d.tip + 2 * d.tailClear,
+      yRoot: d.signFrontY + 0.45,
+      yTip: d.signFrontY - d.tailDepth - 0.35,
+      z0: d.slotZ0,
+      len: d.slotLen,
+    },
+    temps
+  );
+  sign = keep(temps, sign.subtract(slot));
+
+  const caseEx = keep(temps, roundRect(CrossSection, d.caseW, d.caseH, d.caseR, q.segs, temps).translate([0, d.barCenterZ]).extrude(d.backFloor + d.pocketD + d.frontT));
+  const caseSolid = standUp(caseEx, d.yCaseBack, temps);
   const backSpace = keep(temps, Manifold.cube([500, 400, 700], false).translate([-250, -400, -20]));
   const frontSpace = keep(temps, Manifold.cube([500, 400, 700], false).translate([-250, 0, -20]));
-  let back = keep(temps, sign.intersect(backSpace));
-  let front = keep(temps, sign.intersect(frontSpace));
+  let back = keep(temps, caseSolid.intersect(backSpace));
+  let front = keep(temps, caseSolid.intersect(frontSpace));
 
-  // Opens through the mating face (y = 0) and stops 0.02 mm short of the back floor.
   const pocket = roundedBoxY(
     CrossSection,
     Manifold,
@@ -178,27 +213,21 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     d.barCenterZ,
     temps
   );
-  // Ledge behind the card. The window is smaller than the card, so the center stays open
-  // and the front still reads as two strokes with a gap. The card cannot fall through.
-  const trayOuter = keep(
-    temps,
-    roundRect(CrossSection, d.pocketW + 2 * d.rim, d.pocketH + 2 * d.rim, d.pocketR, q.segs, temps).translate([
-      0,
-      d.barCenterZ,
-    ])
-  );
-  const trayHole = keep(
-    temps,
-    roundRect(CrossSection, CARD.w - 2 * d.lip, CARD.h - 2 * d.lip, Math.max(1.2, CARD.corner - d.lip), q.segs, temps).translate([
-      0,
-      d.barCenterZ,
-    ])
-  );
-  const tray2d = keep(temps, trayOuter.subtract(trayHole));
-  const trayEx = keep(temps, tray2d.extrude(-d.yBack));
-  const tray = standUp(trayEx, d.yBack, temps);
-  back = keep(temps, back.add(tray));
   back = keep(temps, back.subtract(pocket));
+
+  const male = dovetailRail(
+    CrossSection,
+    {
+      neck: d.neck,
+      tip: d.tip,
+      yRoot: d.yCaseBack + 0.4,
+      yTip: d.signFrontY - d.tailDepth,
+      z0: d.tailZ0,
+      len: d.tailLen,
+    },
+    temps
+  );
+  back = keep(temps, back.add(male));
 
   const headH = 1.25;
   const shaftLen = d.frontT - headH + 0.15;
@@ -260,8 +289,8 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     [
       [0, d.threadStart - 0.2],
       [minorR - 0.3, d.threadStart - 0.2],
-      [majorR + 0.55, d.threadStart + d.lead],
-      [majorR + 0.55, d.threadStart + d.p.engage - d.lead],
+      [majorR + 0.55, d.threadStart + d.leadIn],
+      [majorR + 0.55, d.threadStart + d.p.engage - d.leadIn],
       [minorR - 0.3, d.threadStart + d.p.engage + 0.2],
       [0, d.threadStart + d.p.engage + 0.2],
     ],
@@ -281,28 +310,19 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   socket = keep(temps, socket.add(ridge));
 
   const disk = cylZ(Manifold, 2.2, d.socketR, q.segs, [0, d.yCenter, d.socketTop - 1.2], temps);
-  const stemW = Math.max(d.lineSpan + 2, d.socketOD - 1);
+  const stemW = Math.max(d.barW * 0.92, 16);
   const foot = keep(
     temps,
-    Manifold.cube([stemW, d.totalT * 0.92, 8], true).translate([0, d.yCenter, d.barBottomZ + 2.4])
+    Manifold.cube([stemW, d.signT * 0.92, 8], true).translate([0, d.yCenter, d.barBottomZ + 2.4])
   );
   const neck = keep(temps, Manifold.hull([disk, foot]));
   socket = keep(temps, Manifold.union([socket, neck]));
-  back = keep(temps, back.add(socket));
+  sign = keep(temps, sign.add(socket));
 
-  const bigDisk = cylZ(Manifold, 3, d.socketR + 0.5, q.segs, [0, d.yCenter, d.socketTop - 1.4], temps);
-  const bigFoot = keep(
-    temps,
-    Manifold.cube([stemW + 1.4, d.totalT + 1, 6], true).translate([0, d.yCenter, d.barBottomZ + 1.4])
-  );
-  const bigNeck = keep(temps, Manifold.hull([bigDisk, bigFoot]));
-  const bigSock = cylZ(Manifold, d.socketTop + 0.6, d.socketR + 0.4, q.segs, [0, d.yCenter, -0.3], temps);
-  const clearance = keep(temps, Manifold.union([bigSock, bigNeck]));
-  front = keep(temps, front.subtract(clearance));
-
-  assertOk(front, "front shell");
-  assertOk(back, "back shell");
-  return { front, back, d };
+  assertOk(front, "case front");
+  assertOk(back, "case back");
+  assertOk(sign, "dollar sign");
+  return { front, back, sign, d };
 }
 
 function clamp01(t) {
@@ -316,9 +336,9 @@ export function cardSolid(wasm, raw, temps) {
   return roundedBoxY(
     CrossSection,
     Manifold,
-    CARD.w,
-    CARD.t,
     CARD.h,
+    CARD.t,
+    CARD.w,
     CARD.corner,
     24,
     d.cardCenterY - CARD.t / 2,
@@ -354,17 +374,21 @@ export async function buildDollar(raw, { quality = "preview" } = {}) {
   const wasm = await loadManifold();
   const temps = [];
   try {
-    const { front, back, d } = buildShells(wasm, raw, temps, quality);
+    const { front, back, sign, d } = buildShells(wasm, raw, temps, quality);
     return {
       d,
       frontMesh: copyMesh(front.getMesh()),
       backMesh: copyMesh(back.getMesh()),
+      signMesh: copyMesh(sign.getMesh()),
       frontPositions: meshPositions(front.getMesh()),
       backPositions: meshPositions(back.getMesh()),
+      signPositions: meshPositions(sign.getMesh()),
       frontVolume: front.volume(),
       backVolume: back.volume(),
+      signVolume: sign.volume(),
       frontTris: front.getMesh().triVerts.length / 3,
       backTris: back.getMesh().triVerts.length / 3,
+      signTris: sign.getMesh().triVerts.length / 3,
     };
   } finally {
     deleteAll(temps);
@@ -406,14 +430,16 @@ export function meshToStl(mesh, name = "mesh") {
   return buf;
 }
 
-const FRONT_COLOR = "#1F8A4CFF";
-const BACK_COLOR = "#0E4D32FF";
+const FRONT_COLOR = "#3CB371FF";
+const BACK_COLOR = "#1F8A4CFF";
+const SIGN_COLOR = "#0E4D32FF";
 
-export function assembly3mf(frontMesh, backMesh) {
+export function assembly3mf(frontMesh, backMesh, signMesh) {
   return meshesTo3mf(
     [
-      { name: "Front shell", mesh: frontMesh, color: FRONT_COLOR },
-      { name: "Back shell", mesh: backMesh, color: BACK_COLOR },
+      { name: "Case front", mesh: frontMesh, color: FRONT_COLOR },
+      { name: "Case back", mesh: backMesh, color: BACK_COLOR },
+      { name: "Dollar sign", mesh: signMesh, color: SIGN_COLOR },
     ],
     "Dollar staff"
   );
@@ -423,9 +449,10 @@ export async function buildExports(raw) {
   const built = await buildDollar(raw, { quality: "export" });
   return {
     ...built,
-    frontStl: meshToStl(built.frontMesh, "dollar-staff-front"),
-    backStl: meshToStl(built.backMesh, "dollar-staff-back"),
-    threemf: assembly3mf(built.frontMesh, built.backMesh),
+    frontStl: meshToStl(built.frontMesh, "dollar-staff-case-front"),
+    backStl: meshToStl(built.backMesh, "dollar-staff-case-back"),
+    signStl: meshToStl(built.signMesh, "dollar-staff-sign"),
+    threemf: assembly3mf(built.frontMesh, built.backMesh, built.signMesh),
   };
 }
 

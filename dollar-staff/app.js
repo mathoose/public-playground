@@ -19,10 +19,10 @@ const pageSearch = new URLSearchParams(location.search);
 const PLA = 1.24;
 
 const VIEWS = {
-  closed: { front: true, back: true, lift: 0 },
-  open: { front: true, back: true, lift: 22 },
-  front: { front: true, back: false, lift: 0 },
-  back: { front: false, back: true, lift: 0 },
+  closed: { front: true, back: true, sign: true, slide: 0, lid: 0 },
+  apart: { front: true, back: true, sign: true, slide: 42, lid: 16 },
+  case: { front: true, back: true, sign: false, slide: 0, lid: 16 },
+  sign: { front: false, back: false, sign: true, slide: 0, lid: 0 },
 };
 
 function skipLibrary() {
@@ -85,21 +85,22 @@ function renderReadout(result) {
   if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
   const el = $("readout");
   if (!el) return;
-  const volume = result ? result.frontVolume + result.backVolume : 0;
+  const volume = result ? result.frontVolume + result.backVolume + result.signVolume : 0;
   const grams = result ? ((volume / 1000) * PLA).toFixed(0) : "—";
   el.innerHTML = `
-    S <b>${d.loopW.toFixed(0)} × ${d.loopH.toFixed(0)} mm</b>, two lines <b>${d.lineW.toFixed(1)} mm</b> with a <b>${d.lineGap.toFixed(1)} mm</b> gap, about <b>${d.totalH.toFixed(0)} mm</b> tall<br />
+    Solid $ <b>${d.loopW.toFixed(0)} × ${d.barH.toFixed(0)} mm</b>, center bar <b>${d.barW.toFixed(1)} mm</b>, about <b>${d.totalH.toFixed(0)} mm</b> tall<br />
     Card pocket <b>${d.pocketW.toFixed(2)} × ${d.pocketH.toFixed(2)} × ${d.pocketD.toFixed(2)} mm</b>
-    (ISO card + ${d.p.clearance.toFixed(2)} mm each side)<br />
+    — long side horizontal, ISO card + ${d.p.clearance.toFixed(2)} mm each side<br />
+    Dovetail <b>${d.neck.toFixed(1)} → ${d.tip.toFixed(1)} mm</b> · slides down the bar<br />
     Socket <b>3/4″-5 ACME</b> · minor ID <b>${d.threadID.toFixed(2)} mm</b> · pitch <b>${d.pitch.toFixed(2)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />
-    Front shell + back shell · PLA ~<b>${grams} g</b>
+    Case front + case back + dollar sign · PLA ~<b>${grams} g</b>
   `;
 }
 
 function applyView() {
   const view = VIEWS[partView] || VIEWS.closed;
-  preview.setShow({ front: view.front, back: view.back });
-  preview.setLift(view.lift);
+  preview.setShow({ front: view.front, back: view.back, sign: view.sign });
+  preview.setPose(view.slide, view.lid);
 }
 
 async function rebuild() {
@@ -138,11 +139,11 @@ async function downloadPart(part) {
   await new Promise((r) => setTimeout(r, 30));
   try {
     const built = await buildExports(params);
-    const stl = part === "front" ? built.frontStl : built.backStl;
+    const stl = part === "front" ? built.frontStl : part === "back" ? built.backStl : built.signStl;
     const filename = fileName(part);
     downloadArrayBuffer(filename, stl);
     noteDownload(filename);
-    const volume = part === "front" ? built.frontVolume : built.backVolume;
+    const volume = part === "front" ? built.frontVolume : part === "back" ? built.backVolume : built.signVolume;
     setStatus(`${filename} · ${stlTriangleCount(stl)} tris · ~${((volume / 1000) * PLA).toFixed(1)} g PLA`);
   } catch (err) {
     console.error(err);
@@ -157,7 +158,7 @@ async function download3mf() {
     const filename = fileName("3mf");
     downloadArrayBuffer(filename, built.threemf, "model/3mf");
     noteDownload(filename);
-    setStatus(`${filename} · one assembly · front shell and back shell`);
+    setStatus(`${filename} · one assembly · case front, case back, and dollar sign`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");
@@ -204,6 +205,7 @@ function bind() {
   $("resetView")?.addEventListener("click", () => preview.fit());
   $("dlFront")?.addEventListener("click", () => downloadPart("front"));
   $("dlBack")?.addEventListener("click", () => downloadPart("back"));
+  $("dlSign")?.addEventListener("click", () => downloadPart("sign"));
   $("dl3mf")?.addEventListener("click", () => download3mf());
 }
 
@@ -239,5 +241,15 @@ window.dollarStaff = {
 };
 
 rebuild().then(() => {
-  if (shot) preview.setNamedView(shot === "1" ? "iso" : shot);
+  if (shot === "dovetail") {
+    preview.setShow({ front: true, back: true, sign: true, card: true });
+    preview.setPose(10, 24);
+    preview.setNamedView("dovetail");
+  } else if (shot === "apart") {
+    partView = "apart";
+    applyView();
+    preview.setNamedView("iso");
+  } else if (shot) {
+    preview.setNamedView(shot === "1" ? "iso" : shot);
+  }
 });

@@ -1,10 +1,10 @@
-/** Dollar-sign staff top. Card sits in the bar; two shells snap around it; the back screws onto a broom. */
+/** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "2 · Nov 13, 2026";
-export const APP_VERSION_TAG = "v2";
+export const APP_VERSION = "3 · Nov 13, 2026";
+export const APP_VERSION_TAG = "v3";
 export const APP_NAME = "Dollar staff";
 
-/** ISO/IEC 7810 ID-1. */
+/** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
 export const CARD = Object.freeze({
   w: 53.98,
   h: 85.6,
@@ -23,18 +23,18 @@ export const THREAD_ID = ACME_BASIC_MINOR + 0.5;
 export const THREAD_ROOT = ACME_BASIC_MAJOR + 0.7;
 
 export const DEFAULT_PARAMS = Object.freeze({
-  dollarW: 156,
-  stroke: 13,
+  dollarW: 128,
+  stroke: 14,
+  barW: 22,
   clearance: 0.4,
-  lineGap: 10,
   engage: 28,
 });
 
 export const SLIDERS = [
-  { key: "dollarW", group: "dollar", label: "Dollar width", min: 120, max: 210, step: 1, unit: "mm" },
-  { key: "stroke", group: "dollar", label: "S stroke", min: 11, max: 20, step: 0.5, unit: "mm" },
+  { key: "dollarW", group: "dollar", label: "Dollar width", min: 110, max: 190, step: 1, unit: "mm" },
+  { key: "stroke", group: "dollar", label: "S stroke", min: 12, max: 20, step: 0.5, unit: "mm" },
+  { key: "barW", group: "dollar", label: "Center bar", min: 16, max: 32, step: 0.5, unit: "mm" },
   { key: "clearance", group: "card", label: "Card clearance (per side)", min: 0.2, max: 1.2, step: 0.05, unit: "mm" },
-  { key: "lineGap", group: "dollar", label: "Gap between the lines", min: 6, max: 16, step: 0.5, unit: "mm" },
   { key: "engage", group: "thread", label: "Thread engagement", min: 16, max: 42, step: 1, unit: "mm" },
 ];
 
@@ -56,18 +56,16 @@ export function mergeParams(overrides = {}) {
 
 export function fileName(part) {
   if (part === "3mf") return `dollar-staff-${APP_VERSION_TAG}.3mf`;
+  if (part === "sign") return `dollar-staff-${APP_VERSION_TAG}-sign.stl`;
+  if (part === "front") return `dollar-staff-${APP_VERSION_TAG}-case-front.stl`;
+  if (part === "back") return `dollar-staff-${APP_VERSION_TAG}-case-back.stl`;
   return `dollar-staff-${APP_VERSION_TAG}-${part}.stl`;
-}
-
-/** Point on the S centerline. t = 0 is the top terminal, t = 1 the bottom. */
-export function sPoint(ax, ay, t) {
-  return [ax * Math.cos(3 * Math.PI * t), ay * (1 - 2 * t)];
 }
 
 /**
  * Layout in millimeters. Z up, socket mouth on z = 0, thickness along Y, width along X.
- * The visible head is an S plus two narrow vertical strokes with a gap between them.
- * The card sits in a pocket behind that face.
+ * The dollar is one solid bar with two S loops. The card is turned so its long side
+ * is horizontal, inside a two-piece snap case that slides down a dovetail on that bar.
  */
 export function derive(raw) {
   const p = mergeParams(raw);
@@ -77,61 +75,79 @@ export function derive(raw) {
   const minorR = threadID / 2;
   const majorR = threadRoot / 2;
 
-  const pocketW = CARD.w + 2 * p.clearance;
-  const pocketH = CARD.h + 2 * p.clearance;
+  // Landscape pocket: long side along X, short side along Z.
+  const pocketW = CARD.h + 2 * p.clearance;
+  const pocketH = CARD.w + 2 * p.clearance;
   const pocketD = CARD.t + p.clearance;
   const pocketR = CARD.corner + p.clearance;
 
-  const frontT = 3.2;
-  const backFloor = 2.6;
-  const yBack = -(backFloor + pocketD);
+  const wall = 5;
+  const caseW = pocketW + 2 * wall;
+  const caseH = pocketH + 2 * wall;
+  const caseR = 3.4;
+  const frontT = 2.6;
+  const backFloor = 2.4;
+  const yCaseBack = -(backFloor + pocketD);
   const yFront = frontT;
-  const totalT = yFront - yBack;
-  const yCenter = (yFront + yBack) / 2;
   const cardCenterY = -pocketD / 2;
 
-  const lineW = clamp(p.stroke * 0.52, 6.2, 9);
-  const lineGap = p.lineGap;
-  const lineSpan = 2 * lineW + lineGap;
-  const loopW = Math.max(p.dollarW, lineSpan + p.stroke * 5.2, CARD.w + p.stroke * 4);
-  const loopH = Math.max(loopW * 1.12, CARD.h + p.stroke * 2.6);
-  const poke = Math.max(9, p.stroke * 0.7);
-  const lineH = loopH + 2 * poke;
+  const barW = p.barW;
+  const barR = Math.min(5.5, barW * 0.28);
+  const poke = 11;
+  const loopW = Math.max(p.dollarW, barW + p.stroke * 3.4);
+  const loopH = Math.max(loopW * 1.05, caseH + 26);
+  const barH = Math.max(loopH + 2 * poke, caseH + 40);
+
   const half = p.stroke / 2;
-  const ax = (loopW - p.stroke) / 2;
-  const ay = (loopH - p.stroke) / 2;
-  const lineX = lineGap / 2 + lineW / 2;
+  const topCL = loopH / 2 - half;
+  const R = topCL / 2;
+  const cuy = R;
+  const cux = -loopW / 2 + half + R;
+  const barEdge = -barW / 2;
+  const cosT = clamp((barEdge - cux) / R, -1, 1);
+  const theta = Math.acos(cosT);
+  const ext = Math.min(0.3, Math.max(0.05, theta - 0.45));
+  const hook = { R, cux, cuy, theta, ext, half, a0: theta - ext, a1: Math.PI * 2 - theta + ext };
+
+  const signT = 9.2;
+  const gap = 0.2;
+  const signFrontY = yCaseBack - gap;
+  const signBackY = signFrontY - signT;
+  const yCenter = (signFrontY + signBackY) / 2;
+
+  const tailDepth = 3.5;
+  const tip = Math.min(14, barW - 7.5);
+  const neck = Math.max(4.2, tip - 4.4);
+  const tailClear = 0.25;
+  const tailLen = caseH + 22;
+  const lead = 14;
 
   const socketR = 17;
   const threadStart = 1.8;
-  const lead = 3.4;
+  const threadLead = 3.4;
   const boreEnd = threadStart + p.engage + 2;
   const socketTop = boreEnd + 3.6;
   const neckH = 12;
   const barBottomZ = socketTop + neckH;
-  const barCenterZ = barBottomZ + lineH / 2;
-  const totalH = barCenterZ + lineH / 2;
-  const barH = lineH;
+  const barCenterZ = barBottomZ + barH / 2;
+  const totalH = barCenterZ + barH / 2;
 
-  const snapHeadR = Math.min(2.7, lineW * 0.36, p.stroke * 0.28);
-  const snapShaftR = snapHeadR * 0.7;
+  const tailZ0 = barCenterZ - tailLen / 2 + 0.3;
+  const slotZ0 = tailZ0 - 0.15;
+  const slotLen = tailLen + lead;
+
+  const snapHeadR = Math.min(2.2, wall * 0.4);
+  const snapShaftR = snapHeadR * 0.72;
   const snapHoleR = snapShaftR + 0.2;
-
-  const topSnapZ = Math.min(barCenterZ + pocketH / 2 + 7, barCenterZ + lineH / 2 - lineW * 0.7);
-  const botSnapZ = Math.max(barCenterZ - pocketH / 2 - 7, barCenterZ - lineH / 2 + lineW * 0.7);
-  const [leftX, leftY] = sPoint(ax, ay, 1 / 3);
-  const [rightX, rightY] = sPoint(ax, ay, 2 / 3);
-
+  const rim = wall * 0.5;
   const snaps = [
-    { x: -lineX, z: topSnapZ },
-    { x: lineX, z: botSnapZ },
-    { x: leftX, z: barCenterZ + leftY },
-    { x: rightX, z: barCenterZ + rightY },
+    { x: 0, z: barCenterZ + pocketH / 2 + rim },
+    { x: 0, z: barCenterZ - pocketH / 2 - rim },
+    { x: pocketW / 2 + rim, z: barCenterZ },
+    { x: -pocketW / 2 - rim, z: barCenterZ },
   ];
 
   const widthRaised = loopW - p.dollarW > 0.05;
-  const lip = 2.6;
-  const rim = 2.2;
 
   return {
     p,
@@ -144,30 +160,39 @@ export function derive(raw) {
     pocketH,
     pocketD,
     pocketR,
+    wall,
+    caseW,
+    caseH,
+    caseR,
     frontT,
     backFloor,
-    yBack,
+    yCaseBack,
     yFront,
-    totalT,
+    yBack: signBackY,
+    totalT: signT,
+    signT,
+    signFrontY,
+    signBackY,
     yCenter,
     cardCenterY,
-    barW: lineSpan,
+    barW,
     barH,
-    lineW,
-    lineGap,
-    lineSpan,
-    lineX,
-    lineH,
+    barR,
     loopW,
     loopH,
-    ax,
-    ay,
-    half,
-    lip,
-    rim,
+    hook,
+    tailDepth,
+    tip,
+    neck,
+    tailClear,
+    tailLen,
+    lead,
+    tailZ0,
+    slotZ0,
+    slotLen,
     socketR,
     threadStart,
-    lead,
+    leadIn: threadLead,
     boreEnd,
     socketTop,
     neckH,
@@ -189,8 +214,9 @@ export function warnings(raw) {
   const out = [];
   if (p.clearance < 0.3) out.push("Card clearance under 0.3 mm often fuses on a 0.4 mm nozzle. 0.4 mm per side is the intended fit.");
   if (p.engage < 22) out.push("Under 22 mm of thread is only a few turns — the staff can wobble off the broom.");
-  if (d.widthRaised) out.push(`Dollar width raised to ${d.loopW.toFixed(0)} mm so the S stays larger than the two lines and the card.`);
-  if (d.totalH > 240) out.push(`Assembled height is ${d.totalH.toFixed(0)} mm. A 256 mm printer may not have room with the socket on the bed.`);
-  if (d.lineGap < d.lineW * 0.7) out.push("The gap between the two lines is narrow — they can fuse into one bar.");
+  if (d.widthRaised) out.push(`Dollar width raised to ${d.loopW.toFixed(0)} mm so the S loops still wrap the bar.`);
+  if (d.totalH > 250) out.push(`Assembled height is ${d.totalH.toFixed(0)} mm. A 256 mm printer may not have room with the socket on the bed.`);
+  if (d.hook.R - d.hook.half < 8) out.push("The S stroke is thick for this width — the counters get small.");
+  if (d.barW > 28) out.push("A wider center bar starts to look like the old card-width block. The card is in the case, so the bar can stay narrow.");
   return out;
 }

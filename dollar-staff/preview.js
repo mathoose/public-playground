@@ -10,8 +10,8 @@ function geomFrom(positions) {
 }
 
 function roundedCardGeometry() {
-  const w = CARD.w;
-  const h = CARD.h;
+  const w = CARD.h;
+  const h = CARD.w;
   const r = CARD.corner;
   const shape = new THREE.Shape();
   const x = -w / 2;
@@ -31,8 +31,9 @@ function roundedCardGeometry() {
   return geo;
 }
 
-const FRONT = 0x1f8a4c;
-const BACK = 0x0e4d32;
+const FRONT = 0x3cb371;
+const BACK = 0x1f8a4c;
+const SIGN = 0x0e4d32;
 
 export class StaffPreview {
   constructor({ canvas }) {
@@ -76,7 +77,8 @@ export class StaffPreview {
     this.scene.add(this.grid);
 
     this.frontMat = new THREE.MeshStandardMaterial({ color: FRONT, roughness: 0.48, metalness: 0.04 });
-    this.backMat = new THREE.MeshStandardMaterial({ color: BACK, roughness: 0.55, metalness: 0.04 });
+    this.backMat = new THREE.MeshStandardMaterial({ color: BACK, roughness: 0.52, metalness: 0.04 });
+    this.signMat = new THREE.MeshStandardMaterial({ color: SIGN, roughness: 0.55, metalness: 0.04 });
     this.cardMat = new THREE.MeshStandardMaterial({
       color: 0xd5deea,
       roughness: 0.35,
@@ -84,18 +86,24 @@ export class StaffPreview {
       transparent: true,
       opacity: 0.78,
     });
+    this.sign = new THREE.Mesh(new THREE.BufferGeometry(), this.signMat);
     this.front = new THREE.Mesh(new THREE.BufferGeometry(), this.frontMat);
     this.back = new THREE.Mesh(new THREE.BufferGeometry(), this.backMat);
     this.card = new THREE.Mesh(roundedCardGeometry(), this.cardMat);
-    for (const mesh of [this.back, this.front, this.card]) {
+    for (const mesh of [this.sign, this.back, this.front, this.card]) {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
     }
 
-    this.show = { front: true, back: true, card: true, bed: true };
-    this.lift = 0;
+    this.show = { front: true, back: true, sign: true, card: true, bed: true };
+    this.slide = 0;
+    this.lid = 0;
     this.frontPositions = null;
+    this.backPositions = null;
+    this.signPositions = null;
+    this.cardY = 0;
+    this.cardZ = 0;
     this.fitted = false;
     this.running = true;
     this._loop = this._loop.bind(this);
@@ -108,8 +116,11 @@ export class StaffPreview {
   update(result) {
     const { d } = result;
     this.frontPositions = result.frontPositions;
-    this._set(this.back, result.backPositions);
-    this.card.position.set(0, d.cardCenterY, d.barCenterZ);
+    this.backPositions = result.backPositions;
+    this.signPositions = result.signPositions;
+    this.cardY = d.cardCenterY;
+    this.cardZ = d.barCenterZ;
+    this._set(this.sign, result.signPositions);
     this.applyPose();
     if (!this.fitted) this.fit();
   }
@@ -119,17 +130,25 @@ export class StaffPreview {
     mesh.geometry = positions?.length ? geomFrom(positions) : new THREE.BufferGeometry();
   }
 
-  applyPose() {
-    if (this.frontPositions) {
-      const pos = new Float32Array(this.frontPositions);
-      if (this.lift) {
-        for (let i = 1; i < pos.length; i += 3) pos[i] += this.lift;
+  _offset(src, dy, dz) {
+    const pos = new Float32Array(src);
+    if (dy || dz) {
+      for (let i = 0; i < pos.length; i += 3) {
+        pos[i + 1] += dy;
+        pos[i + 2] += dz;
       }
-      this._set(this.front, pos);
     }
+    return pos;
+  }
+
+  applyPose() {
+    if (this.backPositions) this._set(this.back, this._offset(this.backPositions, 0, this.slide));
+    if (this.frontPositions) this._set(this.front, this._offset(this.frontPositions, this.lid, this.slide));
+    this.card.position.set(0, this.cardY, this.cardZ + this.slide);
+    this.sign.visible = this.show.sign;
     this.front.visible = this.show.front;
     this.back.visible = this.show.back;
-    this.card.visible = this.show.card && this.show.back;
+    this.card.visible = this.show.card && (this.show.back || this.show.front);
     this.grid.visible = this.show.bed;
   }
 
@@ -138,15 +157,16 @@ export class StaffPreview {
     this.applyPose();
   }
 
-  setLift(lift) {
-    this.lift = lift;
+  setPose(slide, lid) {
+    this.slide = slide;
+    this.lid = lid;
     this.applyPose();
   }
 
   bounds() {
     const box = new THREE.Box3();
     let any = false;
-    for (const mesh of [this.front, this.back]) {
+    for (const mesh of [this.sign, this.front, this.back]) {
       if (!mesh.visible || !mesh.geometry.getAttribute("position")) continue;
       mesh.geometry.computeBoundingBox();
       if (!mesh.geometry.boundingBox || mesh.geometry.boundingBox.isEmpty()) continue;
@@ -168,6 +188,7 @@ export class StaffPreview {
       iso: new THREE.Vector3(0.78, 1.2, 0.46),
       front: new THREE.Vector3(0.03, 1, 0.05),
       side: new THREE.Vector3(1.25, 0.28, 0.2),
+      dovetail: new THREE.Vector3(1.35, 0.7, 0.42),
     };
     const dir = (dirs[name] || dirs.iso).clone().normalize();
     this.camera.position.copy(target).addScaledVector(dir, dist * 1.08);

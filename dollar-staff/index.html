@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: dollar-staff-v2 -->
+<!-- build: dollar-staff-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/dollar-staff-8168/3d-printing/index.html">← 3D printing library</a>
         <h1>Dollar staff</h1>
       </div>
-      <p id="header-version">v2 · Nov 13, 2026</p>
+      <p id="header-version">v3 · Nov 13, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -25,12 +25,12 @@
       <details class="settings-group view-group" open>
         <summary>View</summary>
         <div class="group-body">
-          <p class="group-note">Preview only. The pale card is the ISO card behind the two strokes. Two STLs stay separate. The 3MF is one assembly of those shells, already closed around the card.</p>
+          <p class="group-note">Preview only. The pale card is turned so its long side is horizontal. Apart slides the snap case up the dovetail and lifts the lid. The 3MF is one assembly with the case already on the dollar sign.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" data-part="closed" aria-pressed="true">Closed</button>
-            <button class="chip" type="button" data-part="open" aria-pressed="false">Open</button>
-            <button class="chip" type="button" data-part="front" aria-pressed="false">Front</button>
-            <button class="chip" type="button" data-part="back" aria-pressed="false">Back</button>
+            <button class="chip" type="button" data-part="apart" aria-pressed="false">Apart</button>
+            <button class="chip" type="button" data-part="case" aria-pressed="false">Case</button>
+            <button class="chip" type="button" data-part="sign" aria-pressed="false">Sign</button>
             <button class="chip active" type="button" id="showCard" aria-pressed="true">Show card</button>
             <button class="chip active" type="button" id="showBed" aria-pressed="true">Show bed</button>
           </div>
@@ -40,21 +40,21 @@
       <details class="settings-group" open>
         <summary>Dollar sign</summary>
         <div class="group-body" id="g-dollar">
-          <p class="group-note">A large S with two vertical strokes through it, and a gap between the strokes. Width grows the S. The strokes stay narrow so the curves stay the main shape.</p>
+          <p class="group-note">One solid dollar sign: a vertical bar and two S loops. The bar stays narrow because the card is not inside it. Width grows the loops.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Card slot</summary>
         <div class="group-body" id="g-card">
-          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm. Clearance is extra gap on each side and on the thickness. The pocket is behind the two strokes, so the front still shows the gap. Drop the card in the back shell, then snap the front on.</p>
+          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, turned so the long side is horizontal. Clearance is extra gap on each side and on the thickness. Drop the card in the back half, snap the front on, then slide the case down the dovetail.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Broom socket</summary>
         <div class="group-body" id="g-thread">
-          <p class="group-note">Right-hand <b>3/4″-5 ACME</b> female thread in the back shell — the usual US broom and mop stick. Turn the staff clockwise onto the handle. Engagement is how far that thread runs up the socket.</p>
+          <p class="group-note">Right-hand <b>3/4″-5 ACME</b> female thread in the dollar-sign piece — the usual US broom and mop stick. The snap case does not have the socket. Turn the sign clockwise onto the handle. Engagement is how far that thread runs up the socket.</p>
         </div>
       </details>
 
@@ -62,26 +62,28 @@
         <summary>Download</summary>
         <div class="group-body">
           <div class="actions">
-            <button type="button" class="wide" id="dlFront">Download front STL</button>
-            <button type="button" class="wide" id="dlBack">Download back STL</button>
+            <button type="button" class="wide" id="dlFront">Download case front STL</button>
+            <button type="button" class="wide" id="dlBack">Download case back STL</button>
+            <button type="button" class="wide" id="dlSign">Download dollar sign STL</button>
             <button type="button" class="wide" id="dl3mf">Download joint 3MF</button>
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
           <div class="ready">
-            <a href="dollar-staff-v2-front.stl" download>Front</a>
-            <a href="dollar-staff-v2-back.stl" download>Back</a>
-            <a href="dollar-staff-v2.3mf" download>3MF</a>
+            <a href="dollar-staff-v3-case-front.stl" download>Case front</a>
+            <a href="dollar-staff-v3-case-back.stl" download>Case back</a>
+            <a href="dollar-staff-v3-sign.stl" download>Dollar sign</a>
+            <a href="dollar-staff-v3.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
-            Print the <b>back</b> with the socket mouth on the bed so the thread is vertical. Print the <b>front</b> flat, outside face down. Press the four posts through until they click. The card sits behind the two strokes; the gap between them stays open.
+            Print the <b>dollar sign</b> with the socket mouth on the bed so the thread and the dovetail slot are vertical. Print the <b>case halves</b> flat; put the dovetail of the back half on the bed. Snap the case around the card, then slide it down the bar until it stops.
             A plain wooden dowel with no thread will not hold — this socket is threaded, not a slip sleeve. Cut a 3/4″-5 ACME on the stick, or use a broom or mop handle that already has that thread.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Dollar staff v2 · Nov 13, 2026</p>
+      <p class="foot" id="app-version">Dollar staff v3 · Nov 13, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
