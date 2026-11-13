@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!-- build: belt-holder-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Belt holder</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/belt-holder-b273/3d-printing/index.html">← 3D printing library</a>
+        <h1>Belt holder</h1>
+      </div>
+      <p id="header-version">v1 · Nov 13, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch/scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+        <button type="button" class="chip" data-view="top">Top</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Holder</summary>
+        <div class="group-body">
+          <div class="seg" role="group" aria-label="Shape">
+            <button type="button" class="chip active" data-mode="clip" aria-pressed="true">Belt clip</button>
+            <button type="button" class="chip" data-mode="bin" aria-pressed="false">Square bin</button>
+          </div>
+          <p class="group-note">Two pins plug into the closet upright. The default is 5 mm pins on 32 mm centers, a common closet pitch — change hole spacing to match your holes.</p>
+          <div class="row" id="row-pinDiameter">
+            <label for="pinDiameter">Pin diameter</label>
+            <output id="pinDiameter-out"></output>
+            <input id="pinDiameter" type="range" min="3" max="8" step="0.1" value="5" data-unit="mm" />
+          </div>
+          <div class="row" id="row-holeSpacing">
+            <label for="holeSpacing">Hole spacing</label>
+            <output id="holeSpacing-out"></output>
+            <input id="holeSpacing" type="range" min="12" max="100" step="0.5" value="32" data-unit="mm" />
+          </div>
+          <div class="row" id="row-pinLength">
+            <label for="pinLength">Pin length</label>
+            <output id="pinLength-out"></output>
+            <input id="pinLength" type="range" min="5" max="30" step="0.5" value="10" data-unit="mm" />
+          </div>
+          <div class="row" id="row-width">
+            <label for="width">Width</label>
+            <output id="width-out"></output>
+            <input id="width" type="range" min="24" max="120" step="1" value="48" data-unit="mm" />
+          </div>
+          <div class="row" id="row-cradle">
+            <label for="cradleDiameter">Cradle diameter</label>
+            <output id="cradleDiameter-out"></output>
+            <input id="cradleDiameter" type="range" min="40" max="140" step="1" value="80" data-unit="mm" />
+          </div>
+          <div class="row" id="row-depth" hidden>
+            <label for="binDepth">Bin depth</label>
+            <output id="binDepth-out"></output>
+            <input id="binDepth" type="range" min="16" max="120" step="1" value="42" data-unit="mm" />
+          </div>
+          <div class="row" id="row-wall">
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out"></output>
+            <input id="wall" type="range" min="1.2" max="6" step="0.1" value="2.4" data-unit="mm" />
+          </div>
+          <div id="warnings"></div>
+          <div class="readout" id="readout"></div>
+        </div>
+      </details>
+      <div class="actions">
+        <button type="button" class="wide" id="download">Download belt clip STL</button>
+      </div>
+      <p class="status" id="status"></p>
+      <p class="notes">Print with the pins on the bed and the opening up. One piece, no supports. On the closet, turn the pins into the holes so the opening faces you. The belt clip is an open C. The square bin adds side walls.</p>
+      <p class="foot" id="app-version">Belt holder v1 · Nov 13, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
