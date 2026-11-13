@@ -1,4 +1,4 @@
-import { CARD, derive } from "./geometry.js";
+import { CARD, derive, sPoint } from "./geometry.js";
 import { meshesTo3mf } from "../shared/threemf.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
@@ -52,25 +52,16 @@ function roundRect(CS, w, h, r, segs, temps) {
   return keep(temps, core.offset(rr, "Round", 2, segs));
 }
 
-/** Constant-width circular hook. sign = 1 is the upper-left bowl; -1 is the lower-right bowl. */
-function hookPolygon(d, sign, steps) {
-  const { R, cux, cuy, half, a0, a1 } = d.hook;
-  const Ro = R + half;
-  const Ri = Math.max(1.2, R - half);
-  const cx = sign * cux;
-  const cy = sign * cuy;
-  const pts = [];
+/** Constant-width S. Disks along the centerline keep the stroke even on the tight bends. */
+function sRibbon(CS, d, steps, segs, temps) {
+  const disks = [];
   for (let i = 0; i <= steps; i++) {
-    const a = a0 + ((a1 - a0) * i) / steps;
-    const aa = sign === 1 ? a : a + Math.PI;
-    pts.push([cx + Ro * Math.cos(aa), cy + Ro * Math.sin(aa) + d.barCenterZ]);
+    const [x, y] = sPoint(d.ax, d.ay, i / steps);
+    disks.push(keep(temps, CS.circle(d.half, segs).translate([x, y + d.barCenterZ])));
   }
-  for (let i = steps; i >= 0; i--) {
-    const a = a0 + ((a1 - a0) * i) / steps;
-    const aa = sign === 1 ? a : a + Math.PI;
-    pts.push([cx + Ri * Math.cos(aa), cy + Ri * Math.sin(aa) + d.barCenterZ]);
-  }
-  return pts;
+  const hulls = [];
+  for (let i = 0; i < disks.length - 1; i++) hulls.push(keep(temps, CS.hull(disks[i], disks[i + 1])));
+  return keep(temps, CS.union(hulls));
 }
 
 function polygonArea(pts) {
@@ -156,14 +147,16 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const q = QUALITY[quality] || QUALITY.preview;
   const d = derive(raw);
 
-  const upperPts = hookPolygon(d, 1, q.arcSteps);
-  const lowerPts = hookPolygon(d, -1, q.arcSteps);
-  if (polygonArea(upperPts) < 0) upperPts.reverse();
-  if (polygonArea(lowerPts) < 0) lowerPts.reverse();
-  const upper = keep(temps, new CrossSection([upperPts]));
-  const lower = keep(temps, new CrossSection([lowerPts]));
-  const bar2d = keep(temps, roundRect(CrossSection, d.barW, d.barH, d.barR, q.segs, temps).translate([0, d.barCenterZ]));
-  const profile = keep(temps, CrossSection.union([upper, lower, bar2d]));
+  const ribbon = sRibbon(CrossSection, d, q.arcSteps, Math.max(12, Math.round(q.segs / 3)), temps);
+  const leftLine = keep(
+    temps,
+    roundRect(CrossSection, d.lineW, d.lineH, d.lineW / 2, q.segs, temps).translate([-d.lineX, d.barCenterZ])
+  );
+  const rightLine = keep(
+    temps,
+    roundRect(CrossSection, d.lineW, d.lineH, d.lineW / 2, q.segs, temps).translate([d.lineX, d.barCenterZ])
+  );
+  const profile = keep(temps, CrossSection.union([ribbon, leftLine, rightLine]));
   const extruded = keep(temps, profile.extrude(d.totalT));
   const sign = standUp(extruded, d.yBack, temps);
 
@@ -185,6 +178,26 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     d.barCenterZ,
     temps
   );
+  // Ledge behind the card. The window is smaller than the card, so the center stays open
+  // and the front still reads as two strokes with a gap. The card cannot fall through.
+  const trayOuter = keep(
+    temps,
+    roundRect(CrossSection, d.pocketW + 2 * d.rim, d.pocketH + 2 * d.rim, d.pocketR, q.segs, temps).translate([
+      0,
+      d.barCenterZ,
+    ])
+  );
+  const trayHole = keep(
+    temps,
+    roundRect(CrossSection, CARD.w - 2 * d.lip, CARD.h - 2 * d.lip, Math.max(1.2, CARD.corner - d.lip), q.segs, temps).translate([
+      0,
+      d.barCenterZ,
+    ])
+  );
+  const tray2d = keep(temps, trayOuter.subtract(trayHole));
+  const trayEx = keep(temps, tray2d.extrude(-d.yBack));
+  const tray = standUp(trayEx, d.yBack, temps);
+  back = keep(temps, back.add(tray));
   back = keep(temps, back.subtract(pocket));
 
   const headH = 1.25;
@@ -268,7 +281,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   socket = keep(temps, socket.add(ridge));
 
   const disk = cylZ(Manifold, 2.2, d.socketR, q.segs, [0, d.yCenter, d.socketTop - 1.2], temps);
-  const stemW = Math.min(d.barW * 0.62, d.socketOD + 16);
+  const stemW = Math.max(d.lineSpan + 2, d.socketOD - 1);
   const foot = keep(
     temps,
     Manifold.cube([stemW, d.totalT * 0.92, 8], true).translate([0, d.yCenter, d.barBottomZ + 2.4])

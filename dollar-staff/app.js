@@ -88,7 +88,7 @@ function renderReadout(result) {
   const volume = result ? result.frontVolume + result.backVolume : 0;
   const grams = result ? ((volume / 1000) * PLA).toFixed(0) : "—";
   el.innerHTML = `
-    Sign <b>${d.loopW.toFixed(0)} × ${d.barH.toFixed(0)} mm</b>, about <b>${d.totalH.toFixed(0)} mm</b> tall with the socket<br />
+    S <b>${d.loopW.toFixed(0)} × ${d.loopH.toFixed(0)} mm</b>, two lines <b>${d.lineW.toFixed(1)} mm</b> with a <b>${d.lineGap.toFixed(1)} mm</b> gap, about <b>${d.totalH.toFixed(0)} mm</b> tall<br />
     Card pocket <b>${d.pocketW.toFixed(2)} × ${d.pocketH.toFixed(2)} × ${d.pocketD.toFixed(2)} mm</b>
     (ISO card + ${d.p.clearance.toFixed(2)} mm each side)<br />
     Socket <b>3/4″-5 ACME</b> · minor ID <b>${d.threadID.toFixed(2)} mm</b> · pitch <b>${d.pitch.toFixed(2)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />

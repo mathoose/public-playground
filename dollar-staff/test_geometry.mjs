@@ -53,8 +53,18 @@ function check(label, raw) {
   assert.ok(d.pocketW >= CARD.w + 2 * d.p.clearance - 1e-6, `${label} pocket width`);
   assert.ok(d.pocketH >= CARD.h + 2 * d.p.clearance - 1e-6, `${label} pocket height`);
   assert.ok(d.pocketD >= CARD.t + d.p.clearance - 1e-6, `${label} pocket depth`);
-  assert.ok(d.barW >= d.pocketW + 2 * d.p.barWall - 1e-6, `${label} bar hides the card`);
-  assert.ok(d.loopW + 0.1 >= CARD.w && d.barH + 0.1 >= CARD.h, `${label} sign smaller than the card`);
+  assert.ok(d.lineGap >= 6, `${label} line gap ${d.lineGap} is not a visible split`);
+  assert.ok(d.loopW > d.lineSpan * 4, `${label} S is not larger than the two lines (${d.loopW.toFixed(0)} vs ${d.lineSpan.toFixed(1)})`);
+  assert.ok(d.loopW + 0.1 >= CARD.w && d.lineH + 0.1 >= CARD.h, `${label} sign smaller than the card`);
+
+  const gapZ = d.barCenterZ + d.ay * 0.28;
+  const gap = Manifold.cube([d.lineGap * 0.45, d.frontT + 0.3, 12], true).translate([0, d.frontT / 2, gapZ]);
+  const onLine = Manifold.cube([d.lineW * 0.4, d.frontT * 0.55, 12], true).translate([d.lineX, d.frontT / 2, gapZ]);
+  const gapHit = front.intersect(gap);
+  const lineHit = front.intersect(onLine);
+  temps.push(gap, onLine, gapHit, lineHit);
+  assert.ok(gapHit.volume() < 8, `${label} center gap is filled (${gapHit.volume().toFixed(1)} mm³)`);
+  assert.ok(lineHit.volume() > 15, `${label} vertical stroke missing (${lineHit.volume().toFixed(1)} mm³)`);
 
   const backBb = back.boundingBox();
   const frontBb = front.boundingBox();
@@ -85,7 +95,7 @@ function check(label, raw) {
   assert.ok(cardBb.min[2] > backBb.min[2] && cardBb.max[2] < backBb.max[2], `${label} card sticks out in Z`);
 
   console.log(
-    `${label}: ${d.loopW.toFixed(0)}×${d.barH.toFixed(0)} mm sign, ${d.totalH.toFixed(0)} mm tall, ` +
+    `${label}: S ${d.loopW.toFixed(0)}×${d.loopH.toFixed(0)} mm, lines ${d.lineW.toFixed(1)} mm with ${d.lineGap.toFixed(1)} mm gap, ${d.totalH.toFixed(0)} mm tall, ` +
       `pocket ${d.pocketW.toFixed(2)}×${d.pocketH.toFixed(2)}×${d.pocketD.toFixed(2)}, ` +
       `thread ID ${d.threadID.toFixed(2)} mm × ${d.p.engage} mm, ` +
       `front ${(front.volume() / 1000).toFixed(1)} cm³, back ${(back.volume() / 1000).toFixed(1)} cm³`
@@ -94,8 +104,8 @@ function check(label, raw) {
 }
 
 check("default", DEFAULT_PARAMS);
-check("small tight", { ...DEFAULT_PARAMS, dollarW: 110, stroke: 12, clearance: 0.2, barWall: 3.2, engage: 16 });
-check("large loose", { ...DEFAULT_PARAMS, dollarW: 180, stroke: 20, clearance: 1, barWall: 7, engage: 40 });
+check("small tight", { ...DEFAULT_PARAMS, dollarW: 120, stroke: 11, clearance: 0.2, lineGap: 6, engage: 16 });
+check("large loose", { ...DEFAULT_PARAMS, dollarW: 190, stroke: 18, clearance: 1, lineGap: 14, engage: 40 });
 
 const temps = [];
 const built = buildShells(wasm, DEFAULT_PARAMS, temps, "preview");
