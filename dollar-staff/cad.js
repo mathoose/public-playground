@@ -158,6 +158,11 @@ function roundedBoxY(CS, Manifold, w, depth, h, r, segs, originY, centerZ, temps
   return keep(temps, stood.translate([0, 0, centerZ]));
 }
 
+/** 2D x becomes world Y, 2D y becomes world Z, extrusion becomes world X. */
+function standAcross(solid, x0, temps) {
+  return keep(temps, solid.transform([0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, x0, 0, 0, 1]));
+}
+
 function assertOk(solid, label) {
   const status = solid.status ? solid.status() : "NoError";
   if (status && status !== "NoError") throw new Error(`${label} manifold error: ${status}`);
@@ -194,40 +199,40 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   sign = keep(temps, sign.subtract(slot));
 
-  const caseEx = keep(temps, roundRect(CrossSection, d.caseW, d.caseH, d.caseR, q.segs, temps).translate([0, d.barCenterZ]).extrude(d.backFloor + d.pocketD + d.frontT));
-  const caseSolid = standUp(caseEx, d.yCaseBack, temps);
-  const backSpace = keep(temps, Manifold.cube([500, 400, 700], false).translate([-250, -400, -20]));
-  const frontSpace = keep(temps, Manifold.cube([500, 400, 700], false).translate([-250, 0, -20]));
-  let back = keep(temps, caseSolid.intersect(backSpace));
-  let front = keep(temps, caseSolid.intersect(frontSpace));
-
-  const pocket = roundedBoxY(
-    CrossSection,
-    Manifold,
-    d.pocketW,
-    d.pocketD + 0.08,
-    d.pocketH,
-    d.pocketR,
-    q.segs,
-    -(d.pocketD - 0.02),
-    d.barCenterZ,
-    temps
+  const caseProfile = keep(
+    temps,
+    roundRect(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs, temps).translate([
+      d.caseBackY + d.caseY / 2,
+      d.barCenterZ,
+    ])
   );
-  back = keep(temps, back.subtract(pocket));
-
+  const caseEx = keep(temps, caseProfile.extrude(d.caseX));
+  let caseSolid = standAcross(caseEx, d.xCaseBack, temps);
   const male = dovetailRail(
     CrossSection,
     {
       neck: d.neck,
       tip: d.tip,
-      yRoot: d.yCaseBack + 0.4,
+      yRoot: d.caseBackY + 0.45,
       yTip: d.signFrontY - d.tailDepth,
       z0: d.tailZ0,
       len: d.tailLen,
     },
     temps
   );
-  back = keep(temps, back.add(male));
+  caseSolid = keep(temps, caseSolid.add(male));
+  const backSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([-400, -250, -20]));
+  const frontSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([0, -250, -20]));
+  let back = keep(temps, caseSolid.intersect(backSpace));
+  let front = keep(temps, caseSolid.intersect(frontSpace));
+
+  const pocketProfile = keep(
+    temps,
+    roundRect(CrossSection, d.pocketY, d.pocketZ, d.pocketR, q.segs, temps).translate([d.cardCenterY, d.barCenterZ])
+  );
+  const pocketEx = keep(temps, pocketProfile.extrude(d.pocketX + 0.08));
+  const pocket = standAcross(pocketEx, -(d.pocketX - 0.02), temps);
+  back = keep(temps, back.subtract(pocket));
 
   const headH = 1.25;
   const shaftLen = d.frontT - headH + 0.15;
@@ -235,14 +240,14 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     const shaft = keep(
       temps,
       Manifold.cylinder(shaftLen + 0.35, d.snapShaftR, d.snapShaftR, 28, false)
-        .rotate([-90, 0, 0])
-        .translate([snap.x, -0.35, snap.z])
+        .rotate([0, 90, 0])
+        .translate([-0.35, snap.y, snap.z])
     );
     const head = keep(
       temps,
       Manifold.cylinder(headH, d.snapHeadR, d.snapHeadR * 0.72, 28, false)
-        .rotate([-90, 0, 0])
-        .translate([snap.x, shaftLen - 0.2, snap.z])
+        .rotate([0, 90, 0])
+        .translate([shaftLen - 0.2, snap.y, snap.z])
     );
     const post = keep(temps, Manifold.union([shaft, head]));
     back = keep(temps, back.add(post));
@@ -250,14 +255,14 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     const through = keep(
       temps,
       Manifold.cylinder(d.frontT - headH + 0.45, d.snapHoleR, d.snapHoleR, 28, false)
-        .rotate([-90, 0, 0])
-        .translate([snap.x, -0.2, snap.z])
+        .rotate([0, 90, 0])
+        .translate([-0.2, snap.y, snap.z])
     );
     const counter = keep(
       temps,
       Manifold.cylinder(headH + 0.45, d.snapHeadR + 0.28, d.snapHeadR + 0.28, 28, false)
-        .rotate([-90, 0, 0])
-        .translate([snap.x, d.frontT - headH - 0.05, snap.z])
+        .rotate([0, 90, 0])
+        .translate([d.frontT - headH - 0.05, snap.y, snap.z])
     );
     front = keep(temps, front.subtract(keep(temps, Manifold.union([through, counter]))));
   }
@@ -333,18 +338,12 @@ function clamp01(t) {
 export function cardSolid(wasm, raw, temps) {
   const { CrossSection, Manifold } = wasm;
   const d = derive(raw);
-  return roundedBoxY(
-    CrossSection,
-    Manifold,
-    CARD.h,
-    CARD.t,
-    CARD.w,
-    CARD.corner,
-    24,
-    d.cardCenterY - CARD.t / 2,
-    d.barCenterZ,
-    temps
+  const profile = keep(
+    temps,
+    roundRect(CrossSection, CARD.w, CARD.h, CARD.corner, 24, temps).translate([d.cardCenterY, d.barCenterZ])
   );
+  const ex = keep(temps, profile.extrude(CARD.t));
+  return standAcross(ex, d.cardCenterX - CARD.t / 2, temps);
 }
 
 export function copyMesh(mesh) {

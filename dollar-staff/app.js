@@ -89,8 +89,8 @@ function renderReadout(result) {
   const grams = result ? ((volume / 1000) * PLA).toFixed(0) : "—";
   el.innerHTML = `
     Solid $ <b>${d.loopW.toFixed(0)} × ${d.barH.toFixed(0)} mm</b>, center bar <b>${d.barW.toFixed(1)} mm</b>, about <b>${d.totalH.toFixed(0)} mm</b> tall<br />
-    Card pocket <b>${d.pocketW.toFixed(2)} × ${d.pocketH.toFixed(2)} × ${d.pocketD.toFixed(2)} mm</b>
-    — long side horizontal, ISO card + ${d.p.clearance.toFixed(2)} mm each side<br />
+    Card pocket <b>${d.pocketZ.toFixed(2)} × ${d.pocketY.toFixed(2)} × ${d.pocketX.toFixed(2)} mm</b>
+    — edge-on to the S, long side vertical, ISO card + ${d.p.clearance.toFixed(2)} mm each side<br />
     Dovetail <b>${d.neck.toFixed(1)} → ${d.tip.toFixed(1)} mm</b> · slides down the bar<br />
     Socket <b>3/4″-5 ACME</b> · minor ID <b>${d.threadID.toFixed(2)} mm</b> · pitch <b>${d.pitch.toFixed(2)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />
     Case front + case back + dollar sign · PLA ~<b>${grams} g</b>
@@ -241,10 +241,10 @@ window.dollarStaff = {
 };
 
 rebuild().then(() => {
-  if (shot === "dovetail") {
+  if (shot === "edge" || shot === "dovetail") {
     preview.setShow({ front: true, back: true, sign: true, card: true });
-    preview.setPose(10, 24);
-    preview.setNamedView("dovetail");
+    preview.setPose(8, 20);
+    preview.setNamedView("edge");
   } else if (shot === "apart") {
     partView = "apart";
     applyView();

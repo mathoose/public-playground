@@ -10,8 +10,8 @@ function geomFrom(positions) {
 }
 
 function roundedCardGeometry() {
-  const w = CARD.h;
-  const h = CARD.w;
+  const w = CARD.w;
+  const h = CARD.h;
   const r = CARD.corner;
   const shape = new THREE.Shape();
   const x = -w / 2;
@@ -28,6 +28,7 @@ function roundedCardGeometry() {
   const geo = new THREE.ExtrudeGeometry(shape, { depth: CARD.t, bevelEnabled: false, curveSegments: 8 });
   geo.translate(0, 0, -CARD.t / 2);
   geo.rotateX(Math.PI / 2);
+  geo.rotateZ(Math.PI / 2);
   return geo;
 }
 
@@ -118,6 +119,7 @@ export class StaffPreview {
     this.frontPositions = result.frontPositions;
     this.backPositions = result.backPositions;
     this.signPositions = result.signPositions;
+    this.cardX = d.cardCenterX;
     this.cardY = d.cardCenterY;
     this.cardZ = d.barCenterZ;
     this._set(this.sign, result.signPositions);
@@ -130,11 +132,11 @@ export class StaffPreview {
     mesh.geometry = positions?.length ? geomFrom(positions) : new THREE.BufferGeometry();
   }
 
-  _offset(src, dy, dz) {
+  _offset(src, dx, dz) {
     const pos = new Float32Array(src);
-    if (dy || dz) {
+    if (dx || dz) {
       for (let i = 0; i < pos.length; i += 3) {
-        pos[i + 1] += dy;
+        pos[i] += dx;
         pos[i + 2] += dz;
       }
     }
@@ -144,7 +146,7 @@ export class StaffPreview {
   applyPose() {
     if (this.backPositions) this._set(this.back, this._offset(this.backPositions, 0, this.slide));
     if (this.frontPositions) this._set(this.front, this._offset(this.frontPositions, this.lid, this.slide));
-    this.card.position.set(0, this.cardY, this.cardZ + this.slide);
+    this.card.position.set(this.cardX, this.cardY, this.cardZ + this.slide);
     this.sign.visible = this.show.sign;
     this.front.visible = this.show.front;
     this.back.visible = this.show.back;
@@ -189,6 +191,7 @@ export class StaffPreview {
       front: new THREE.Vector3(0.03, 1, 0.05),
       side: new THREE.Vector3(1.25, 0.28, 0.2),
       dovetail: new THREE.Vector3(1.35, 0.7, 0.42),
+      edge: new THREE.Vector3(1.2, 0.95, 0.4),
     };
     const dir = (dirs[name] || dirs.iso).clone().normalize();
     this.camera.position.copy(target).addScaledVector(dir, dist * 1.08);
