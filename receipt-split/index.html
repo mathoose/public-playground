@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<!-- build: receipt-split-v1 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Split check" />
+  <meta name="theme-color" content="#1a1410" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23a33d22'/%3E%3Cpath d='M8 16.5 13.2 22 24 10' fill='none' stroke='%23fff8f3' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <title>Split the check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,640&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #1a1410;
+      --bg-spot: #3a2a20;
+      --paper: #fbf6ee;
+      --paper-2: #f3eadc;
+      --ink: #241c15;
+      --muted: #6f5e4e;
+      --line: #eadfce;
+      --line-strong: #d9c9b4;
+      --accent: #a33d22;
+      --accent-ink: #fff8f3;
+      --warn-bg: #fff1df;
+      --warn-ink: #8a4b12;
+      --good: #1e7a4a;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+      --radius: 22px;
+      --tap: 44px;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      color: var(--ink);
+      font: 16px/1.4 Outfit, "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(900px 420px at 50% -80px, var(--bg-spot), transparent 70%),
+        var(--bg);
+    }
+    button, input, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid #e7a08a; outline-offset: 2px; }
+    .page {
+      width: min(1040px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 22px) 0 calc(env(safe-area-inset-bottom) + 36px);
+    }
+    header.top { color: #f6efe6; padding: 4px 4px 16px; }
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #d7b49a;
+    }
+    h1 {
+      margin: 0;
+      font-family: Fraunces, "Iowan Old Style", Palatino, Georgia, serif;
+      font-size: clamp(34px, 6vw, 52px);
+      font-weight: 520;
+      letter-spacing: -0.03em;
+      line-height: 0.95;
+    }
+    .lede { margin: 10px 0 0; max-width: 38rem; color: #d9cbbd; font-size: 16px; }
+    .sticky-people { padding: 0 0 14px; }
+    .grid { display: grid; gap: 14px; }
+    .card {
+      background: var(--paper);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .kicker {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .grow { flex: 1; min-width: 0; }
+    input[type="text"], input[type="search"], textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 16px;
+      color-scheme: light;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    input::placeholder, textarea::placeholder { color: #b3a394; }
+    .btn {
+      border: 0;
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-radius: 12px;
+      min-height: var(--tap);
+      padding: 0 14px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .btn.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line-strong);
+    }
+    .btn.quiet {
+      background: transparent;
+      color: var(--muted);
+      min-height: 36px;
+      padding: 0 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .btn:active { transform: translateY(1px); }
+    .hint { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 4px 0 0;
+      border-radius: 999px;
+      border: 1.5px solid var(--line-strong);
+      background: #fff;
+      color: var(--ink);
+    }
+    .chip-main {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-weight: 650;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 40px;
+      padding: 4px 6px 4px 12px;
+    }
+    .chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+    .chip.on { background: var(--c); border-color: var(--c); color: white; }
+    .chip.on .dot { background: white; }
+    .chip .x {
+      width: 32px; height: 32px; border: 0; border-radius: 50%;
+      background: transparent; color: inherit; font-size: 18px; line-height: 1;
+    }
+    .drop {
+      border: 1.5px dashed #d9c7b2;
+      border-radius: 16px;
+      background: #fffdf9;
+      min-height: 112px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .drop.over { border-color: var(--accent); background: #fff6f1; }
+    .drop p { margin: 0; color: var(--muted); font-size: 14px; }
+    .drop-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .preview { margin-top: 12px; display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; }
+    .preview img {
+      width: 92px; height: 120px; object-fit: cover; border-radius: 10px;
+      background: #efe4d4; box-shadow: 0 6px 16px rgba(36, 28, 21, 0.12);
+    }
+    .status { min-height: 1.2em; color: var(--muted); font-size: 14px; margin-top: 8px; }
+    details.paste { margin-top: 12px; }
+    details.paste summary { cursor: pointer; font-weight: 650; color: var(--accent); }
+    details.paste .inner { margin-top: 10px; display: grid; gap: 8px; }
+    .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+    .items { list-style: none; margin: 8px 0 0; padding: 0; }
+    .item {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) 32px;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+    .check {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid #e0d3c3; background: #fff; color: transparent;
+      display: grid; place-items: center; padding: 0;
+    }
+    .check svg { width: 20px; height: 20px; }
+    .check[aria-pressed="true"], .check.claimed {
+      background: var(--mark, var(--active, var(--accent)));
+      border-color: transparent;
+      color: white;
+    }
+    .item-name, .item-price {
+      border: 0; background: transparent; padding: 4px 0; text-align: left;
+    }
+    .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .item-name { font-weight: 600; flex: 1; min-width: 0; white-space: normal; }
+    .item-price {
+      flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap;
+    }
+    .who { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      border: 0; background: var(--paper-2); color: var(--ink);
+      border-radius: 999px; padding: 3px 8px 3px 6px; font-size: 12px; font-weight: 650;
+    }
+    .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: block; }
+    .open-note { font-size: 12px; font-weight: 700; color: var(--accent); }
+    .icon-x {
+      width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent;
+      color: #6f5e4e; font-size: 20px; line-height: 1;
+    }
+    .item-add {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 92px auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .empty {
+      padding: 18px 4px 8px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .paid-card .amount {
+      display: flex; align-items: baseline; gap: 2px;
+      border-bottom: 2px solid var(--ink);
+      margin-top: 4px;
+    }
+    .paid-card .currency, #paid {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 520;
+      letter-spacing: -0.03em;
+    }
+    .paid-card .currency { font-size: 32px; }
+    #paid {
+      border: 0; background: transparent; padding: 0 0 4px;
+      font-size: 44px; width: 100%; border-radius: 0;
+    }
+    #paid:focus { outline: none; }
+    .paid-card .amount:focus-within { border-color: var(--accent); }
+    .tip-link {
+      border: 0; background: transparent; color: var(--accent);
+      font-weight: 700; padding: 0; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .bar {
+      display: flex; height: 10px; border-radius: 999px; overflow: hidden;
+      background: var(--paper-2); margin: 4px 0 12px;
+    }
+    .bar span { display: block; height: 100%; }
+    .person-card { padding: 14px; border-radius: 16px; background: #fff; border: 1px solid var(--line); margin-top: 10px; }
+    .person-card header { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .person-card h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .person-card h3 i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: block; }
+    .owes {
+      margin: 6px 0 0;
+      font-family: Fraunces, Georgia, serif;
+      font-size: 36px;
+      font-weight: 520;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .owes-label { margin: 0; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .lines { list-style: none; margin: 10px 0 0; padding: 0; }
+    .lines li, .sum-line {
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 14px; padding: 3px 0; font-variant-numeric: tabular-nums;
+    }
+    .lines .split { color: var(--muted); font-weight: 500; }
+    .sum-line { color: var(--muted); border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
+    .sum-line.strong { color: var(--ink); font-weight: 700; border-top: 0; margin-top: 0; }
+    .note, .warn, .ok {
+      border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 10px;
+    }
+    .warn { background: var(--warn-bg); color: var(--warn-ink); }
+    .ok { background: #e8f6ee; color: var(--good); }
+    .note { background: var(--paper-2); color: var(--muted); }
+    .foot-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .page-foot { color: #b5a496; font-size: 13px; padding: 16px 6px 0; }
+    .shake { animation: shake 0.35s linear; }
+    @keyframes shake {
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+    #toast {
+      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px);
+      transform: translateX(-50%) translateY(-12px);
+      background: #241c15; color: #fbf6ee; padding: 10px 14px; border-radius: 999px;
+      opacity: 0; pointer-events: none; transition: 0.2s ease; font-size: 14px; font-weight: 600;
+      max-width: min(90vw, 420px); text-align: center;
+      z-index: 9;
+    }
+    #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+      @media (min-width: 960px) {
+      .grid { grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr); align-items: start; }
+      .side { position: sticky; top: 16px; }
+    }
+    .cam-only { display: none; }
+    @media (pointer: coarse) { .cam-only { display: inline-block; } }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+    @media print {
+      body { background: white; }
+      .sticky-people, .drop, .item-add, details.paste, .page-foot, #toast, .foot-actions, .btn { display: none !important; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <p class="eyebrow">At the table</p>
+      <h1>Split the check</h1>
+      <p class="lede">Add the receipt, tap a name, then check off what they had. Tax and tip come out of the amount you actually paid.</p>
+    </header>
+
+    <div class="sticky-people">
+      <section class="card" aria-labelledby="people-label">
+        <h2 class="kicker" id="people-label">People</h2>
+        <form id="personForm" class="row" autocomplete="off">
+          <input id="personName" class="grow" type="text" maxlength="40" placeholder="Add a name" aria-label="Person name" autocomplete="name" />
+          <button class="btn" type="submit">Add</button>
+        </form>
+        <div class="chips" id="people"></div>
+        <p class="hint" id="assignHint"></p>
+      </section>
+    </div>
+
+    <div class="grid">
+      <div class="main">
+        <section class="card" aria-labelledby="receipt-label">
+          <h2 class="kicker" id="receipt-label">Receipt</h2>
+          <input id="place" type="text" maxlength="60" placeholder="Place (optional)" aria-label="Place" style="margin-bottom:12px" />
+          <div class="drop" id="drop">
+            <p id="dropHint">Drop a photo of the receipt, or add one.</p>
+            <div class="drop-actions">
+              <button class="btn secondary" type="button" id="pickPhoto">Add a photo</button>
+              <button class="btn secondary cam-only" type="button" id="takePhoto">Take photo</button>
+            </div>
+            <input id="file" type="file" accept="image/*" hidden />
+            <input id="camera" class="cam-only" type="file" accept="image/*" capture="environment" hidden />
+          </div>
+          <div class="preview" id="preview" hidden>
+            <img id="previewImg" alt="Receipt photo" />
+            <div>
+              <button class="btn" type="button" id="readBtn">Read items from photo</button>
+              <p class="status" id="readStatus" role="status"></p>
+            </div>
+          </div>
+          <details class="paste" id="pasteDetails">
+            <summary>Paste receipt text</summary>
+            <div class="inner">
+              <textarea id="paste" placeholder="Blackened chicken sandwich    17.00&#10;Wings    16.00" aria-label="Receipt text"></textarea>
+              <button class="btn secondary" type="button" id="parsePaste">Add items from text</button>
+            </div>
+          </details>
+        </section>
+
+        <section class="card" aria-labelledby="items-label" style="margin-top:14px">
+          <div class="sheet-head">
+            <h2 class="kicker" id="items-label" style="margin:0">Items</h2>
+            <p class="meta" id="itemMeta"></p>
+          </div>
+          <ul class="items" id="items"></ul>
+          <p class="empty" id="emptyItems">No items yet. Read a photo, paste the receipt, or type a line.</p>
+          <form id="itemForm" class="item-add" autocomplete="off">
+            <input id="itemName" type="text" maxlength="80" placeholder="Item" aria-label="Item name" />
+            <input id="itemPrice" type="text" inputmode="decimal" placeholder="0.00" aria-label="Price" />
+            <button class="btn" type="submit">Add</button>
+          </form>
+          <div class="foot-actions">
+            <button class="btn quiet" type="button" id="newReceipt">New receipt</button>
+            <button class="btn quiet" type="button" id="startOver">Start over</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="side">
+        <section class="card paid-card" aria-labelledby="paid-label">
+          <h2 class="kicker" id="paid-label">What you paid</h2>
+          <div class="amount">
+            <span class="currency">$</span>
+            <input id="paid" type="text" inputmode="decimal" placeholder="0.00" aria-label="Amount paid after tax and tip" autocomplete="off" />
+          </div>
+          <p class="hint" id="payHint"></p>
+        </section>
+        <section class="card" style="margin-top:14px" aria-live="polite" aria-labelledby="split-label">
+          <h2 class="kicker" id="split-label">Each person</h2>
+          <div id="breakdown"></div>
+        </section>
+      </div>
+    </div>
+    <p class="page-foot">Names and items stay on this phone. The photo is used only to read the lines, then forgotten when you leave.</p>
+  </div>
+  <div id="toast" role="status"></div>
+
+  <script id="logic">
+  (function () {
+    function formatMoney(n) {
+      const v = Math.round(Number(n) * 100) / 100;
+      if (!Number.isFinite(v)) return "$0.00";
+      return (v < 0 ? "-$" : "$") + Math.abs(v).toFixed(2);
+    }
+
+    function parseItemPrice(text) {
+      const s = String(text == null ? "" : text).trim();
+      if (!s || !/\d/.test(s)) return null;
+      const neg = /^\s*-/.test(s) || /^\s*\(/.test(s);
+      const cleaned = s.replace(/[^0-9.]/g, "");
+      if (!cleaned) return null;
+      const n = Number(cleaned);
+      if (!Number.isFinite(n) || n > 20000) return null;
+      return neg ? -n : n;
+    }
+
+    function parsePaid(text) {
+      return parseItemPrice(text);
+    }
+
+    function normalizeToken(raw) {
+      return String(raw).replace(/[oO]/g, "0").replace(/[Il]/g, "1");
+    }
+
+    function parseMoneyToken(raw) {
+      const cleaned = normalizeToken(raw);
+      let neg = /^\s*-/.test(cleaned) || /\(/.test(cleaned) || /-\s*$/.test(cleaned);
+      const digits = cleaned.replace(/[^0-9.]/g, "");
+      if (!/^\d+\.\d{2}$/.test(digits)) return null;
+      const n = Number(digits);
+      if (!Number.isFinite(n) || n > 20000) return null;
+      return neg ? -n : n;
+    }
+
+    function cleanName(name) {
+      return String(name || "")
+        .replace(/[|¦]/g, " ")
+        .replace(/[_~=*#]+/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/^[\s\-–—:•·.]+/, "")
+        .replace(/[\s\-–—:•·.]+$/, "")
+        .trim();
+    }
+
+    function shouldSkipName(name) {
+      const n = cleanName(name).toLowerCase();
+      if (n.length < 2) return true;
+      if (/%/.test(n)) return true;
+      if (/^[\d\s.]+$/.test(n)) return true;
+      if (/^(qty|price|item|description|name|server|table|guest|check|order|phone|sub\s*total|subtotal|sales\s*tax|tax|grand\s*total|amount\s*due|balance(\s*due)?|gratuity|suggested(\s*tip)?|tip(\s*suggestions?)?|change(\s*due)?|cash|credit(\s*card)?(\s*total)?|debit(\s*total)?|surcharge|total|dash\s*total|visa|mastercard|amex|discover)$/.test(n)) return true;
+      if (/discounts?\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|suggested tip|tip suggestion/.test(n)) return true;
+      if (/^thank\b/.test(n)) return true;
+      return false;
+    }
+
+    function isHoldable(name) {
+      if (!name || shouldSkipName(name)) return false;
+      if (name.length > 42) return false;
+      if (/\d{4}/.test(name)) return false;
+      if (/\d{3}[-\s]\d{3}/.test(name)) return false;
+      if (/\b(street|suite|philly|philadelphia|register|server|table|guest)\b/i.test(name)) return false;
+      if (/\b(st|ave|rd|blvd|pa)\b\.?$/i.test(name)) return false;
+      return /[a-z]/i.test(name);
+    }
+
+    function stripQty(name) {
+      let qty = null;
+      let next = name;
+      const lead = next.match(/^(\d{1,2})\s+(.+)$/);
+      if (lead && +lead[1] >= 1 && +lead[1] <= 20 && /[a-z]/i.test(lead[2])) {
+        qty = +lead[1];
+        next = cleanName(lead[2]);
+      }
+      const trail = next.match(/^(.*[a-z].*?)\s+(\d{1,2})$/i);
+      if (trail && +trail[2] >= 1 && +trail[2] <= 20) {
+        qty = +trail[2];
+        next = cleanName(trail[1]);
+      }
+      return { name: next, qty: qty };
+    }
+
+    const MONEY_RE = /\(?\s*-?\s*\$?\s*\d{1,4}(?:,\d{3})*\.\d{2}\s*\)?-?/g;
+
+    function parseReceiptText(text) {
+      const lines = String(text || "").split(/\r?\n/).map((l) => l.replace(/\t/g, "  ").trim()).filter(Boolean);
+      const items = [];
+      let pending = "";
+      let detectedTotal = null;
+      for (const line of lines) {
+        const tokens = [...line.matchAll(new RegExp(MONEY_RE.source, "g"))];
+        if (!tokens.length) {
+          const held = stripQty(cleanName(line)).name;
+          if (!isHoldable(held)) pending = "";
+          else if ((pending + " " + held).trim().length > 60) pending = held;
+          else pending = pending ? (pending + " " + held) : held;
+          continue;
+        }
+        const price = parseMoneyToken(tokens[tokens.length - 1][0]);
+        if (price == null) {
+          pending = "";
+          continue;
+        }
+        let name = cleanName(line.slice(0, tokens[0].index));
+        const qtyInfo = stripQty(name);
+        const ownName = qtyInfo.name;
+        const qty = qtyInfo.qty;
+        if (!ownName && pending) {
+          name = pending;
+          pending = "";
+        } else if (shouldSkipName(ownName)) {
+          if (/total/i.test(ownName) && !/sub/i.test(ownName) && price > 0) detectedTotal = price;
+          if (/total|tax|tip|subtotal|amount|balance/.test(ownName.toLowerCase())) pending = "";
+          continue;
+        } else {
+          name = pending && ownName.length < 16 ? cleanName((pending + " " + ownName).trim()) : ownName;
+          pending = "";
+        }
+        if (shouldSkipName(name)) continue;
+        if (qty && qty > 1) name = name + " × " + qty;
+        items.push({ name: name, price: price });
+      }
+      return { items: items, detectedTotal: detectedTotal };
+    }
+
+    function allocateCents(exact, target) {
+      if (!exact.length) return [];
+      const floors = exact.map((x) => Math.floor(x + 1e-8));
+      let left = target - floors.reduce((a, b) => a + b, 0);
+      const order = exact
+        .map((x, i) => ({ i: i, frac: (x + 1e-8) - Math.floor(x + 1e-8) }))
+        .sort((a, b) => b.frac - a.frac || a.i - b.i);
+      let guard = 0;
+      while (left !== 0 && order.length && guard < 100000) {
+        const step = left > 0 ? 1 : -1;
+        const pick = left > 0 ? order[guard % order.length] : order[order.length - 1 - (guard % order.length)];
+        floors[pick.i] += step;
+        left -= step;
+        guard += 1;
+      }
+      return floors;
+    }
+
+    function splitCents(cents, count) {
+      const base = Math.trunc(cents / count);
+      let rem = cents - base * count;
+      const shares = [];
+      for (let i = 0; i < count; i++) {
+        let share = base;
+        if (rem > 0) { share += 1; rem -= 1; }
+        else if (rem < 0) { share -= 1; rem += 1; }
+        shares.push(share);
+      }
+      return shares;
+    }
+
+    function computeSplit(items, people, finalTotal) {
+      const rows = people.map((p) => ({
+        id: p.id, name: p.name, color: p.color, lines: [], itemsCents: 0
+      }));
+      const rowById = new Map(rows.map((r) => [r.id, r]));
+      let itemCents = 0;
+      let unassignedCents = 0;
+      (items || []).forEach((item) => {
+        const cents = Math.round(Number(item.price) * 100);
+        if (!Number.isFinite(cents)) return;
+        itemCents += cents;
+        const who = (item.who || []).filter((id) => rowById.has(id));
+        if (!who.length) {
+          unassignedCents += cents;
+          return;
+        }
+        const shares = splitCents(cents, who.length);
+        who.forEach((id, i) => {
+          const row = rowById.get(id);
+          row.itemsCents += shares[i];
+          row.lines.push({
+            itemId: item.id,
+            name: item.name,
+            cents: shares[i],
+            splitCount: who.length
+          });
+        });
+      });
+      const hasFinal = finalTotal != null && Number.isFinite(Number(finalTotal));
+      const finalCents = hasFinal ? Math.round(Number(finalTotal) * 100) : null;
+      const extrasCents = hasFinal ? finalCents - itemCents : null;
+      let weights = rows.map((r) => Math.max(0, r.itemsCents));
+      let weightSum = weights.reduce((a, b) => a + b, 0);
+      if (weightSum === 0) {
+        weights = rows.map((r) => (r.lines.length ? 1 : 0));
+        weightSum = weights.reduce((a, b) => a + b, 0);
+      }
+      if (weightSum === 0 && hasFinal && rows.length && itemCents === 0) {
+        weights = rows.map(() => 1);
+        weightSum = rows.length;
+      }
+      let extrasShares = rows.map(() => 0);
+      if (extrasCents != null && weightSum > 0) {
+        const exact = weights.map((w) => extrasCents * (w / weightSum));
+        extrasShares = allocateCents(exact, extrasCents);
+      }
+      const peopleOut = rows.map((r, i) => ({
+        id: r.id,
+        name: r.name,
+        color: r.color,
+        lines: r.lines.map((l) => ({
+          itemId: l.itemId,
+          name: l.name,
+          amount: l.cents / 100,
+          splitCount: l.splitCount
+        })),
+        itemsTotal: r.itemsCents / 100,
+        extrasShare: extrasCents == null ? null : extrasShares[i] / 100,
+        owes: (r.itemsCents + (extrasCents == null ? 0 : extrasShares[i])) / 100
+      }));
+      const owesSumCents = peopleOut.reduce((a, p) => a + Math.round(p.owes * 100), 0);
+      return {
+        itemSum: itemCents / 100,
+        assignedSum: (itemCents - unassignedCents) / 100,
+        unassignedSum: unassignedCents / 100,
+        extras: extrasCents == null ? null : extrasCents / 100,
+        finalTotal: finalCents == null ? null : finalCents / 100,
+        people: peopleOut,
+        owesSum: owesSumCents / 100,
+        balanced: !!(hasFinal && unassignedCents === 0 && rows.length && owesSumCents === finalCents)
+      };
+    }
+
+    function withTwentyTip(paperTotal, itemSum) {
+      if (paperTotal == null || itemSum == null) return null;
+      if (!Number.isFinite(paperTotal) || !Number.isFinite(itemSum)) return null;
+      const tipCents = Math.round(Math.round(itemSum * 100) * 0.2);
+      return (Math.round(paperTotal * 100) + tipCents) / 100;
+    }
+
+    const api = {
+      formatMoney: formatMoney,
+      parseItemPrice: parseItemPrice,
+      parsePaid: parsePaid,
+      parseReceiptText: parseReceiptText,
+      computeSplit: computeSplit,
+      withTwentyTip: withTwentyTip
+    };
+    const root = typeof globalThis !== "undefined" ? globalThis : this;
+    root.RS = api;
+  })();
+  </script>
+
+  <script>
+  (function () {
+    const RS = window.RS;
+    const COLORS = ["#a33d22", "#1f6b45", "#234e78", "#7a4a16", "#5c3d78", "#0f5f66", "#8a3050", "#3f4a22"];
+    const KEY = "receipt-split-v1";
+    const CHECK_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5 8.2 14.2 15.5 6.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      people: [],
+      selectedId: null,
+      items: [],
+      detectedTotal: null,
+      file: null,
+      imageUrl: ""
+    };
+
+    function uid() { return Math.random().toString(36).slice(2, 10); }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+    function selected() { return state.people.find((p) => p.id === state.selectedId) || null; }
+
+    let toastTimer = 0;
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("on");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("on"), 1800);
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({
+          people: state.people,
+          selectedId: state.selectedId,
+          items: state.items,
+          detectedTotal: state.detectedTotal,
+          paidText: $("paid").value,
+          place: $("place").value
+        }));
+      } catch (e) { /* private mode */ }
+    }
+
+    function load() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(KEY) || "null");
+        if (!raw || typeof raw !== "object") return;
+        state.people = Array.isArray(raw.people) ? raw.people.filter((p) => p && p.id && p.name).map((p, i) => ({
+          id: String(p.id).replace(/[^a-zA-Z0-9_-]/g, "") || uid(),
+          name: String(p.name).slice(0, 40),
+          color: /^#[0-9a-fA-F]{6}$/.test(p.color) ? p.color : COLORS[i % COLORS.length]
+        })) : [];
+        state.items = Array.isArray(raw.items) ? raw.items.filter((it) => it && it.name != null).map((it) => ({
+          id: String(it.id || uid()).replace(/[^a-zA-Z0-9_-]/g, "") || uid(),
+          name: String(it.name).slice(0, 80),
+          price: Number.isFinite(Number(it.price)) ? Math.round(Number(it.price) * 100) / 100 : 0,
+          who: Array.isArray(it.who) ? it.who.map(String) : []
+        })) : [];
+        state.selectedId = state.people.some((p) => p.id === raw.selectedId) ? raw.selectedId : (state.people[0] ? state.people[0].id : null);
+        state.detectedTotal = Number.isFinite(raw.detectedTotal) ? raw.detectedTotal : null;
+        if (typeof raw.paidText === "string") $("paid").value = raw.paidText;
+        if (typeof raw.place === "string") $("place").value = raw.place;
+      } catch (e) { /* ignore */ }
+    }
+
+    function renderPeople() {
+      const box = $("people");
+      const sel = selected();
+      box.innerHTML = state.people.map((p) => (
+        '<div class="chip' + (p.id === state.selectedId ? " on" : "") + '" style="--c:' + p.color + '">' +
+          '<button type="button" class="chip-main" data-act="select" data-id="' + p.id + '" aria-pressed="' + (p.id === state.selectedId) + '">' +
+            '<i class="dot"></i>' + esc(p.name) +
+          '</button>' +
+          '<button type="button" class="x" data-act="remove-person" data-id="' + p.id + '" aria-label="Remove ' + esc(p.name) + '">×</button>' +
+        '</div>'
+      )).join("");
+      const hint = $("assignHint");
+      if (!state.people.length) hint.textContent = "Add everyone at the table. Select a name, then check their rows.";
+      else if (sel) hint.textContent = "Tap a check to give that row to " + sel.name + ". Tap their check again to clear it.";
+      else hint.textContent = "Select a name, then check their rows.";
+    }
+
+    function renderItems() {
+      const list = $("items");
+      const sel = selected();
+      const active = sel ? sel.color : "#a33d22";
+      list.style.setProperty("--active", active);
+      list.innerHTML = state.items.map((item) => {
+        const owners = item.who.map((id) => state.people.find((p) => p.id === id)).filter(Boolean);
+        const on = !!(sel && item.who.includes(sel.id));
+        const mark = on ? sel : owners[0];
+        const tags = owners.map((p) => (
+          '<button type="button" class="tag" style="--c:' + p.color + '" data-act="detach" data-id="' + item.id + '" data-person="' + p.id + '" aria-label="Remove ' + esc(p.name) + ' from ' + esc(item.name) + '"><i></i>' + esc(p.name) + '</button>'
+        )).join("");
+        return (
+          '<li class="item">' +
+            '<button type="button" class="check' + (mark ? " claimed" : "") + '" data-act="toggle" data-id="' + item.id + '" aria-pressed="' + on + '"' + (mark ? ' style="--mark:' + mark.color + '"' : '') + ' aria-label="Assign ' + esc(item.name) + (sel ? " to " + esc(sel.name) : "") + '">' + CHECK_SVG + '</button>' +
+            '<div>' +
+              '<div class="item-top">' +
+                '<button type="button" class="item-name" data-act="edit" data-id="' + item.id + '" data-field="name">' + esc(item.name) + '</button>' +
+                '<button type="button" class="item-price" data-act="edit" data-id="' + item.id + '" data-field="price">' + esc(RS.formatMoney(item.price)) + '</button>' +
+              '</div>' +
+              '<div class="who">' + (tags || '<span class="open-note">Unassigned</span>') + '</div>' +
+            '</div>' +
+            '<button type="button" class="icon-x" data-act="delete-item" data-id="' + item.id + '" aria-label="Remove ' + esc(item.name) + '">×</button>' +
+          '</li>'
+        );
+      }).join("");
+      $("emptyItems").hidden = state.items.length > 0;
+      const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
+      $("itemMeta").textContent = state.items.length
+        ? state.items.length + (state.items.length === 1 ? " item · " : " items · ") + RS.formatMoney(sum)
+        : "";
+    }
+
+    function renderPayHint() {
+      const hint = $("payHint");
+      const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
+      if (state.detectedTotal && state.items.length) {
+        const tipped = RS.withTwentyTip(state.detectedTotal, sum);
+        hint.innerHTML = "Paper total before tip is " + esc(RS.formatMoney(state.detectedTotal)) + ". " +
+          '<button type="button" class="tip-link" data-act="add-tip">Use ' + esc(RS.formatMoney(tipped)) + ' with a 20% tip</button>';
+      } else if (state.items.length) {
+        hint.textContent = "Items add up to " + RS.formatMoney(sum) + ". Type the card total after tax and tip.";
+      } else {
+        hint.textContent = "The amount on the card after tax and tip.";
+      }
+    }
+
+    function renderBreakdown() {
+      const paid = RS.parsePaid($("paid").value);
+      const result = RS.computeSplit(state.items, state.people, paid);
+      const box = $("breakdown");
+      if (!state.people.length) {
+        box.innerHTML = '<p class="empty">Add a name to see what each person owes.</p>';
+        return;
+      }
+      const basis = paid == null ? result.people.map((p) => p.itemsTotal) : result.people.map((p) => p.owes);
+      const positive = basis.map((n) => Math.max(0, n));
+      const posSum = positive.reduce((a, b) => a + b, 0);
+      const bar = posSum > 0
+        ? '<div class="bar" aria-hidden="true">' + result.people.map((p, i) => (
+          '<span style="width:' + ((positive[i] / posSum) * 100) + '%;background:' + p.color + '"></span>'
+        )).join("") + "</div>"
+        : "";
+      const place = $("place").value.trim();
+      const cards = result.people.map((p) => {
+        const lines = p.lines.length
+          ? '<ul class="lines">' + p.lines.map((l) => (
+            '<li><span>' + esc(l.name) + (l.splitCount > 1 ? ' <span class="split">split ' + l.splitCount + '</span>' : "") + '</span><span>' + esc(RS.formatMoney(l.amount)) + '</span></li>'
+          )).join("") + "</ul>"
+          : '<p class="hint">Nothing checked for this person.</p>';
+        const extras = p.extrasShare == null ? "" : (
+          '<div class="sum-line"><span>' + (p.extrasShare < 0 ? "Credit" : "Tax & tip") + '</span><span>' + esc(RS.formatMoney(p.extrasShare)) + "</span></div>"
+        );
+        const itemsLine = '<div class="sum-line"><span>Items</span><span>' + esc(RS.formatMoney(p.itemsTotal)) + "</span></div>";
+        const amount = paid == null ? p.itemsTotal : p.owes;
+        const label = paid == null ? "Items" : "Pays";
+        return (
+          '<article class="person-card">' +
+            '<header><h3 style="--c:' + p.color + '"><i></i>' + esc(p.name) + '</h3>' +
+            '<button type="button" class="btn quiet" data-act="copy-one" data-amount="' + amount.toFixed(2) + '">Copy</button></header>' +
+            '<p class="owes-label">' + label + "</p>" +
+            '<p class="owes">' + esc(RS.formatMoney(amount)) + "</p>" +
+            lines + itemsLine + extras +
+          "</article>"
+        );
+      }).join("");
+      let note = "";
+      if (Math.abs(result.unassignedSum) > 0.001) {
+        note += '<p class="warn">' + esc(RS.formatMoney(result.unassignedSum)) + " isn’t checked off yet, so it isn’t in anyone’s total.</p>";
+      }
+      if (paid == null) {
+        note += '<p class="note">Add what you paid and tax and tip are split by what each person ordered.</p>';
+      } else if (result.extras != null && result.extras < -0.5) {
+        note += '<p class="warn">The paid total is under the item prices. Check the total, or add the discount lines.</p>';
+      } else if (result.itemSum > 0 && result.extras > result.itemSum * 0.5) {
+        note += '<p class="warn">Tax and tip are more than half the food. Worth a second look at the paid total.</p>';
+      }
+      if (result.balanced) {
+        note += '<p class="ok">These add up to ' + esc(RS.formatMoney(result.finalTotal)) + ".</p>";
+      }
+      const copyAll = '<div class="foot-actions"><button type="button" class="btn secondary" data-act="copy-all">Copy everyone’s amounts</button></div>';
+      box.innerHTML = (place ? '<p class="meta" style="margin-top:0">' + esc(place) + "</p>" : "") + bar + cards + note + copyAll;
+    }
+
+    function refresh() {
+      renderPeople();
+      renderItems();
+      renderPayHint();
+      renderBreakdown();
+      save();
+    }
+
+    function addPerson(name) {
+      const clean = name.trim().replace(/\s+/g, " ").slice(0, 40);
+      if (!clean) return;
+      if (state.people.some((p) => p.name.toLowerCase() === clean.toLowerCase())) {
+        toast("That name is already here");
+        state.selectedId = state.people.find((p) => p.name.toLowerCase() === clean.toLowerCase()).id;
+        refresh();
+        return;
+      }
+      const person = { id: uid(), name: clean, color: COLORS[state.people.length % COLORS.length] };
+      state.people.push(person);
+      state.selectedId = person.id;
+      $("personName").value = "";
+      refresh();
+      $("personName").focus();
+    }
+
+    function addItem(name, price) {
+      const clean = name.trim().replace(/\s+/g, " ").slice(0, 80);
+      const n = RS.parseItemPrice(price);
+      if (!clean || n == null) {
+        toast("Need an item and a price");
+        return;
+      }
+      state.items.push({ id: uid(), name: clean, price: Math.round(n * 100) / 100, who: [] });
+      $("itemName").value = "";
+      $("itemPrice").value = "";
+      refresh();
+      $("itemName").focus();
+    }
+
+    function ingestText(text, mode) {
+      const parsed = RS.parseReceiptText(text);
+      if (!parsed.items.length) {
+        toast("No priced lines in that text");
+        $("paste").value = text;
+        $("pasteDetails").open = true;
+        return;
+      }
+      const make = (it) => ({ id: uid(), name: it.name.slice(0, 80), price: Math.round(it.price * 100) / 100, who: [] });
+      if (mode === "replace") state.items = parsed.items.map(make);
+      else state.items = state.items.concat(parsed.items.map(make));
+      if (parsed.detectedTotal) state.detectedTotal = parsed.detectedTotal;
+      refresh();
+      toast((mode === "replace" ? "Read " : "Added ") + parsed.items.length + (parsed.items.length === 1 ? " item" : " items"));
+    }
+
+    function toggleItem(id) {
+      const sel = selected();
+      if (!sel) {
+        $("personName").classList.add("shake");
+        setTimeout(() => $("personName").classList.remove("shake"), 400);
+        toast("Add a name and select it first");
+        $("personName").focus();
+        return;
+      }
+      const item = state.items.find((it) => it.id === id);
+      if (!item) return;
+      const onlySelected = item.who.length === 1 && item.who[0] === sel.id;
+      item.who = onlySelected ? [] : [sel.id];
+      refresh();
+    }
+
+    function startEdit(id, field) {
+      const item = state.items.find((it) => it.id === id);
+      if (!item) return;
+      const btn = document.querySelector('[data-act="edit"][data-id="' + id + '"][data-field="' + field + '"]');
+      if (!btn) return;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = field === "price" ? "item-price" : "item-name";
+      input.value = field === "price" ? item.price.toFixed(2) : item.name;
+      input.setAttribute("aria-label", field === "price" ? "Price" : "Item name");
+      if (field === "price") input.inputMode = "decimal";
+      btn.replaceWith(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const commit = (cancel) => {
+        if (done) return;
+        done = true;
+        if (!cancel) {
+          if (field === "name") {
+            const next = input.value.trim().replace(/\s+/g, " ").slice(0, 80);
+            if (next) item.name = next;
+          } else {
+            const n = RS.parseItemPrice(input.value);
+            if (n != null) item.price = Math.round(n * 100) / 100;
+          }
+        }
+        refresh();
+      };
+      input.addEventListener("blur", () => commit(false));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") { e.preventDefault(); commit(true); }
+      });
+    }
+
+    async function copyText(text, note) {
+      const said = note || ("Copied " + text);
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(said);
+      } catch (e) {
+        const area = document.createElement("textarea");
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        try { document.execCommand("copy"); toast(said); }
+        catch (err) { toast("Couldn’t copy"); }
+        area.remove();
+      }
+    }
+
+    function setReadStatus(msg) { $("readStatus").textContent = msg; }
+
+    function loadTesseract() {
+      if (window.Tesseract) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("load"));
+        document.head.appendChild(s);
+      });
+    }
+
+    function preprocess(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const long = Math.max(img.width, img.height) || 1;
+          const scale = Math.min(2.2, 1800 / long);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = frame.data;
+          for (let i = 0; i < d.length; i += 4) {
+            let y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            y = (y - 128) * 1.35 + 128;
+            d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, y));
+          }
+          ctx.putImageData(frame, 0, 0);
+          URL.revokeObjectURL(url);
+          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("blob")), "image/png");
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
+        img.src = url;
+      });
+    }
+
+    async function readPhoto() {
+      if (!state.file) return;
+      $("readBtn").disabled = true;
+      setReadStatus("Loading the reader… the first time needs a connection.");
+      try {
+        await loadTesseract();
+        setReadStatus("Reading the receipt…");
+        const worker = await window.Tesseract.createWorker("eng", 1, {
+          logger: (m) => {
+            if (m && m.status === "recognizing text") {
+              setReadStatus("Reading the receipt… " + Math.round((m.progress || 0) * 100) + "%");
+            }
+          }
+        });
+        const prepped = await preprocess(state.file);
+        const result = await worker.recognize(prepped);
+        await worker.terminate();
+        const text = (result && result.data && result.data.text) || "";
+        if (state.items.length && !confirm("Replace the current items with what was read from the photo?")) {
+          ingestText(text, "append");
+        } else {
+          ingestText(text, "replace");
+        }
+        setReadStatus("Check the lines. Tap a name or a price to fix it.");
+      } catch (err) {
+        setReadStatus("Couldn’t read that photo. Type the items, or paste the receipt text.");
+      } finally {
+        $("readBtn").disabled = false;
+      }
+    }
+
+    function useFile(file) {
+      if (!file) return;
+      if (file.type && !file.type.startsWith("image/")) {
+        toast("Use a photo of the receipt");
+        return;
+      }
+      if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
+      state.file = file;
+      state.imageUrl = URL.createObjectURL(file);
+      $("previewImg").src = state.imageUrl;
+      $("preview").hidden = false;
+      setReadStatus("");
+    }
+
+    $("personForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      addPerson($("personName").value);
+    });
+    $("itemForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      addItem($("itemName").value, $("itemPrice").value);
+    });
+    $("paid").addEventListener("input", () => { save(); renderBreakdown(); });
+    $("place").addEventListener("input", () => { save(); renderBreakdown(); });
+    $("pickPhoto").addEventListener("click", () => $("file").click());
+    $("takePhoto").addEventListener("click", () => $("camera").click());
+    $("file").addEventListener("change", () => useFile($("file").files && $("file").files[0]));
+    $("camera").addEventListener("change", () => useFile($("camera").files && $("camera").files[0]));
+    $("readBtn").addEventListener("click", readPhoto);
+    $("parsePaste").addEventListener("click", () => ingestText($("paste").value, "append"));
+    $("previewImg").addEventListener("error", () => setReadStatus("This photo format didn’t open. Try a screenshot or a JPEG."));
+
+    const drop = $("drop");
+    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add("over");
+    }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.remove("over");
+    }));
+    drop.addEventListener("drop", (e) => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      useFile(file);
+    });
+
+    $("newReceipt").addEventListener("click", () => {
+      if (state.items.length && !confirm("Clear the items and the paid total? Names stay.")) return;
+      state.items = [];
+      state.detectedTotal = null;
+      state.file = null;
+      if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
+      state.imageUrl = "";
+      $("preview").hidden = true;
+      $("previewImg").removeAttribute("src");
+      $("paid").value = "";
+      $("paste").value = "";
+      setReadStatus("");
+      refresh();
+    });
+    $("startOver").addEventListener("click", () => {
+      if (!confirm("Clear names, items, and the total?")) return;
+      state.people = [];
+      state.selectedId = null;
+      state.items = [];
+      state.detectedTotal = null;
+      state.file = null;
+      if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
+      state.imageUrl = "";
+      $("preview").hidden = true;
+      $("paid").value = "";
+      $("place").value = "";
+      $("paste").value = "";
+      setReadStatus("");
+      refresh();
+    });
+
+    document.body.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-act]");
+      if (!t) return;
+      const act = t.dataset.act;
+      if (act === "select") {
+        state.selectedId = t.dataset.id;
+        refresh();
+      } else if (act === "remove-person") {
+        e.stopPropagation();
+        const id = t.dataset.id;
+        state.people = state.people.filter((p) => p.id !== id);
+        state.items.forEach((it) => { it.who = it.who.filter((x) => x !== id); });
+        if (state.selectedId === id) state.selectedId = state.people.length ? state.people[0].id : null;
+        refresh();
+      } else if (act === "toggle") {
+        toggleItem(t.dataset.id);
+      } else if (act === "detach") {
+        const item = state.items.find((it) => it.id === t.dataset.id);
+        if (item) item.who = item.who.filter((x) => x !== t.dataset.person);
+        refresh();
+      } else if (act === "delete-item") {
+        state.items = state.items.filter((it) => it.id !== t.dataset.id);
+        refresh();
+      } else if (act === "edit") {
+        startEdit(t.dataset.id, t.dataset.field);
+      } else if (act === "add-tip") {
+        const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
+        const tipped = RS.withTwentyTip(state.detectedTotal, sum);
+        if (tipped != null) {
+          $("paid").value = tipped.toFixed(2);
+          refresh();
+        }
+      } else if (act === "copy-one") {
+        copyText(t.dataset.amount);
+      } else if (act === "copy-all") {
+        const paid = RS.parsePaid($("paid").value);
+        const result = RS.computeSplit(state.items, state.people, paid);
+        const place = $("place").value.trim();
+        const lines = result.people.map((p) => p.name + "  " + (paid == null ? p.itemsTotal : p.owes).toFixed(2));
+        copyText((place ? place + "\n" : "") + lines.join("\n"), "Copied everyone’s amounts");
+      }
+    });
+
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      $("dropHint").textContent = "Drop a photo of the receipt, or take one.";
+    }
+
+    load();
+    refresh();
+  })();
+  </script>
+  <noscript>This page needs JavaScript to split the check.</noscript>
+</body>
+</html>
