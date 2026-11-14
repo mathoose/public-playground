@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: gingerbread-switch-v1 -->
+<!-- build: gingerbread-switch-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       </div>
       <div class="header-meta">
         <div class="header-saves"></div>
-        <p class="version">v1 · Oct 27, 2026</p>
+        <p class="version">v2 · Nov 4, 2026</p>
       </div>
     </header>
     <div class="stage">
@@ -50,10 +50,11 @@
       <details class="settings-group" open>
         <summary>Switch plate</summary>
         <div class="group-body">
-          <p class="group-note">A standard US single-gang plate, with a gingerbread house standing off it. The roof and chimney run past the rectangle, the back stays flat on the wall, and the screws stay on the real switch spacing. The toggle comes out the door.</p>
+          <p class="group-note">Standard US device-mount plates. Single toggle or rocker, or a <b>double toggle</b> plate (115.9 × 114.3 mm) with two openings. The gingerbread house widens for two gangs but keeps the same depth and overhang scale as the single plate — matched to the uploaded ghost toggle proportions (147 × 189 mm silhouette, 5 mm relief depth).</p>
           <img class="ref" src="./reference-front.jpg" alt="Drawing of the gingerbread house cover this model follows" />
           <div class="seg">
             <button class="chip active" type="button" id="style-toggle" aria-pressed="true">Toggle</button>
+            <button class="chip" type="button" id="style-double-toggle" aria-pressed="false">Double toggle</button>
             <button class="chip" type="button" id="style-rocker" aria-pressed="false">Rocker</button>
           </div>
           <div class="row">
@@ -95,21 +96,21 @@
             <button type="button" class="secondary" id="reset">Reset plate</button>
           </div>
           <div class="ready">
-            <a href="gingerbread-switch-v1-gingerbread.stl" download>Gingerbread</a>
-            <a href="gingerbread-switch-v1-icing.stl" download>Icing</a>
-            <a href="gingerbread-switch-v1-candy.stl" download>Candy</a>
-            <a href="gingerbread-switch-v1.3mf" download>3MF</a>
+            <a href="gingerbread-switch-v2-gingerbread.stl" download>Gingerbread</a>
+            <a href="gingerbread-switch-v2-icing.stl" download>Icing</a>
+            <a href="gingerbread-switch-v2-candy.stl" download>Candy</a>
+            <a href="gingerbread-switch-v2.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             Print <b>flat, house up</b>, 0.2 mm layers, no supports. The back of the plate and the overhanging roof sit on the bed, which is the wall. Import the three STLs, or the joint 3MF — gingerbread, icing, and candy stay separate parts in one assembly.
-            Screws are recessed to 4 mm so a standard plate screw still reaches. Toggle screws are 60.3 mm apart; rocker screws are 96.8 mm apart.
+            Screws are recessed to 4 mm so a standard plate screw still reaches. Single toggle screws are 60.3 mm apart; double toggle uses four holes on that same 60.3 mm vertical spacing at each gang (centers 46.0 mm apart); rocker screws are 96.8 mm apart.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Gingerbread switch v1 · Oct 27, 2026</p>
+      <p class="foot" id="app-version">Gingerbread switch v2 · Nov 4, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

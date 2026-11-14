@@ -69,7 +69,7 @@ function writeParams(p) {
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
   savesUi?.renderList();
-  for (const style of ["toggle", "rocker"]) {
+  for (const style of ["toggle", "double-toggle", "rocker"]) {
     const btn = $(`style-${style}`);
     if (!btn) continue;
     const on = params.style === style;
@@ -93,10 +93,19 @@ function renderReadout(result) {
   if (!el) return;
   const grams = result ? ((result.volume / 1000) * 1.24).toFixed(1) : "—";
   const tris = result ? Math.round(result.tris) : "—";
-  const kind = d.p.style === "rocker" ? "Decora rocker" : "toggle";
+  const kind =
+    d.p.style === "rocker"
+      ? "Decora rocker"
+      : d.p.style === "double-toggle"
+        ? "Double toggle"
+        : "Toggle";
+  const openingLine =
+    d.p.style === "double-toggle"
+      ? `Two toggle openings <b>${d.p.openingW.toFixed(1)} × ${d.p.openingH.toFixed(1)} mm</b>, gang centers <b>${(d.toggles[1] - d.toggles[0]).toFixed(1)} mm</b> apart`
+      : `${kind} opening <b>${d.p.openingW.toFixed(1)} × ${d.p.openingH.toFixed(1)} mm</b>, screws <b>${(d.screwY * 2).toFixed(1)} mm</b> apart`;
   el.innerHTML = `
     Plate <b>${(d.plateHW * 2).toFixed(1)} × ${(d.plateHH * 2).toFixed(1)} mm</b>, ${d.p.plateT.toFixed(1)} mm on the wall<br />
-    ${kind} opening <b>${d.p.openingW.toFixed(1)} × ${d.p.openingH.toFixed(1)} mm</b>, screws <b>${(d.screwY * 2).toFixed(1)} mm</b> apart<br />
+    ${openingLine}<br />
     House stands <b>${d.wallFront.toFixed(1)} mm</b> off the wall, roof past the plate by <b>${d.p.overhang.toFixed(0)} mm</b><br />
     Gingerbread / icing / candy · flat on the bed · solid ~<b>${grams} g</b> · ${tris} tris
   `;
@@ -184,7 +193,7 @@ function bind() {
       scheduleRebuild();
     });
   }
-  for (const style of ["toggle", "rocker"]) {
+  for (const style of ["toggle", "double-toggle", "rocker"]) {
     $(`style-${style}`)?.addEventListener("click", () => {
       params = mergeParams({ ...params, ...PRESETS[style] });
       writeParams(params);
