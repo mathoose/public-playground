@@ -230,4 +230,26 @@ assert.equal(RS.parseItemPrice("$16.50"), 16.5);
 assert.equal(RS.parsePaid(""), null);
 assert.equal(RS.formatMoney(-0.75), "-$0.75");
 
+const badPhone = `
+RG eae ea STAN ESHER Burnt Mills Pea $6.47
+Hop Pop IPA $7.20
+Nachos Supreme, Extra Cheese (3) $14.40
+House Salad - Small x 2 $12.60
+Chicken Special x 2 $48.60
+House Salad - Large $9.00
+Boneless Wings, Add House Dressin $16.65
+Potato Skins $13.50
+Wings - Dozen $17.10
+Fish & Chips $19.00
+Subtotal $180.90
+Tax $11.98
+Credit Card Total $198.67
+`;
+const afterSummary = RS.parseReceiptText("Fish & Chips $19.00\nSubtotal $180.90\nFy um $5.70\nTax $11.98");
+assert.deepEqual(asPairs(afterSummary.items), [["Fish & Chips", 19]]);
+assert.ok(RS.scoreReceiptText(kroghFull) > RS.scoreReceiptText(badPhone));
+assert.equal(RS.pickBestOcrText([badPhone, kroghFull]), kroghFull);
+assert.equal(RS.pickBestOcrText([kroghFull, badPhone]), kroghFull);
+assert.equal(RS.pickBestOcrText(["", "no prices here"]), "");
+
 console.log("logic tests passed");

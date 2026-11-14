@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: receipt-split-v3 -->
+<!-- build: receipt-split-v4 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -345,6 +345,7 @@
           <input id="place" type="text" maxlength="60" placeholder="Place (optional)" aria-label="Place" style="margin-bottom:12px" />
           <div class="drop" id="drop">
             <p id="dropHint">Drop a photo of the receipt, or add one.</p>
+            <p class="hint">Straight on, flat, and filling the frame reads best.</p>
             <div class="drop-actions">
               <button class="btn secondary" type="button" id="pickPhoto">Add a photo</button>
               <button class="btn secondary cam-only" type="button" id="takePhoto">Take photo</button>
@@ -529,6 +530,7 @@
       let detectedCard = null;
       let detectedCardExact = false;
       let detectedPay = null;
+      let seenSummary = false;
       let discountsSeen = 0;
       function noteDiscount(amount) {
         if (!amount || !applyDiscount(items, amount)) return false;
@@ -599,6 +601,7 @@
           } else if (!detectedCard && /total/.test(low) && !/sub/.test(low) && !/surcharge/.test(low) && price > 0) {
             detectedPay = price;
           }
+          if (/sub\s*total|total|tax|amount due|balance/.test(low)) seenSummary = true;
           if (/total|tax|tip|subtotal|amount|balance/.test(low)) pending = "";
           continue;
         } else {
@@ -607,6 +610,7 @@
           pending = "";
         }
         if (shouldSkipName(name)) continue;
+        if (seenSummary) continue;
         if (isDiscountLine(name)) {
           const amount = Math.abs(price);
           if (amount && !noteDiscount(amount)) {
@@ -645,6 +649,35 @@
     function decimalPlaces(raw) {
       const match = String(raw).match(/\.(\d+)/);
       return match ? match[1].length : 0;
+    }
+
+    function scoreReceiptText(text) {
+      const parsed = parseReceiptText(text);
+      if (!parsed.items.length) return -100000;
+      const sum = parsed.items.reduce((a, it) => a + it.price, 0);
+      let score = parsed.items.length * 5;
+      if (parsed.detectedSubtotal != null) {
+        score += 25;
+        score += Math.max(0, 120 - Math.abs(sum - parsed.detectedSubtotal) * 20);
+      }
+      if (parsed.detectedTotal != null) score += 20;
+      parsed.items.forEach((it) => {
+        if (it.price < 0) score -= 20;
+        const letters = String(it.name).replace(/[^a-z]/gi, "").length;
+        if (it.name.length > 34 || letters < 3) score -= 8;
+        if (/[^a-z0-9\s'&.,()\-x]/i.test(it.name)) score -= 3;
+      });
+      return Math.round(score * 100) / 100;
+    }
+
+    function pickBestOcrText(texts) {
+      let best = "";
+      let bestScore = -Infinity;
+      (texts || []).forEach((text) => {
+        const score = scoreReceiptText(text || "");
+        if (score > bestScore) { bestScore = score; best = text || ""; }
+      });
+      return best;
     }
 
     function allocateCents(exact, target) {
@@ -763,6 +796,8 @@
       parseItemPrice: parseItemPrice,
       parsePaid: parsePaid,
       parseReceiptText: parseReceiptText,
+      scoreReceiptText: scoreReceiptText,
+      pickBestOcrText: pickBestOcrText,
       computeSplit: computeSplit,
       withTwentyTip: withTwentyTip
     };
@@ -1181,7 +1216,7 @@
       };
     }
 
-    async function receiptSlices(file) {
+    async function receiptCrop(file) {
       const bmp = await loadOriented(file);
       const w = bmp.width;
       const h = bmp.height;
@@ -1207,40 +1242,78 @@
       const full = document.createElement("canvas");
       full.width = cw;
       full.height = ch;
-      full.getContext("2d").drawImage(bmp, x0, y0, cropW, cropH, 0, 0, cw, ch);
+      const fctx = full.getContext("2d");
+      fctx.imageSmoothingEnabled = true;
+      fctx.imageSmoothingQuality = "high";
+      fctx.drawImage(bmp, x0, y0, cropW, cropH, 0, 0, cw, ch);
       if (bmp.close) bmp.close();
-      const count = 1;
-      const slices = [];
-      const overlap = Math.round(ch * 0.1);
-      for (let s = 0; s < count; s++) {
-        const sy = Math.max(0, Math.round((ch / count) * s) - (s ? overlap : 0));
-        const shh = Math.min(ch - sy, Math.ceil(ch / count) + (s ? overlap : 0));
-        const canvas = document.createElement("canvas");
-        canvas.width = cw;
-        canvas.height = Math.max(1, shh);
-        canvas.getContext("2d").drawImage(full, 0, sy, cw, shh, 0, 0, cw, shh);
-        slices.push(canvas);
-      }
-      return slices;
+      return full;
     }
 
-    function mergeOcr(parts) {
-      const out = [];
-      const recent = [];
-      parts.forEach((part) => {
-        String(part || "").split(/\n/).forEach((raw) => {
-          const line = raw.trim();
-          if (!line) return;
-          const key = line.toLowerCase().replace(/[^a-z0-9.]/g, "");
-          if (key.length < 3) return;
-          const dup = recent.some((k) => k === key || (k.length > 10 && key.length > 10 && (k.includes(key) || key.includes(k))));
-          if (dup) return;
-          recent.push(key);
-          if (recent.length > 50) recent.shift();
-          out.push(line);
-        });
-      });
-      return out.join("\n");
+    function otsuThreshold(gray, hist) {
+      let total = gray.length;
+      let sum = 0;
+      for (let i = 0; i < 256; i++) sum += i * hist[i];
+      let sumB = 0;
+      let wB = 0;
+      let best = -1;
+      let thresh = 160;
+      for (let i = 0; i < 256; i++) {
+        wB += hist[i];
+        if (!wB) continue;
+        const wF = total - wB;
+        if (!wF) break;
+        sumB += i * hist[i];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > best) { best = between; thresh = i; }
+      }
+      return thresh;
+    }
+
+    function makeVariant(src, mode) {
+      const pad = mode === "plain" ? 0 : 28;
+      const out = document.createElement("canvas");
+      out.width = src.width + pad * 2;
+      out.height = src.height + pad * 2;
+      const ctx = out.getContext("2d", { willReadFrequently: true });
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(src, pad, pad);
+      if (mode === "plain") return out;
+      const img = ctx.getImageData(0, 0, out.width, out.height);
+      const data = img.data;
+      const gray = new Uint8Array(out.width * out.height);
+      const hist = new Array(256).fill(0);
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const v = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        gray[p] = v;
+        hist[v] += 1;
+      }
+      if (mode === "binary") {
+        const thresh = otsuThreshold(gray, hist);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          const v = gray[p] > thresh ? 255 : 0;
+          data[i] = v; data[i + 1] = v; data[i + 2] = v;
+        }
+      } else {
+        const totalPx = gray.length;
+        let lo = 0;
+        let hi = 255;
+        let seen = 0;
+        for (let i = 0; i < 256; i++) { seen += hist[i]; if (seen >= totalPx * 0.05) { lo = i; break; } }
+        seen = 0;
+        for (let i = 255; i >= 0; i--) { seen += hist[i]; if (seen >= totalPx * 0.05) { hi = i; break; } }
+        const span = Math.max(40, hi - lo);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          let v = Math.round(((gray[p] - lo) / span) * 255);
+          v = v < 0 ? 0 : v > 255 ? 255 : v;
+          data[i] = v; data[i + 1] = v; data[i + 2] = v;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      return out;
     }
 
     async function readPhoto() {
@@ -1249,7 +1322,7 @@
       setReadStatus("Loading the reader… the first time needs a connection.");
       try {
         await loadTesseract();
-        const slices = await receiptSlices(state.file);
+        const crop = await receiptCrop(state.file);
         const worker = await window.Tesseract.createWorker("eng", 1, {
           logger: (m) => {
             if (m && m.status === "recognizing text") {
@@ -1257,21 +1330,40 @@
             }
           }
         });
-        const parts = [];
-        for (let i = 0; i < slices.length; i++) {
-          setReadStatus("Reading part " + (i + 1) + " of " + slices.length + "…");
-          const result = await worker.recognize(slices[i]);
-          parts.push((result && result.data && result.data.text) || "");
+        const tries = [
+          ["plain", "the photo", null],
+          ["binary", "a black-and-white copy", { tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" }],
+          ["gray", "a brightened copy", { tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" }]
+        ];
+        let text = "";
+        let bestScore = -Infinity;
+        for (let i = 0; i < tries.length; i++) {
+          setReadStatus(i === 0 ? "Reading the receipt…" : "That read didn’t add up. Trying " + tries[i][1] + "…");
+          if (i > 0) {
+            try { await worker.setParameters(tries[i][2]); } catch (e) { /* keep the defaults */ }
+          }
+          const result = await worker.recognize(makeVariant(crop, tries[i][0]));
+          const part = (result && result.data && result.data.text) || "";
+          const score = RS.scoreReceiptText(part);
+          if (score > bestScore) { bestScore = score; text = part; }
+          const parsed = RS.parseReceiptText(part);
+          const sum = parsed.items.reduce((a, it) => a + it.price, 0);
+          if (parsed.detectedSubtotal != null && Math.abs(sum - parsed.detectedSubtotal) <= 0.02) break;
         }
         await worker.terminate();
-        const text = mergeOcr(parts);
         $("paste").value = text;
         if (state.items.length && !confirm("Replace the current items with what was read from the photo?")) {
           ingestText(text, "append");
         } else {
           ingestText(text, "replace");
         }
-        setReadStatus("Check the lines. Tap a name or a price to fix it.");
+        const best = RS.parseReceiptText(text);
+        const bestSum = best.items.reduce((a, it) => a + it.price, 0);
+        if (best.detectedSubtotal != null && Math.abs(bestSum - best.detectedSubtotal) > 1.5) {
+          setReadStatus("That still doesn’t add up to the subtotal. Check the lines, or retake it straight on and closer.");
+        } else {
+          setReadStatus("Check the lines. Tap a name or a price to fix it.");
+        }
       } catch (err) {
         setReadStatus("Couldn’t read that photo. Type the items, or paste the receipt text.");
       } finally {
