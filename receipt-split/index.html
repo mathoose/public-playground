@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: receipt-split-v1 -->
+<!-- build: receipt-split-v4 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -182,45 +182,45 @@
     details.paste .inner { margin-top: 10px; display: grid; gap: 8px; }
     .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
     .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-    .items { list-style: none; margin: 8px 0 0; padding: 0; }
+    .items { list-style: none; margin: 4px 0 0; padding: 0; }
     .item {
       display: grid;
-      grid-template-columns: 48px minmax(0, 1fr) 32px;
-      gap: 6px;
+      grid-template-columns: 32px minmax(0, 1fr) 28px;
+      gap: 4px;
       align-items: center;
-      padding: 6px 0;
+      padding: 1px 0;
       border-top: 1px solid var(--line);
     }
     .check {
-      width: 44px; height: 44px; border-radius: 50%;
+      width: 30px; height: 30px; border-radius: 50%;
       border: 2px solid #e0d3c3; background: #fff; color: transparent;
       display: grid; place-items: center; padding: 0;
     }
-    .check svg { width: 20px; height: 20px; }
+    .check svg { width: 16px; height: 16px; }
     .check[aria-pressed="true"], .check.claimed {
       background: var(--mark, var(--active, var(--accent)));
       border-color: transparent;
       color: white;
     }
     .item-name, .item-price {
-      border: 0; background: transparent; padding: 4px 0; text-align: left;
+      border: 0; background: transparent; padding: 0; text-align: left;
+      line-height: 1.2;
     }
-    .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-    .item-name { font-weight: 600; flex: 1; min-width: 0; white-space: normal; }
+    .item-top { display: flex; justify-content: space-between; gap: 6px; align-items: center; min-height: 32px; }
+    .item-name { font-weight: 600; font-size: 15px; flex: 1; min-width: 0; white-space: normal; }
     .item-price {
-      flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap;
+      flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; font-size: 15px;
     }
-    .who { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .who { display: flex; flex: none; gap: 4px; }
     .tag {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 4px;
       border: 0; background: var(--paper-2); color: var(--ink);
-      border-radius: 999px; padding: 3px 8px 3px 6px; font-size: 12px; font-weight: 650;
+      border-radius: 999px; padding: 1px 6px 1px 4px; font-size: 11px; font-weight: 650; line-height: 1.3;
     }
-    .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: block; }
-    .open-note { font-size: 12px; font-weight: 700; color: var(--accent); }
+    .tag i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); display: block; }
     .icon-x {
-      width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent;
-      color: #6f5e4e; font-size: 20px; line-height: 1;
+      width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent;
+      color: #6f5e4e; font-size: 18px; line-height: 1;
     }
     .item-add {
       display: grid;
@@ -345,6 +345,7 @@
           <input id="place" type="text" maxlength="60" placeholder="Place (optional)" aria-label="Place" style="margin-bottom:12px" />
           <div class="drop" id="drop">
             <p id="dropHint">Drop a photo of the receipt, or add one.</p>
+            <p class="hint">Straight on, flat, and filling the frame reads best.</p>
             <div class="drop-actions">
               <button class="btn secondary" type="button" id="pickPhoto">Add a photo</button>
               <button class="btn secondary cam-only" type="button" id="takePhoto">Take photo</button>
@@ -437,7 +438,7 @@
       const cleaned = normalizeToken(raw);
       let neg = /^\s*-/.test(cleaned) || /\(/.test(cleaned) || /-\s*$/.test(cleaned);
       const digits = cleaned.replace(/[^0-9.]/g, "");
-      if (!/^\d+\.\d{2}$/.test(digits)) return null;
+      if (!/^\d+\.\d{1,2}$/.test(digits)) return null;
       const n = Number(digits);
       if (!Number.isFinite(n) || n > 20000) return null;
       return neg ? -n : n;
@@ -448,7 +449,7 @@
         .replace(/[|¦]/g, " ")
         .replace(/[_~=*#]+/g, " ")
         .replace(/\s+/g, " ")
-        .replace(/^[\s\-–—:•·.]+/, "")
+        .replace(/^[\s\-–—:•·.\[\]|]+/, "")
         .replace(/[\s\-–—:•·.]+$/, "")
         .trim();
     }
@@ -459,9 +460,33 @@
       if (/%/.test(n)) return true;
       if (/^[\d\s.]+$/.test(n)) return true;
       if (/^(qty|price|item|description|name|server|table|guest|check|order|phone|sub\s*total|subtotal|sales\s*tax|tax|grand\s*total|amount\s*due|balance(\s*due)?|gratuity|suggested(\s*tip)?|tip(\s*suggestions?)?|change(\s*due)?|cash|credit(\s*card)?(\s*total)?|debit(\s*total)?|surcharge|total|dash\s*total|visa|mastercard|amex|discover)$/.test(n)) return true;
-      if (/discounts?\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|suggested tip|tip suggestion/.test(n)) return true;
+      if (/discoun\w*\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|cash total|suggested tip|tip suggestion|balance due|you can save|if you pay|with cash|surcharge|cost of acceptance|not greater|\bsub\s*total\b|\btax\b/.test(n)) return true;
       if (/^thank\b/.test(n)) return true;
+      const letters = n.replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+      if (/^(tax|sales tax|subtotal|sub total|total|tip|gratuity|change|cash)$/.test(letters)) return true;
+      if (/\btax\b/.test(letters) && letters.length <= 16) return true;
       return false;
+    }
+
+    function isDiscountLine(name) {
+      return /discoun|veteran/i.test(name);
+    }
+
+    function applyDiscount(items, amount) {
+      let best = -1;
+      const start = Math.max(0, items.length - 4);
+      for (let i = items.length - 1; i >= start; i--) {
+        const ratio = amount / items[i].price;
+        if (ratio > 0.08 && ratio < 0.13) { best = i; break; }
+      }
+      if (best < 0) {
+        for (let i = items.length - 1; i >= 0; i--) {
+          if (items[i].price + 0.001 >= amount) { best = i; break; }
+        }
+      }
+      if (best < 0) return false;
+      items[best].price = Math.round((items[best].price - amount) * 100) / 100;
+      return true;
     }
 
     function isHoldable(name) {
@@ -471,6 +496,9 @@
       if (/\d{3}[-\s]\d{3}/.test(name)) return false;
       if (/\b(street|suite|philly|philadelphia|register|server|table|guest)\b/i.test(name)) return false;
       if (/\b(st|ave|rd|blvd|pa)\b\.?$/i.test(name)) return false;
+      const noise = (name.match(/[^a-z0-9\s'&-]/gi) || []).length;
+      const digits = (name.match(/\d/g) || []).length;
+      if (noise > 1 || digits > 2) return false;
       return /[a-z]/i.test(name);
     }
 
@@ -490,23 +518,65 @@
       return { name: next, qty: qty };
     }
 
-    const MONEY_RE = /\(?\s*-?\s*\$?\s*\d{1,4}(?:,\d{3})*\.\d{2}\s*\)?-?/g;
+    const MONEY_RE = /\(?\s*-?\s*\$?\s*\d{1,4}(?:,\d{3})*\.\d{1,2}\s*\)?-?/g;
 
     function parseReceiptText(text) {
       const lines = String(text || "").split(/\r?\n/).map((l) => l.replace(/\t/g, "  ").trim()).filter(Boolean);
       const items = [];
       let pending = "";
-      let detectedTotal = null;
+      let detectedSubtotal = null;
+      let detectedTax = null;
+      let detectedFee = null;
+      let detectedCard = null;
+      let detectedCardExact = false;
+      let detectedPay = null;
+      let seenSummary = false;
+      let discountsSeen = 0;
+      function noteDiscount(amount) {
+        if (!amount || !applyDiscount(items, amount)) return false;
+        discountsSeen = Math.round((discountsSeen + amount) * 100) / 100;
+        return true;
+      }
+      function closeDiscountGap(printed) {
+        const gap = Math.round((printed - discountsSeen) * 100) / 100;
+        if (gap < 0.05 || gap > 40) return;
+        const start = Math.max(0, items.length - 4);
+        for (let i = items.length - 1; i >= start; i--) {
+          const ratio = gap / items[i].price;
+          if (ratio > 0.08 && ratio < 0.13) {
+            items[i].price = Math.round((items[i].price - gap) * 100) / 100;
+            discountsSeen = Math.round((discountsSeen + gap) * 100) / 100;
+            return;
+          }
+        }
+      }
       for (const line of lines) {
         const tokens = [...line.matchAll(new RegExp(MONEY_RE.source, "g"))];
         if (!tokens.length) {
+          if (isDiscountLine(line)) {
+            const prev = items.length ? items[items.length - 1] : null;
+            const nums = [...line.matchAll(/(?:^|\D)(\d{1,2})(?!\d)/g)].map((m) => Number(m[1]) / 100).filter((n) => n > 0 && n < 30);
+            let best = null;
+            if (prev && prev.price > 0) {
+              nums.forEach((amount) => {
+                const ratio = amount / prev.price;
+                if (ratio > 0.08 && ratio < 0.13) best = amount;
+              });
+            }
+            if (best == null && nums.length === 1) best = nums[0];
+            if (best) noteDiscount(best);
+            pending = "";
+            continue;
+          }
           const held = stripQty(cleanName(line)).name;
           if (!isHoldable(held)) pending = "";
           else if ((pending + " " + held).trim().length > 60) pending = held;
           else pending = pending ? (pending + " " + held) : held;
           continue;
         }
-        const price = parseMoneyToken(tokens[tokens.length - 1][0]);
+        const amounts = tokens.map((token) => parseMoneyToken(token[0])).filter((n) => n != null);
+        const price = amounts.length ? amounts[amounts.length - 1] : null;
+        const unit = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
         if (price == null) {
           pending = "";
           continue;
@@ -519,18 +589,95 @@
           name = pending;
           pending = "";
         } else if (shouldSkipName(ownName)) {
-          if (/total/i.test(ownName) && !/sub/i.test(ownName) && price > 0) detectedTotal = price;
-          if (/total|tax|tip|subtotal|amount|balance/.test(ownName.toLowerCase())) pending = "";
+          const low = ownName.toLowerCase();
+          const exact = decimalPlaces(tokens[tokens.length - 1][0]) >= 2;
+          if (/discoun\w*\s+included/.test(low)) closeDiscountGap(Math.abs(price));
+          if (/sub\s*total/.test(low) && price > 0) detectedSubtotal = price;
+          if ((/^tax$/.test(low) || (/\btax\b/.test(low) && low.length < 24)) && price > 0 && price < 80) detectedTax = price;
+          if (/surcharge|balance due/.test(low) && price > 0 && price < 40) detectedFee = price;
+          if (/credit card total/.test(low) && price > 0) {
+            detectedCard = price;
+            detectedCardExact = exact;
+          } else if (!detectedCard && /total/.test(low) && !/sub/.test(low) && !/surcharge/.test(low) && price > 0) {
+            detectedPay = price;
+          }
+          if (/sub\s*total|total|tax|amount due|balance/.test(low)) seenSummary = true;
+          if (/total|tax|tip|subtotal|amount|balance/.test(low)) pending = "";
           continue;
         } else {
-          name = pending && ownName.length < 16 ? cleanName((pending + " " + ownName).trim()) : ownName;
+          const pendingOk = pending && pending.length <= 28 && !/[^a-z\s'&-]/i.test(pending);
+          name = pendingOk && ownName.length < 16 ? cleanName((pending + " " + ownName).trim()) : ownName;
           pending = "";
         }
         if (shouldSkipName(name)) continue;
+        if (seenSummary) continue;
+        if (isDiscountLine(name)) {
+          const amount = Math.abs(price);
+          if (amount && !noteDiscount(amount)) {
+            items.push({ name: name, price: -amount, includedLeft: 0 });
+            discountsSeen = Math.round((discountsSeen + amount) * 100) / 100;
+          }
+          continue;
+        }
+        const count = qty && qty > 0 ? qty : 1;
+        let includedLeft = 0;
+        if (unit != null && price > 0) {
+          includedLeft = Math.round((price - unit * count) * 100) / 100;
+          if (includedLeft < 0.02) includedLeft = 0;
+        }
+        const prev = items.length ? items[items.length - 1] : null;
+        if (prev && prev.includedLeft > 0.02 && /^\s*(\+|add\b|extra\b|with\b)/i.test(name) && price > 0 && price <= prev.includedLeft + 0.02) {
+          prev.name = prev.name + ", " + name.replace(/^\+\s*/, "");
+          prev.includedLeft = Math.round((prev.includedLeft - price) * 100) / 100;
+          continue;
+        }
         if (qty && qty > 1) name = name + " × " + qty;
-        items.push({ name: name, price: price });
+        items.push({ name: name, price: price, includedLeft: includedLeft });
       }
-      return { items: items, detectedTotal: detectedTotal };
+      let detectedTotal = detectedCardExact ? detectedCard : null;
+      if (!detectedTotal && detectedSubtotal != null && detectedTax != null) {
+        detectedTotal = Math.round((detectedSubtotal + detectedTax + (detectedFee || 0)) * 100) / 100;
+      }
+      if (!detectedTotal) detectedTotal = detectedCard || detectedPay;
+      return {
+        items: items,
+        detectedTotal: detectedTotal,
+        detectedSubtotal: detectedSubtotal
+      };
+    }
+
+    function decimalPlaces(raw) {
+      const match = String(raw).match(/\.(\d+)/);
+      return match ? match[1].length : 0;
+    }
+
+    function scoreReceiptText(text) {
+      const parsed = parseReceiptText(text);
+      if (!parsed.items.length) return -100000;
+      const sum = parsed.items.reduce((a, it) => a + it.price, 0);
+      let score = parsed.items.length * 5;
+      if (parsed.detectedSubtotal != null) {
+        score += 25;
+        score += Math.max(0, 120 - Math.abs(sum - parsed.detectedSubtotal) * 20);
+      }
+      if (parsed.detectedTotal != null) score += 20;
+      parsed.items.forEach((it) => {
+        if (it.price < 0) score -= 20;
+        const letters = String(it.name).replace(/[^a-z]/gi, "").length;
+        if (it.name.length > 34 || letters < 3) score -= 8;
+        if (/[^a-z0-9\s'&.,()\-x]/i.test(it.name)) score -= 3;
+      });
+      return Math.round(score * 100) / 100;
+    }
+
+    function pickBestOcrText(texts) {
+      let best = "";
+      let bestScore = -Infinity;
+      (texts || []).forEach((text) => {
+        const score = scoreReceiptText(text || "");
+        if (score > bestScore) { bestScore = score; best = text || ""; }
+      });
+      return best;
     }
 
     function allocateCents(exact, target) {
@@ -649,6 +796,8 @@
       parseItemPrice: parseItemPrice,
       parsePaid: parsePaid,
       parseReceiptText: parseReceiptText,
+      scoreReceiptText: scoreReceiptText,
+      pickBestOcrText: pickBestOcrText,
       computeSplit: computeSplit,
       withTwentyTip: withTwentyTip
     };
@@ -670,6 +819,7 @@
       selectedId: null,
       items: [],
       detectedTotal: null,
+      detectedSubtotal: null,
       file: null,
       imageUrl: ""
     };
@@ -698,6 +848,7 @@
           selectedId: state.selectedId,
           items: state.items,
           detectedTotal: state.detectedTotal,
+          detectedSubtotal: state.detectedSubtotal,
           paidText: $("paid").value,
           place: $("place").value
         }));
@@ -721,6 +872,7 @@
         })) : [];
         state.selectedId = state.people.some((p) => p.id === raw.selectedId) ? raw.selectedId : (state.people[0] ? state.people[0].id : null);
         state.detectedTotal = Number.isFinite(raw.detectedTotal) ? raw.detectedTotal : null;
+        state.detectedSubtotal = Number.isFinite(raw.detectedSubtotal) ? raw.detectedSubtotal : null;
         if (typeof raw.paidText === "string") $("paid").value = raw.paidText;
         if (typeof raw.place === "string") $("place").value = raw.place;
       } catch (e) { /* ignore */ }
@@ -758,12 +910,10 @@
         return (
           '<li class="item">' +
             '<button type="button" class="check' + (mark ? " claimed" : "") + '" data-act="toggle" data-id="' + item.id + '" aria-pressed="' + on + '"' + (mark ? ' style="--mark:' + mark.color + '"' : '') + ' aria-label="Assign ' + esc(item.name) + (sel ? " to " + esc(sel.name) : "") + '">' + CHECK_SVG + '</button>' +
-            '<div>' +
-              '<div class="item-top">' +
-                '<button type="button" class="item-name" data-act="edit" data-id="' + item.id + '" data-field="name">' + esc(item.name) + '</button>' +
-                '<button type="button" class="item-price" data-act="edit" data-id="' + item.id + '" data-field="price">' + esc(RS.formatMoney(item.price)) + '</button>' +
-              '</div>' +
-              '<div class="who">' + (tags || '<span class="open-note">Unassigned</span>') + '</div>' +
+            '<div class="item-top">' +
+              '<button type="button" class="item-name" data-act="edit" data-id="' + item.id + '" data-field="name">' + esc(item.name) + '</button>' +
+              (tags ? '<span class="who">' + tags + '</span>' : '') +
+              '<button type="button" class="item-price" data-act="edit" data-id="' + item.id + '" data-field="price">' + esc(RS.formatMoney(item.price)) + '</button>' +
             '</div>' +
             '<button type="button" class="icon-x" data-act="delete-item" data-id="' + item.id + '" aria-label="Remove ' + esc(item.name) + '">×</button>' +
           '</li>'
@@ -779,15 +929,28 @@
     function renderPayHint() {
       const hint = $("payHint");
       const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
-      if (state.detectedTotal && state.items.length) {
-        const tipped = RS.withTwentyTip(state.detectedTotal, sum);
-        hint.innerHTML = "Paper total before tip is " + esc(RS.formatMoney(state.detectedTotal)) + ". " +
-          '<button type="button" class="tip-link" data-act="add-tip">Use ' + esc(RS.formatMoney(tipped)) + ' with a 20% tip</button>';
-      } else if (state.items.length) {
-        hint.textContent = "Items add up to " + RS.formatMoney(sum) + ". Type the card total after tax and tip.";
-      } else {
-        hint.textContent = "The amount on the card after tax and tip.";
+      const paper = state.detectedTotal;
+      const sub = state.detectedSubtotal;
+      const short = sub != null && Math.abs(sum - sub) > 1.5;
+      let html = "";
+      if (short && sum + 1.5 < sub) {
+        html += "Items add up to " + esc(RS.formatMoney(sum)) + ", short of the " + esc(RS.formatMoney(sub)) + " subtotal. Some lines were missed. ";
+      } else if (short) {
+        html += "Items add up to " + esc(RS.formatMoney(sum)) + ", " + esc(RS.formatMoney(sum - sub)) + " over the " + esc(RS.formatMoney(sub)) + " subtotal. A discount line may have been missed. ";
+      } else if (sub != null && state.items.length) {
+        html += "Items are " + esc(RS.formatMoney(sum)) + " after discounts. Tax and the card fee are separate. ";
       }
+      if (paper) {
+        html += "The card total is " + esc(RS.formatMoney(paper)) + " before tip. ";
+        html += '<button type="button" class="tip-link" data-act="use-paper">Use ' + esc(RS.formatMoney(paper)) + "</button>";
+        if (!short) {
+          const tipped = RS.withTwentyTip(paper, sum);
+          html += ' <button type="button" class="tip-link" data-act="add-tip">Add 20% tip, ' + esc(RS.formatMoney(tipped)) + "</button>";
+        }
+      } else if (!html && state.items.length) {
+        html = "Items add up to " + esc(RS.formatMoney(sum)) + ". Type the card total after tax and tip.";
+      }
+      hint.innerHTML = html || "The amount on the card after tax and tip.";
     }
 
     function renderBreakdown() {
@@ -898,6 +1061,7 @@
       if (mode === "replace") state.items = parsed.items.map(make);
       else state.items = state.items.concat(parsed.items.map(make));
       if (parsed.detectedTotal) state.detectedTotal = parsed.detectedTotal;
+      if (parsed.detectedSubtotal) state.detectedSubtotal = parsed.detectedSubtotal;
       refresh();
       toast((mode === "replace" ? "Read " : "Added ") + parsed.items.length + (parsed.items.length === 1 ? " item" : " items"));
     }
@@ -983,32 +1147,173 @@
       });
     }
 
-    function preprocess(file) {
-      return new Promise((resolve, reject) => {
+    async function loadOriented(file) {
+      try {
+        return await createImageBitmap(file, { imageOrientation: "from-image" });
+      } catch (e) {
         const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-          const long = Math.max(img.width, img.height) || 1;
-          const scale = Math.min(2.2, 1800 / long);
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * scale));
-          canvas.height = Math.max(1, Math.round(img.height * scale));
-          const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const d = frame.data;
-          for (let i = 0; i < d.length; i += 4) {
-            let y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-            y = (y - 128) * 1.35 + 128;
-            d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, y));
-          }
-          ctx.putImageData(frame, 0, 0);
+        try {
+          return await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("image"));
+            img.src = url;
+          });
+        } finally {
           URL.revokeObjectURL(url);
-          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("blob")), "image/png");
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
-        img.src = url;
-      });
+        }
+      }
+    }
+
+    function paperBox(data, sw, sh) {
+      const col = new Float32Array(sw);
+      const step = 4;
+      for (let y = 0; y < sh; y += step) {
+        for (let x = 0; x < sw; x += step) {
+          const i = (y * sw + x) * 4;
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          if (lum > 150) col[x] += 1;
+        }
+      }
+      let max = 0;
+      for (let x = 0; x < sw; x++) if (col[x] > max) max = col[x];
+      const thresh = max * 0.45;
+      let bestS = 0;
+      let bestE = sw - 1;
+      let bestLen = 0;
+      let runS = -1;
+      for (let x = 0; x <= sw; x++) {
+        if (x < sw && col[x] >= thresh) {
+          if (runS < 0) runS = x;
+        } else if (runS >= 0) {
+          if (x - runS > bestLen) { bestS = runS; bestE = x - 1; bestLen = x - runS; }
+          runS = -1;
+        }
+      }
+      if (bestLen < sw * 0.08) { bestS = 0; bestE = sw - 1; }
+      const x0 = Math.max(0, bestS - 6);
+      const x1 = Math.min(sw - 1, bestE + 6);
+      const row = new Float32Array(sh);
+      for (let y = 0; y < sh; y += step) {
+        for (let x = x0; x <= x1; x += step) {
+          const i = (y * sw + x) * 4;
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          if (lum > 150) row[y] += 1;
+        }
+      }
+      let yMax = 0;
+      for (let y = 0; y < sh; y++) if (row[y] > yMax) yMax = row[y];
+      const yThresh = yMax * 0.35;
+      let y0 = 0;
+      let y1 = sh - 1;
+      for (let y = 0; y < sh; y++) if (row[y] >= yThresh) { y0 = y; break; }
+      for (let y = sh - 1; y >= 0; y--) if (row[y] >= yThresh) { y1 = y; break; }
+      return {
+        x: Math.max(0, x0 - 8),
+        y: Math.max(0, y0 - 28),
+        w: Math.min(sw, x1 + 9) - Math.max(0, x0 - 8),
+        h: Math.min(sh, y1 + 29) - Math.max(0, y0 - 28)
+      };
+    }
+
+    async function receiptCrop(file) {
+      const bmp = await loadOriented(file);
+      const w = bmp.width;
+      const h = bmp.height;
+      const scanScale = Math.min(1, 900 / Math.max(w, h));
+      const sw = Math.max(1, Math.round(w * scanScale));
+      const sh = Math.max(1, Math.round(h * scanScale));
+      const scan = document.createElement("canvas");
+      scan.width = sw;
+      scan.height = sh;
+      const sctx = scan.getContext("2d", { willReadFrequently: true });
+      sctx.drawImage(bmp, 0, 0, sw, sh);
+      const box = paperBox(sctx.getImageData(0, 0, sw, sh).data, sw, sh);
+      const x0 = Math.max(0, Math.floor(box.x / scanScale));
+      const y0 = Math.max(0, Math.floor(box.y / scanScale));
+      const cropW = Math.min(w - x0, Math.ceil(box.w / scanScale));
+      const cropH = Math.min(h - y0, Math.ceil(box.h / scanScale));
+      let scale = 1400 / cropW;
+      if (scale < 1) scale = 1;
+      if (scale > 2.4) scale = 2.4;
+      if (cropH * scale > 7200) scale = 7200 / cropH;
+      const cw = Math.max(1, Math.round(cropW * scale));
+      const ch = Math.max(1, Math.round(cropH * scale));
+      const full = document.createElement("canvas");
+      full.width = cw;
+      full.height = ch;
+      const fctx = full.getContext("2d");
+      fctx.imageSmoothingEnabled = true;
+      fctx.imageSmoothingQuality = "high";
+      fctx.drawImage(bmp, x0, y0, cropW, cropH, 0, 0, cw, ch);
+      if (bmp.close) bmp.close();
+      return full;
+    }
+
+    function otsuThreshold(gray, hist) {
+      let total = gray.length;
+      let sum = 0;
+      for (let i = 0; i < 256; i++) sum += i * hist[i];
+      let sumB = 0;
+      let wB = 0;
+      let best = -1;
+      let thresh = 160;
+      for (let i = 0; i < 256; i++) {
+        wB += hist[i];
+        if (!wB) continue;
+        const wF = total - wB;
+        if (!wF) break;
+        sumB += i * hist[i];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > best) { best = between; thresh = i; }
+      }
+      return thresh;
+    }
+
+    function makeVariant(src, mode) {
+      const pad = mode === "plain" ? 0 : 28;
+      const out = document.createElement("canvas");
+      out.width = src.width + pad * 2;
+      out.height = src.height + pad * 2;
+      const ctx = out.getContext("2d", { willReadFrequently: true });
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(src, pad, pad);
+      if (mode === "plain") return out;
+      const img = ctx.getImageData(0, 0, out.width, out.height);
+      const data = img.data;
+      const gray = new Uint8Array(out.width * out.height);
+      const hist = new Array(256).fill(0);
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const v = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        gray[p] = v;
+        hist[v] += 1;
+      }
+      if (mode === "binary") {
+        const thresh = otsuThreshold(gray, hist);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          const v = gray[p] > thresh ? 255 : 0;
+          data[i] = v; data[i + 1] = v; data[i + 2] = v;
+        }
+      } else {
+        const totalPx = gray.length;
+        let lo = 0;
+        let hi = 255;
+        let seen = 0;
+        for (let i = 0; i < 256; i++) { seen += hist[i]; if (seen >= totalPx * 0.05) { lo = i; break; } }
+        seen = 0;
+        for (let i = 255; i >= 0; i--) { seen += hist[i]; if (seen >= totalPx * 0.05) { hi = i; break; } }
+        const span = Math.max(40, hi - lo);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          let v = Math.round(((gray[p] - lo) / span) * 255);
+          v = v < 0 ? 0 : v > 255 ? 255 : v;
+          data[i] = v; data[i + 1] = v; data[i + 2] = v;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      return out;
     }
 
     async function readPhoto() {
@@ -1017,7 +1322,7 @@
       setReadStatus("Loading the reader… the first time needs a connection.");
       try {
         await loadTesseract();
-        setReadStatus("Reading the receipt…");
+        const crop = await receiptCrop(state.file);
         const worker = await window.Tesseract.createWorker("eng", 1, {
           logger: (m) => {
             if (m && m.status === "recognizing text") {
@@ -1025,16 +1330,40 @@
             }
           }
         });
-        const prepped = await preprocess(state.file);
-        const result = await worker.recognize(prepped);
+        const tries = [
+          ["plain", "the photo", null],
+          ["binary", "a black-and-white copy", { tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" }],
+          ["gray", "a brightened copy", { tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" }]
+        ];
+        let text = "";
+        let bestScore = -Infinity;
+        for (let i = 0; i < tries.length; i++) {
+          setReadStatus(i === 0 ? "Reading the receipt…" : "That read didn’t add up. Trying " + tries[i][1] + "…");
+          if (i > 0) {
+            try { await worker.setParameters(tries[i][2]); } catch (e) { /* keep the defaults */ }
+          }
+          const result = await worker.recognize(makeVariant(crop, tries[i][0]));
+          const part = (result && result.data && result.data.text) || "";
+          const score = RS.scoreReceiptText(part);
+          if (score > bestScore) { bestScore = score; text = part; }
+          const parsed = RS.parseReceiptText(part);
+          const sum = parsed.items.reduce((a, it) => a + it.price, 0);
+          if (parsed.detectedSubtotal != null && Math.abs(sum - parsed.detectedSubtotal) <= 0.02) break;
+        }
         await worker.terminate();
-        const text = (result && result.data && result.data.text) || "";
+        $("paste").value = text;
         if (state.items.length && !confirm("Replace the current items with what was read from the photo?")) {
           ingestText(text, "append");
         } else {
           ingestText(text, "replace");
         }
-        setReadStatus("Check the lines. Tap a name or a price to fix it.");
+        const best = RS.parseReceiptText(text);
+        const bestSum = best.items.reduce((a, it) => a + it.price, 0);
+        if (best.detectedSubtotal != null && Math.abs(bestSum - best.detectedSubtotal) > 1.5) {
+          setReadStatus("That still doesn’t add up to the subtotal. Check the lines, or retake it straight on and closer.");
+        } else {
+          setReadStatus("Check the lines. Tap a name or a price to fix it.");
+        }
       } catch (err) {
         setReadStatus("Couldn’t read that photo. Type the items, or paste the receipt text.");
       } finally {
@@ -1092,6 +1421,7 @@
       if (state.items.length && !confirm("Clear the items and the paid total? Names stay.")) return;
       state.items = [];
       state.detectedTotal = null;
+      state.detectedSubtotal = null;
       state.file = null;
       if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
       state.imageUrl = "";
@@ -1108,6 +1438,7 @@
       state.selectedId = null;
       state.items = [];
       state.detectedTotal = null;
+      state.detectedSubtotal = null;
       state.file = null;
       if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
       state.imageUrl = "";
@@ -1144,6 +1475,11 @@
         refresh();
       } else if (act === "edit") {
         startEdit(t.dataset.id, t.dataset.field);
+      } else if (act === "use-paper") {
+        if (state.detectedTotal != null) {
+          $("paid").value = Number(state.detectedTotal).toFixed(2);
+          refresh();
+        }
       } else if (act === "add-tip") {
         const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
         const tipped = RS.withTwentyTip(state.detectedTotal, sum);
