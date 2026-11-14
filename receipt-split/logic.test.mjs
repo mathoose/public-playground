@@ -70,6 +70,60 @@ assert.deepEqual(asPairs(kro.items), [
 ]);
 assert.equal(kro.detectedTotal, 158.57);
 
+const kroghFull = `
+Burnt Mills Pear  1  $7.50  $7.50
+Discount Veteran's Discount  -$0.75
+Hop Pop IPA  1  $0.00  $0.00
+Pumpkin Red Ale  1  $0.00  $0.00
+Your Basic Pumpkin  1  $10.00  $10.00
+Discount Veteran's Discount  -$1.00
+Allan Scott Sauvign  1  $10.00  $10.00
+Discount Veteran's Discount  -$1.00
+Hop Pop IPA  1  $8.00  $8.00
+Discount Veteran's Discount  -$0.80
+Nachos Supreme  1  $13.00  $16.00
++Extra Cheese (3)  1  $3.00
+Discount Veteran's Discount  -$1.60
+House Salad - Small  2  $7.00  $14.00
+Discount Veteran's Discount  -$1.40
+Chicken Special  2  $27.00  $54.00
+Discount Veteran's Discount  -$5.40
+House Salad - Large  1  $10.00  $10.00
+Discount Veteran's Discount  -$1.00
+Boneless Wings  1  $18.00  $18.50
+Add House Dressin  $0.50
+Discount Veteran's Discount  -$1.85
+Potato Skins  1  $15.00  $15.00
+Discount Veteran's Discount  -$1.50
+Wings - Dozen  1  $19.00  $19.00
+Discount Veteran's Discount  -$1.90
+Fish & Chips  1  $19.00  $19.00
+Discount Veteran's Discount  -$1.90
+Subtotal  $180.90
+Discounts Included  -$20.10
+Tax  $11.98
+Credit Card Surcharge  $5.79
+Credit Card Total  $198.67
+`;
+const full = RS.parseReceiptText(kroghFull);
+const fullSum = Array.from(full.items).reduce((sum, it) => sum + it.price, 0);
+assert.equal(Math.round(fullSum * 100) / 100, 180.90);
+assert.equal(full.detectedSubtotal, 180.90);
+assert.equal(full.detectedTotal, 198.67);
+const clipped = RS.parseReceiptText("purnt Mills Pez $7.5 $7.5\nniermuin Veteran's Discount § en 75 junk\nSubtotal $180.90\nTax $11.98\nCredit Card Total $198.1\nbalance due, which is $5.79");
+assert.equal(clipped.items[0].name, "purnt Mills Pez");
+assert.equal(clipped.items[0].price, 6.75);
+const headed = RS.parseReceiptText("one ARR 4 # 3 : a 4 pe\nITE i PRICE TA : en\npurnt Mills Pez $7.5 $7.5\nVeteran's Discount -$0.75");
+assert.equal(headed.items[0].name, "purnt Mills Pez");
+assert.equal(headed.items[0].price, 6.75);
+assert.equal(clipped.detectedTotal, 198.67);
+const missedFish = RS.parseReceiptText("Fish & Chips 1 $19.00 $19.00\nDiscounts Included -$1.90");
+assert.equal(missedFish.items[0].price, 17.10);
+const already = RS.parseReceiptText("Fish & Chips $19.00\nVeteran's Discount -$1.90\nDiscounts Included -$1.90");
+assert.equal(already.items[0].price, 17.10);
+assert.equal(full.items.some((it) => /cheese/i.test(it.name) && it.price === 3), false);
+assert.equal(full.items.some((it) => /dress/i.test(it.name) && /wings/i.test(it.name)), true);
+
 const ocr = `
 hicken Specia    2    $27.00    $54.00
 Discoun Veteran's Discour t    $5.40

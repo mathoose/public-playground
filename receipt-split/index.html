@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: receipt-split-v2 -->
+<!-- build: receipt-split-v3 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -437,7 +437,7 @@
       const cleaned = normalizeToken(raw);
       let neg = /^\s*-/.test(cleaned) || /\(/.test(cleaned) || /-\s*$/.test(cleaned);
       const digits = cleaned.replace(/[^0-9.]/g, "");
-      if (!/^\d+\.\d{2}$/.test(digits)) return null;
+      if (!/^\d+\.\d{1,2}$/.test(digits)) return null;
       const n = Number(digits);
       if (!Number.isFinite(n) || n > 20000) return null;
       return neg ? -n : n;
@@ -448,7 +448,7 @@
         .replace(/[|¦]/g, " ")
         .replace(/[_~=*#]+/g, " ")
         .replace(/\s+/g, " ")
-        .replace(/^[\s\-–—:•·.]+/, "")
+        .replace(/^[\s\-–—:•·.\[\]|]+/, "")
         .replace(/[\s\-–—:•·.]+$/, "")
         .trim();
     }
@@ -459,7 +459,7 @@
       if (/%/.test(n)) return true;
       if (/^[\d\s.]+$/.test(n)) return true;
       if (/^(qty|price|item|description|name|server|table|guest|check|order|phone|sub\s*total|subtotal|sales\s*tax|tax|grand\s*total|amount\s*due|balance(\s*due)?|gratuity|suggested(\s*tip)?|tip(\s*suggestions?)?|change(\s*due)?|cash|credit(\s*card)?(\s*total)?|debit(\s*total)?|surcharge|total|dash\s*total|visa|mastercard|amex|discover)$/.test(n)) return true;
-      if (/discoun\w*\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|suggested tip|tip suggestion|balance due|you can save|if you pay|with cash|surcharge|cost of acceptance|not greater/.test(n)) return true;
+      if (/discoun\w*\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|cash total|suggested tip|tip suggestion|balance due|you can save|if you pay|with cash|surcharge|cost of acceptance|not greater|\bsub\s*total\b|\btax\b/.test(n)) return true;
       if (/^thank\b/.test(n)) return true;
       const letters = n.replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
       if (/^(tax|sales tax|subtotal|sub total|total|tip|gratuity|change|cash)$/.test(letters)) return true;
@@ -468,7 +468,7 @@
     }
 
     function isDiscountLine(name) {
-      return /discoun/i.test(name);
+      return /discoun|veteran/i.test(name);
     }
 
     function applyDiscount(items, amount) {
@@ -495,6 +495,9 @@
       if (/\d{3}[-\s]\d{3}/.test(name)) return false;
       if (/\b(street|suite|philly|philadelphia|register|server|table|guest)\b/i.test(name)) return false;
       if (/\b(st|ave|rd|blvd|pa)\b\.?$/i.test(name)) return false;
+      const noise = (name.match(/[^a-z0-9\s'&-]/gi) || []).length;
+      const digits = (name.match(/\d/g) || []).length;
+      if (noise > 1 || digits > 2) return false;
       return /[a-z]/i.test(name);
     }
 
@@ -514,23 +517,64 @@
       return { name: next, qty: qty };
     }
 
-    const MONEY_RE = /\(?\s*-?\s*\$?\s*\d{1,4}(?:,\d{3})*\.\d{2}\s*\)?-?/g;
+    const MONEY_RE = /\(?\s*-?\s*\$?\s*\d{1,4}(?:,\d{3})*\.\d{1,2}\s*\)?-?/g;
 
     function parseReceiptText(text) {
       const lines = String(text || "").split(/\r?\n/).map((l) => l.replace(/\t/g, "  ").trim()).filter(Boolean);
       const items = [];
       let pending = "";
-      let detectedTotal = null;
+      let detectedSubtotal = null;
+      let detectedTax = null;
+      let detectedFee = null;
+      let detectedCard = null;
+      let detectedCardExact = false;
+      let detectedPay = null;
+      let discountsSeen = 0;
+      function noteDiscount(amount) {
+        if (!amount || !applyDiscount(items, amount)) return false;
+        discountsSeen = Math.round((discountsSeen + amount) * 100) / 100;
+        return true;
+      }
+      function closeDiscountGap(printed) {
+        const gap = Math.round((printed - discountsSeen) * 100) / 100;
+        if (gap < 0.05 || gap > 40) return;
+        const start = Math.max(0, items.length - 4);
+        for (let i = items.length - 1; i >= start; i--) {
+          const ratio = gap / items[i].price;
+          if (ratio > 0.08 && ratio < 0.13) {
+            items[i].price = Math.round((items[i].price - gap) * 100) / 100;
+            discountsSeen = Math.round((discountsSeen + gap) * 100) / 100;
+            return;
+          }
+        }
+      }
       for (const line of lines) {
         const tokens = [...line.matchAll(new RegExp(MONEY_RE.source, "g"))];
         if (!tokens.length) {
+          if (isDiscountLine(line)) {
+            const prev = items.length ? items[items.length - 1] : null;
+            const nums = [...line.matchAll(/(?:^|\D)(\d{1,2})(?!\d)/g)].map((m) => Number(m[1]) / 100).filter((n) => n > 0 && n < 30);
+            let best = null;
+            if (prev && prev.price > 0) {
+              nums.forEach((amount) => {
+                const ratio = amount / prev.price;
+                if (ratio > 0.08 && ratio < 0.13) best = amount;
+              });
+            }
+            if (best == null && nums.length === 1) best = nums[0];
+            if (best) noteDiscount(best);
+            pending = "";
+            continue;
+          }
           const held = stripQty(cleanName(line)).name;
           if (!isHoldable(held)) pending = "";
           else if ((pending + " " + held).trim().length > 60) pending = held;
           else pending = pending ? (pending + " " + held) : held;
           continue;
         }
-        const price = parseMoneyToken(tokens[tokens.length - 1][0]);
+        const amounts = tokens.map((token) => parseMoneyToken(token[0])).filter((n) => n != null);
+        const price = amounts.length ? amounts[amounts.length - 1] : null;
+        const unit = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
         if (price == null) {
           pending = "";
           continue;
@@ -543,23 +587,64 @@
           name = pending;
           pending = "";
         } else if (shouldSkipName(ownName)) {
-          if (/total/i.test(ownName) && !/sub/i.test(ownName) && price > 0) detectedTotal = price;
-          if (/total|tax|tip|subtotal|amount|balance/.test(ownName.toLowerCase())) pending = "";
+          const low = ownName.toLowerCase();
+          const exact = decimalPlaces(tokens[tokens.length - 1][0]) >= 2;
+          if (/discoun\w*\s+included/.test(low)) closeDiscountGap(Math.abs(price));
+          if (/sub\s*total/.test(low) && price > 0) detectedSubtotal = price;
+          if ((/^tax$/.test(low) || (/\btax\b/.test(low) && low.length < 24)) && price > 0 && price < 80) detectedTax = price;
+          if (/surcharge|balance due/.test(low) && price > 0 && price < 40) detectedFee = price;
+          if (/credit card total/.test(low) && price > 0) {
+            detectedCard = price;
+            detectedCardExact = exact;
+          } else if (!detectedCard && /total/.test(low) && !/sub/.test(low) && !/surcharge/.test(low) && price > 0) {
+            detectedPay = price;
+          }
+          if (/total|tax|tip|subtotal|amount|balance/.test(low)) pending = "";
           continue;
         } else {
-          name = pending && ownName.length < 16 ? cleanName((pending + " " + ownName).trim()) : ownName;
+          const pendingOk = pending && pending.length <= 28 && !/[^a-z\s'&-]/i.test(pending);
+          name = pendingOk && ownName.length < 16 ? cleanName((pending + " " + ownName).trim()) : ownName;
           pending = "";
         }
         if (shouldSkipName(name)) continue;
         if (isDiscountLine(name)) {
           const amount = Math.abs(price);
-          if (amount && !applyDiscount(items, amount)) items.push({ name: name, price: -amount });
+          if (amount && !noteDiscount(amount)) {
+            items.push({ name: name, price: -amount, includedLeft: 0 });
+            discountsSeen = Math.round((discountsSeen + amount) * 100) / 100;
+          }
+          continue;
+        }
+        const count = qty && qty > 0 ? qty : 1;
+        let includedLeft = 0;
+        if (unit != null && price > 0) {
+          includedLeft = Math.round((price - unit * count) * 100) / 100;
+          if (includedLeft < 0.02) includedLeft = 0;
+        }
+        const prev = items.length ? items[items.length - 1] : null;
+        if (prev && prev.includedLeft > 0.02 && /^\s*(\+|add\b|extra\b|with\b)/i.test(name) && price > 0 && price <= prev.includedLeft + 0.02) {
+          prev.name = prev.name + ", " + name.replace(/^\+\s*/, "");
+          prev.includedLeft = Math.round((prev.includedLeft - price) * 100) / 100;
           continue;
         }
         if (qty && qty > 1) name = name + " × " + qty;
-        items.push({ name: name, price: price });
+        items.push({ name: name, price: price, includedLeft: includedLeft });
       }
-      return { items: items, detectedTotal: detectedTotal };
+      let detectedTotal = detectedCardExact ? detectedCard : null;
+      if (!detectedTotal && detectedSubtotal != null && detectedTax != null) {
+        detectedTotal = Math.round((detectedSubtotal + detectedTax + (detectedFee || 0)) * 100) / 100;
+      }
+      if (!detectedTotal) detectedTotal = detectedCard || detectedPay;
+      return {
+        items: items,
+        detectedTotal: detectedTotal,
+        detectedSubtotal: detectedSubtotal
+      };
+    }
+
+    function decimalPlaces(raw) {
+      const match = String(raw).match(/\.(\d+)/);
+      return match ? match[1].length : 0;
     }
 
     function allocateCents(exact, target) {
@@ -699,6 +784,7 @@
       selectedId: null,
       items: [],
       detectedTotal: null,
+      detectedSubtotal: null,
       file: null,
       imageUrl: ""
     };
@@ -727,6 +813,7 @@
           selectedId: state.selectedId,
           items: state.items,
           detectedTotal: state.detectedTotal,
+          detectedSubtotal: state.detectedSubtotal,
           paidText: $("paid").value,
           place: $("place").value
         }));
@@ -750,6 +837,7 @@
         })) : [];
         state.selectedId = state.people.some((p) => p.id === raw.selectedId) ? raw.selectedId : (state.people[0] ? state.people[0].id : null);
         state.detectedTotal = Number.isFinite(raw.detectedTotal) ? raw.detectedTotal : null;
+        state.detectedSubtotal = Number.isFinite(raw.detectedSubtotal) ? raw.detectedSubtotal : null;
         if (typeof raw.paidText === "string") $("paid").value = raw.paidText;
         if (typeof raw.place === "string") $("place").value = raw.place;
       } catch (e) { /* ignore */ }
@@ -806,15 +894,28 @@
     function renderPayHint() {
       const hint = $("payHint");
       const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
-      if (state.detectedTotal && state.items.length) {
-        const tipped = RS.withTwentyTip(state.detectedTotal, sum);
-        hint.innerHTML = "Paper total before tip is " + esc(RS.formatMoney(state.detectedTotal)) + ". " +
-          '<button type="button" class="tip-link" data-act="add-tip">Use ' + esc(RS.formatMoney(tipped)) + ' with a 20% tip</button>';
-      } else if (state.items.length) {
-        hint.textContent = "Items add up to " + RS.formatMoney(sum) + ". Type the card total after tax and tip.";
-      } else {
-        hint.textContent = "The amount on the card after tax and tip.";
+      const paper = state.detectedTotal;
+      const sub = state.detectedSubtotal;
+      const short = sub != null && Math.abs(sum - sub) > 1.5;
+      let html = "";
+      if (short && sum + 1.5 < sub) {
+        html += "Items add up to " + esc(RS.formatMoney(sum)) + ", short of the " + esc(RS.formatMoney(sub)) + " subtotal. Some lines were missed. ";
+      } else if (short) {
+        html += "Items add up to " + esc(RS.formatMoney(sum)) + ", " + esc(RS.formatMoney(sum - sub)) + " over the " + esc(RS.formatMoney(sub)) + " subtotal. A discount line may have been missed. ";
+      } else if (sub != null && state.items.length) {
+        html += "Items are " + esc(RS.formatMoney(sum)) + " after discounts. Tax and the card fee are separate. ";
       }
+      if (paper) {
+        html += "The card total is " + esc(RS.formatMoney(paper)) + " before tip. ";
+        html += '<button type="button" class="tip-link" data-act="use-paper">Use ' + esc(RS.formatMoney(paper)) + "</button>";
+        if (!short) {
+          const tipped = RS.withTwentyTip(paper, sum);
+          html += ' <button type="button" class="tip-link" data-act="add-tip">Add 20% tip, ' + esc(RS.formatMoney(tipped)) + "</button>";
+        }
+      } else if (!html && state.items.length) {
+        html = "Items add up to " + esc(RS.formatMoney(sum)) + ". Type the card total after tax and tip.";
+      }
+      hint.innerHTML = html || "The amount on the card after tax and tip.";
     }
 
     function renderBreakdown() {
@@ -925,6 +1026,7 @@
       if (mode === "replace") state.items = parsed.items.map(make);
       else state.items = state.items.concat(parsed.items.map(make));
       if (parsed.detectedTotal) state.detectedTotal = parsed.detectedTotal;
+      if (parsed.detectedSubtotal) state.detectedSubtotal = parsed.detectedSubtotal;
       refresh();
       toast((mode === "replace" ? "Read " : "Added ") + parsed.items.length + (parsed.items.length === 1 ? " item" : " items"));
     }
@@ -1010,32 +1112,135 @@
       });
     }
 
-    function preprocess(file) {
-      return new Promise((resolve, reject) => {
+    async function loadOriented(file) {
+      try {
+        return await createImageBitmap(file, { imageOrientation: "from-image" });
+      } catch (e) {
         const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-          const long = Math.max(img.width, img.height) || 1;
-          const scale = Math.min(2.2, 1800 / long);
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * scale));
-          canvas.height = Math.max(1, Math.round(img.height * scale));
-          const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const d = frame.data;
-          for (let i = 0; i < d.length; i += 4) {
-            let y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-            y = (y - 128) * 1.35 + 128;
-            d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, y));
-          }
-          ctx.putImageData(frame, 0, 0);
+        try {
+          return await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("image"));
+            img.src = url;
+          });
+        } finally {
           URL.revokeObjectURL(url);
-          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("blob")), "image/png");
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
-        img.src = url;
+        }
+      }
+    }
+
+    function paperBox(data, sw, sh) {
+      const col = new Float32Array(sw);
+      const step = 4;
+      for (let y = 0; y < sh; y += step) {
+        for (let x = 0; x < sw; x += step) {
+          const i = (y * sw + x) * 4;
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          if (lum > 150) col[x] += 1;
+        }
+      }
+      let max = 0;
+      for (let x = 0; x < sw; x++) if (col[x] > max) max = col[x];
+      const thresh = max * 0.45;
+      let bestS = 0;
+      let bestE = sw - 1;
+      let bestLen = 0;
+      let runS = -1;
+      for (let x = 0; x <= sw; x++) {
+        if (x < sw && col[x] >= thresh) {
+          if (runS < 0) runS = x;
+        } else if (runS >= 0) {
+          if (x - runS > bestLen) { bestS = runS; bestE = x - 1; bestLen = x - runS; }
+          runS = -1;
+        }
+      }
+      if (bestLen < sw * 0.08) { bestS = 0; bestE = sw - 1; }
+      const x0 = Math.max(0, bestS - 6);
+      const x1 = Math.min(sw - 1, bestE + 6);
+      const row = new Float32Array(sh);
+      for (let y = 0; y < sh; y += step) {
+        for (let x = x0; x <= x1; x += step) {
+          const i = (y * sw + x) * 4;
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          if (lum > 150) row[y] += 1;
+        }
+      }
+      let yMax = 0;
+      for (let y = 0; y < sh; y++) if (row[y] > yMax) yMax = row[y];
+      const yThresh = yMax * 0.35;
+      let y0 = 0;
+      let y1 = sh - 1;
+      for (let y = 0; y < sh; y++) if (row[y] >= yThresh) { y0 = y; break; }
+      for (let y = sh - 1; y >= 0; y--) if (row[y] >= yThresh) { y1 = y; break; }
+      return {
+        x: Math.max(0, x0 - 8),
+        y: Math.max(0, y0 - 28),
+        w: Math.min(sw, x1 + 9) - Math.max(0, x0 - 8),
+        h: Math.min(sh, y1 + 29) - Math.max(0, y0 - 28)
+      };
+    }
+
+    async function receiptSlices(file) {
+      const bmp = await loadOriented(file);
+      const w = bmp.width;
+      const h = bmp.height;
+      const scanScale = Math.min(1, 900 / Math.max(w, h));
+      const sw = Math.max(1, Math.round(w * scanScale));
+      const sh = Math.max(1, Math.round(h * scanScale));
+      const scan = document.createElement("canvas");
+      scan.width = sw;
+      scan.height = sh;
+      const sctx = scan.getContext("2d", { willReadFrequently: true });
+      sctx.drawImage(bmp, 0, 0, sw, sh);
+      const box = paperBox(sctx.getImageData(0, 0, sw, sh).data, sw, sh);
+      const x0 = Math.max(0, Math.floor(box.x / scanScale));
+      const y0 = Math.max(0, Math.floor(box.y / scanScale));
+      const cropW = Math.min(w - x0, Math.ceil(box.w / scanScale));
+      const cropH = Math.min(h - y0, Math.ceil(box.h / scanScale));
+      let scale = 1400 / cropW;
+      if (scale < 1) scale = 1;
+      if (scale > 2.4) scale = 2.4;
+      if (cropH * scale > 7200) scale = 7200 / cropH;
+      const cw = Math.max(1, Math.round(cropW * scale));
+      const ch = Math.max(1, Math.round(cropH * scale));
+      const full = document.createElement("canvas");
+      full.width = cw;
+      full.height = ch;
+      full.getContext("2d").drawImage(bmp, x0, y0, cropW, cropH, 0, 0, cw, ch);
+      if (bmp.close) bmp.close();
+      const count = 1;
+      const slices = [];
+      const overlap = Math.round(ch * 0.1);
+      for (let s = 0; s < count; s++) {
+        const sy = Math.max(0, Math.round((ch / count) * s) - (s ? overlap : 0));
+        const shh = Math.min(ch - sy, Math.ceil(ch / count) + (s ? overlap : 0));
+        const canvas = document.createElement("canvas");
+        canvas.width = cw;
+        canvas.height = Math.max(1, shh);
+        canvas.getContext("2d").drawImage(full, 0, sy, cw, shh, 0, 0, cw, shh);
+        slices.push(canvas);
+      }
+      return slices;
+    }
+
+    function mergeOcr(parts) {
+      const out = [];
+      const recent = [];
+      parts.forEach((part) => {
+        String(part || "").split(/\n/).forEach((raw) => {
+          const line = raw.trim();
+          if (!line) return;
+          const key = line.toLowerCase().replace(/[^a-z0-9.]/g, "");
+          if (key.length < 3) return;
+          const dup = recent.some((k) => k === key || (k.length > 10 && key.length > 10 && (k.includes(key) || key.includes(k))));
+          if (dup) return;
+          recent.push(key);
+          if (recent.length > 50) recent.shift();
+          out.push(line);
+        });
       });
+      return out.join("\n");
     }
 
     async function readPhoto() {
@@ -1044,7 +1249,7 @@
       setReadStatus("Loading the reader… the first time needs a connection.");
       try {
         await loadTesseract();
-        setReadStatus("Reading the receipt…");
+        const slices = await receiptSlices(state.file);
         const worker = await window.Tesseract.createWorker("eng", 1, {
           logger: (m) => {
             if (m && m.status === "recognizing text") {
@@ -1052,10 +1257,15 @@
             }
           }
         });
-        const prepped = await preprocess(state.file);
-        const result = await worker.recognize(prepped);
+        const parts = [];
+        for (let i = 0; i < slices.length; i++) {
+          setReadStatus("Reading part " + (i + 1) + " of " + slices.length + "…");
+          const result = await worker.recognize(slices[i]);
+          parts.push((result && result.data && result.data.text) || "");
+        }
         await worker.terminate();
-        const text = (result && result.data && result.data.text) || "";
+        const text = mergeOcr(parts);
+        $("paste").value = text;
         if (state.items.length && !confirm("Replace the current items with what was read from the photo?")) {
           ingestText(text, "append");
         } else {
@@ -1119,6 +1329,7 @@
       if (state.items.length && !confirm("Clear the items and the paid total? Names stay.")) return;
       state.items = [];
       state.detectedTotal = null;
+      state.detectedSubtotal = null;
       state.file = null;
       if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
       state.imageUrl = "";
@@ -1135,6 +1346,7 @@
       state.selectedId = null;
       state.items = [];
       state.detectedTotal = null;
+      state.detectedSubtotal = null;
       state.file = null;
       if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
       state.imageUrl = "";
@@ -1171,6 +1383,11 @@
         refresh();
       } else if (act === "edit") {
         startEdit(t.dataset.id, t.dataset.field);
+      } else if (act === "use-paper") {
+        if (state.detectedTotal != null) {
+          $("paid").value = Number(state.detectedTotal).toFixed(2);
+          refresh();
+        }
       } else if (act === "add-tip") {
         const sum = state.items.reduce((a, it) => a + (Number(it.price) || 0), 0);
         const tipped = RS.withTwentyTip(state.detectedTotal, sum);
