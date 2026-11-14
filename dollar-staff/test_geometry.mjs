@@ -66,11 +66,11 @@ function check(label, raw) {
   assert.ok(cardSpan[0] < 2, `${label} card is thick across the sign (${cardSpan[0].toFixed(2)})`);
   assert.ok(cardSpan[1] > 40 && cardSpan[2] > cardSpan[1], `${label} card is not a vertical fin on the sign`);
 
-  const tailY = d.signFrontY - d.tailDepth * 0.55;
-  const inTail = Manifold.cube([d.neck * 0.7, 1.2, 10], true).translate([0, tailY, d.barCenterZ]);
+  const flareX = d.neck / 2 + Math.min(0.7, (d.tip - d.neck) / 3);
+  const inTail = Manifold.cube([1.1, d.signT * 0.35, 8], true).translate([flareX, 0, d.barCenterZ]);
   const beside = Manifold.cube([2.2, 1.4, 8], true).translate([d.barW * 0.38, d.yCenter, d.barCenterZ]);
-  const grooveZ = d.tailZ0 + d.tailLen + Math.min(8, d.lead * 0.45);
-  const groove = Manifold.cube([d.neck * 0.4, 1.1, 4], true).translate([0, tailY, grooveZ]);
+  const grooveZ = d.tailZ0 + d.tailLen + Math.min(8, Math.max(3, d.lead * 0.45));
+  const groove = Manifold.cube([d.neck * 0.35, 1.2, 4], true).translate([0, 0, grooveZ]);
   const tailOnBack = back.intersect(inTail);
   const tailOnFront = front.intersect(inTail);
   const tailHit = Manifold.union([tailOnBack, tailOnFront]);
@@ -92,7 +92,14 @@ function check(label, raw) {
   const signBb = sign.boundingBox();
   const caseBb = back.boundingBox();
   const frontBb = front.boundingBox();
-  assert.ok(Math.max(caseBb.max[1], frontBb.max[1]) > signBb.max[1] + 25, `${label} card case is not sticking out of the sign`);
+  assert.ok(Math.max(caseBb.max[1], frontBb.max[1]) > d.signFrontY + 18, `${label} card case is not sticking out of the sign`);
+  assert.ok(caseBb.min[1] < d.signBackY - 18, `${label} card does not stick out both sides of the sign`);
+  assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
+  assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
+  const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);
+  const lowHit = sign.intersect(lowHook);
+  temps.push(lowHook, lowHit);
+  assert.ok(lowHit.volume() < 4, `${label} the dollar sign is still beside the socket (${lowHit.volume().toFixed(1)})`);
   assert.ok(Math.abs(signBb.min[2]) < 0.2, `${label} socket mouth not on z=0 (${signBb.min[2]})`);
   assert.ok(caseBb.min[2] > d.socketTop - 2, `${label} snap case includes the socket (z ${caseBb.min[2]})`);
 

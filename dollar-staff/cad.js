@@ -73,13 +73,17 @@ function hookPolygon(d, sign, steps) {
   return pts;
 }
 
-/** Sliding dovetail. Narrow at yRoot, wide at yTip. Extruded along Z. */
-function dovetailRail(CrossSection, { neck, tip, yRoot, yTip, z0, len }, temps) {
+/** Through-bar dovetail. Narrow at the sign faces, wide in the core. Extruded along Z. */
+function bowtie(CrossSection, { neck, tip, yFace, yCore, z0, len }, temps) {
   const poly = [
-    [-neck / 2, yRoot],
-    [neck / 2, yRoot],
-    [tip / 2, yTip],
-    [-tip / 2, yTip],
+    [-neck / 2, -yFace],
+    [-tip / 2, -yCore],
+    [-tip / 2, yCore],
+    [-neck / 2, yFace],
+    [neck / 2, yFace],
+    [tip / 2, yCore],
+    [tip / 2, -yCore],
+    [neck / 2, -yFace],
   ];
   if (polygonArea(poly) < 0) poly.reverse();
   const cs = keep(temps, new CrossSection([poly]));
@@ -185,54 +189,65 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const extruded = keep(temps, profile.extrude(d.signT));
   let sign = standUp(extruded, d.signBackY, temps);
 
-  const slot = dovetailRail(
+  const channelZ0 = d.barCenterZ - d.caseZ / 2 - 0.8;
+  const channel = bowtie(
     CrossSection,
     {
       neck: d.neck + 2 * d.tailClear,
+      tip: d.neck + 2 * d.tailClear,
+      yFace: d.signT / 2 + 0.8,
+      yCore: d.signT / 2 + 0.4,
+      z0: channelZ0,
+      len: d.barCenterZ + d.barH / 2 + 0.8 - channelZ0,
+    },
+    temps
+  );
+  const slot = bowtie(
+    CrossSection,
+    {
+      neck: d.tip + 2 * d.tailClear,
       tip: d.tip + 2 * d.tailClear,
-      yRoot: d.signFrontY + 0.45,
-      yTip: d.signFrontY - d.tailDepth - 0.35,
+      yFace: Math.max(0.8, d.yCore - 0.2),
+      yCore: Math.max(0.5, d.yCore - 0.45),
       z0: d.slotZ0,
       len: d.slotLen,
     },
     temps
   );
-  sign = keep(temps, sign.subtract(slot));
+  sign = keep(temps, sign.subtract(channel).subtract(slot));
 
   const caseProfile = keep(
     temps,
-    roundRect(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs, temps).translate([
-      d.caseBackY + d.caseY / 2,
-      d.barCenterZ,
-    ])
+    roundRect(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs, temps).translate([d.cardCenterY, d.barCenterZ])
   );
   const caseEx = keep(temps, caseProfile.extrude(d.caseX));
   let caseSolid = standAcross(caseEx, d.xCaseBack, temps);
-  const male = dovetailRail(
+  const male = bowtie(
     CrossSection,
     {
-      neck: d.neck,
-      tip: d.tip,
-      yRoot: d.caseBackY + 0.45,
-      yTip: d.signFrontY - d.tailDepth,
+      neck: d.tip - 0.35,
+      tip: d.tip - 0.15,
+      yFace: Math.max(0.7, d.yCore - 0.55),
+      yCore: Math.max(0.4, d.yCore - 0.9),
       z0: d.tailZ0,
       len: d.tailLen,
     },
     temps
   );
   caseSolid = keep(temps, caseSolid.add(male));
-  const backSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([-400, -250, -20]));
-  const frontSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([0, -250, -20]));
-  let back = keep(temps, caseSolid.intersect(backSpace));
-  let front = keep(temps, caseSolid.intersect(frontSpace));
 
   const pocketProfile = keep(
     temps,
     roundRect(CrossSection, d.pocketY, d.pocketZ, d.pocketR, q.segs, temps).translate([d.cardCenterY, d.barCenterZ])
   );
-  const pocketEx = keep(temps, pocketProfile.extrude(d.pocketX + 0.08));
-  const pocket = standAcross(pocketEx, -(d.pocketX - 0.02), temps);
-  back = keep(temps, back.subtract(pocket));
+  const pocketEx = keep(temps, pocketProfile.extrude(d.pocketX + 0.04));
+  const pocket = standAcross(pocketEx, d.cardCenterX - (d.pocketX + 0.04) / 2, temps);
+  caseSolid = keep(temps, caseSolid.subtract(pocket));
+
+  const backSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([-400, -250, -20]));
+  const frontSpace = keep(temps, Manifold.cube([400, 500, 700], false).translate([0, -250, -20]));
+  let back = keep(temps, caseSolid.intersect(backSpace));
+  let front = keep(temps, caseSolid.intersect(frontSpace));
 
   const headH = 1.25;
   const shaftLen = d.frontT - headH + 0.15;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: dollar-staff-v4 -->
+<!-- build: dollar-staff-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/dollar-staff-8168/3d-printing/index.html">← 3D printing library</a>
         <h1>Dollar staff</h1>
       </div>
-      <p id="header-version">v4 · Nov 13, 2026</p>
+      <p id="header-version">v5 · Nov 14, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -25,7 +25,7 @@
       <details class="settings-group view-group" open>
         <summary>View</summary>
         <div class="group-body">
-          <p class="group-note">Preview only. The pale card stands edge-on to the S and sticks out of the sign. Apart slides the snap case up the dovetail and opens a shell. The 3MF is one assembly with the case already on the dollar sign.</p>
+          <p class="group-note">Preview only. The socket is the broom head. The dollar sign and the pale card sit up on the neck, and the S crosses the middle of the card. Apart slides the case up the dovetail and opens a shell.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" data-part="closed" aria-pressed="true">Closed</button>
             <button class="chip" type="button" data-part="apart" aria-pressed="false">Apart</button>
@@ -40,21 +40,21 @@
       <details class="settings-group" open>
         <summary>Dollar sign</summary>
         <div class="group-body" id="g-dollar">
-          <p class="group-note">One solid dollar sign: a vertical bar and two S loops. The bar stays narrow because the card is not inside it. Width grows the loops.</p>
+          <p class="group-note">One solid dollar sign: a vertical bar and two S loops, raised on a neck above the broom socket. The bar stays narrow and crosses the middle of the card. Width grows the loops.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Card slot</summary>
         <div class="group-body" id="g-card">
-          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical and the card sticks out to the side. Clearance is extra gap on each side and on the thickness. Drop the card in one shell, snap the other on, then slide the case down the dovetail.</p>
+          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical, the card sticks out both sides, and the stroke crosses its middle. Clearance is extra gap on each side and on the thickness. Drop the card in one shell, snap the other on, then slide the case down the dovetail.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Broom socket</summary>
         <div class="group-body" id="g-thread">
-          <p class="group-note">Right-hand <b>3/4″-5 ACME</b> female thread in the dollar-sign piece — the usual US broom and mop stick. The snap case does not have the socket. Turn the sign clockwise onto the handle. Engagement is how far that thread runs up the socket.</p>
+          <p class="group-note">Right-hand <b>3/4″-5 ACME</b> female thread at the bottom, where a screw-off broom head would go. The dollar sign and the card sit up on the neck, not down beside the handle. Turn the head clockwise onto the stick. Engagement is how far that thread runs up the socket.</p>
         </div>
       </details>
 
@@ -69,21 +69,21 @@
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
           <div class="ready">
-            <a href="dollar-staff-v4-case-front.stl" download>Case front</a>
-            <a href="dollar-staff-v4-case-back.stl" download>Case back</a>
-            <a href="dollar-staff-v4-sign.stl" download>Dollar sign</a>
-            <a href="dollar-staff-v4.3mf" download>3MF</a>
+            <a href="dollar-staff-v5-case-front.stl" download>Case front</a>
+            <a href="dollar-staff-v5-case-back.stl" download>Case back</a>
+            <a href="dollar-staff-v5-sign.stl" download>Dollar sign</a>
+            <a href="dollar-staff-v5.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
-            Print the <b>dollar sign</b> with the socket mouth on the bed so the thread and the dovetail slot are vertical. Print the <b>case halves</b> flat; put the dovetail of the back half on the bed. Snap the case around the card, then slide it down the bar until it stops.
+            Print the <b>dollar sign</b> with the socket mouth on the bed so the thread is vertical. The dovetail is open at the top of the bar. Print the <b>case halves</b> flat. Snap them around the card, then slide the case down the bar until it stops. The head sits up on the neck; the handle ends in the socket.
             A plain wooden dowel with no thread will not hold — this socket is threaded, not a slip sleeve. Cut a 3/4″-5 ACME on the stick, or use a broom or mop handle that already has that thread.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Dollar staff v4 · Nov 13, 2026</p>
+      <p class="foot" id="app-version">Dollar staff v5 · Nov 14, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
