@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: receipt-split-v1 -->
+<!-- build: receipt-split-v2 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -182,45 +182,45 @@
     details.paste .inner { margin-top: 10px; display: grid; gap: 8px; }
     .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
     .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-    .items { list-style: none; margin: 8px 0 0; padding: 0; }
+    .items { list-style: none; margin: 4px 0 0; padding: 0; }
     .item {
       display: grid;
-      grid-template-columns: 48px minmax(0, 1fr) 32px;
-      gap: 6px;
+      grid-template-columns: 32px minmax(0, 1fr) 28px;
+      gap: 4px;
       align-items: center;
-      padding: 6px 0;
+      padding: 1px 0;
       border-top: 1px solid var(--line);
     }
     .check {
-      width: 44px; height: 44px; border-radius: 50%;
+      width: 30px; height: 30px; border-radius: 50%;
       border: 2px solid #e0d3c3; background: #fff; color: transparent;
       display: grid; place-items: center; padding: 0;
     }
-    .check svg { width: 20px; height: 20px; }
+    .check svg { width: 16px; height: 16px; }
     .check[aria-pressed="true"], .check.claimed {
       background: var(--mark, var(--active, var(--accent)));
       border-color: transparent;
       color: white;
     }
     .item-name, .item-price {
-      border: 0; background: transparent; padding: 4px 0; text-align: left;
+      border: 0; background: transparent; padding: 0; text-align: left;
+      line-height: 1.2;
     }
-    .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-    .item-name { font-weight: 600; flex: 1; min-width: 0; white-space: normal; }
+    .item-top { display: flex; justify-content: space-between; gap: 6px; align-items: center; min-height: 32px; }
+    .item-name { font-weight: 600; font-size: 15px; flex: 1; min-width: 0; white-space: normal; }
     .item-price {
-      flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap;
+      flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; font-size: 15px;
     }
-    .who { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .who { display: flex; flex: none; gap: 4px; }
     .tag {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 4px;
       border: 0; background: var(--paper-2); color: var(--ink);
-      border-radius: 999px; padding: 3px 8px 3px 6px; font-size: 12px; font-weight: 650;
+      border-radius: 999px; padding: 1px 6px 1px 4px; font-size: 11px; font-weight: 650; line-height: 1.3;
     }
-    .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: block; }
-    .open-note { font-size: 12px; font-weight: 700; color: var(--accent); }
+    .tag i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); display: block; }
     .icon-x {
-      width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent;
-      color: #6f5e4e; font-size: 20px; line-height: 1;
+      width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent;
+      color: #6f5e4e; font-size: 18px; line-height: 1;
     }
     .item-add {
       display: grid;
@@ -459,9 +459,33 @@
       if (/%/.test(n)) return true;
       if (/^[\d\s.]+$/.test(n)) return true;
       if (/^(qty|price|item|description|name|server|table|guest|check|order|phone|sub\s*total|subtotal|sales\s*tax|tax|grand\s*total|amount\s*due|balance(\s*due)?|gratuity|suggested(\s*tip)?|tip(\s*suggestions?)?|change(\s*due)?|cash|credit(\s*card)?(\s*total)?|debit(\s*total)?|surcharge|total|dash\s*total|visa|mastercard|amex|discover)$/.test(n)) return true;
-      if (/discounts?\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|suggested tip|tip suggestion/.test(n)) return true;
+      if (/discoun\w*\s+included|please note|scan and pay|frequent dining|auth(orization)?\s*code|approval code|credit card|debit total|dash total|suggested tip|tip suggestion|balance due|you can save|if you pay|with cash|surcharge|cost of acceptance|not greater/.test(n)) return true;
       if (/^thank\b/.test(n)) return true;
+      const letters = n.replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+      if (/^(tax|sales tax|subtotal|sub total|total|tip|gratuity|change|cash)$/.test(letters)) return true;
+      if (/\btax\b/.test(letters) && letters.length <= 16) return true;
       return false;
+    }
+
+    function isDiscountLine(name) {
+      return /discoun/i.test(name);
+    }
+
+    function applyDiscount(items, amount) {
+      let best = -1;
+      const start = Math.max(0, items.length - 4);
+      for (let i = items.length - 1; i >= start; i--) {
+        const ratio = amount / items[i].price;
+        if (ratio > 0.08 && ratio < 0.13) { best = i; break; }
+      }
+      if (best < 0) {
+        for (let i = items.length - 1; i >= 0; i--) {
+          if (items[i].price + 0.001 >= amount) { best = i; break; }
+        }
+      }
+      if (best < 0) return false;
+      items[best].price = Math.round((items[best].price - amount) * 100) / 100;
+      return true;
     }
 
     function isHoldable(name) {
@@ -527,6 +551,11 @@
           pending = "";
         }
         if (shouldSkipName(name)) continue;
+        if (isDiscountLine(name)) {
+          const amount = Math.abs(price);
+          if (amount && !applyDiscount(items, amount)) items.push({ name: name, price: -amount });
+          continue;
+        }
         if (qty && qty > 1) name = name + " × " + qty;
         items.push({ name: name, price: price });
       }
@@ -758,12 +787,10 @@
         return (
           '<li class="item">' +
             '<button type="button" class="check' + (mark ? " claimed" : "") + '" data-act="toggle" data-id="' + item.id + '" aria-pressed="' + on + '"' + (mark ? ' style="--mark:' + mark.color + '"' : '') + ' aria-label="Assign ' + esc(item.name) + (sel ? " to " + esc(sel.name) : "") + '">' + CHECK_SVG + '</button>' +
-            '<div>' +
-              '<div class="item-top">' +
-                '<button type="button" class="item-name" data-act="edit" data-id="' + item.id + '" data-field="name">' + esc(item.name) + '</button>' +
-                '<button type="button" class="item-price" data-act="edit" data-id="' + item.id + '" data-field="price">' + esc(RS.formatMoney(item.price)) + '</button>' +
-              '</div>' +
-              '<div class="who">' + (tags || '<span class="open-note">Unassigned</span>') + '</div>' +
+            '<div class="item-top">' +
+              '<button type="button" class="item-name" data-act="edit" data-id="' + item.id + '" data-field="name">' + esc(item.name) + '</button>' +
+              (tags ? '<span class="who">' + tags + '</span>' : '') +
+              '<button type="button" class="item-price" data-act="edit" data-id="' + item.id + '" data-field="price">' + esc(RS.formatMoney(item.price)) + '</button>' +
             '</div>' +
             '<button type="button" class="icon-x" data-act="delete-item" data-id="' + item.id + '" aria-label="Remove ' + esc(item.name) + '">×</button>' +
           '</li>'

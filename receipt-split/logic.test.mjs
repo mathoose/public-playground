@@ -63,13 +63,40 @@ Please note, we impose a surcharge of 3% which is $5.79
 `;
 const kro = RS.parseReceiptText(krogh);
 assert.deepEqual(asPairs(kro.items), [
-  ["Burnt Mills Pear", 7.5],
-  ["Discount Veteran's Discount", -0.75],
+  ["Burnt Mills Pear", 6.75],
   ["Hop Pop IPA", 8],
   ["+Extra Cheese (3)", 3],
   ["House Salad - Small", 7]
 ]);
 assert.equal(kro.detectedTotal, 158.57);
+
+const ocr = `
+hicken Specia    2    $27.00    $54.00
+Discoun Veteran's Discour t    $5.40
+House Salad - Large            $10.00
+Discoun Veteran's Discount     $1.00
+Boneless Wings                 $18.50
+Add House Dressin              $0.50
+Discoun Veteran's Discount     $1.85
+Potato Skins                   $15.00
+Discoun veteran's Discount     $1.50
+Wings - Dozen                  $19.00
+Discoun Veteran's Discount     $1.90
+Fish & Chips                   $19.00
+Discoun Veteran's Discount    -$1.90
+fi Tax                        -$11.98
+balance due, which is          $5.79
+ih) If you pay with cash, you can save  $0.03
+`;
+assert.deepEqual(asPairs(RS.parseReceiptText(ocr).items), [
+  ["hicken Specia × 2", 48.6],
+  ["House Salad - Large", 9],
+  ["Boneless Wings", 16.65],
+  ["Add House Dressin", 0.5],
+  ["Potato Skins", 13.5],
+  ["Wings - Dozen", 17.1],
+  ["Fish & Chips", 17.1]
+]);
 
 const people = [
   { id: "us", name: "Us", color: "#a33d22" },
