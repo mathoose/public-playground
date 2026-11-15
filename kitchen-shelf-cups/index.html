@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!-- build: kitchen-shelf-cups-v1 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kitchen shelf cups</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/kitchen-shelf-cups-6ee3/3d-printing/index.html">← 3D printing library</a>
+        <h1>Kitchen shelf cups</h1>
+      </div>
+      <p>v1 · Nov 15, 2026</p>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="plate">Plate</button>
+        <button type="button" class="chip" data-view="side">Side</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Plate</summary>
+        <div class="group-body">
+          <p class="group-note">The back plate lies on the bed. Width and height are the plate. Thickness is how tall the plate is before the arms.</p>
+          <div class="row">
+            <label for="width">Width</label>
+            <output id="width-out"></output>
+            <input id="width" type="range" min="120" max="360" step="1" value="210" />
+          </div>
+          <div class="row">
+            <label for="height">Height</label>
+            <output id="height-out"></output>
+            <input id="height" type="range" min="140" max="420" step="1" value="250" />
+          </div>
+          <div class="row">
+            <label for="plate">Plate thickness</label>
+            <output id="plate-out"></output>
+            <input id="plate" type="range" min="4" max="18" step="0.5" value="10" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Hex cutouts</summary>
+        <div class="group-body">
+          <p class="group-note">Larger flats remove more plastic. The source through-hole was 12.4 mm flat to flat. Holes stay inside the outer ring, with at least 3.2 mm of wall between them.</p>
+          <div class="row">
+            <label for="hexFlat">Hex flat to flat</label>
+            <output id="hexFlat-out"></output>
+            <input id="hexFlat" type="range" min="8" max="48" step="0.5" value="18" />
+          </div>
+          <div class="row">
+            <label for="cols">Columns</label>
+            <output id="cols-out"></output>
+            <input id="cols" type="range" min="3" max="12" step="1" value="7" />
+          </div>
+          <div class="row">
+            <label for="rows">Rows</label>
+            <output id="rows-out"></output>
+            <input id="rows" type="range" min="3" max="14" step="1" value="7" />
+          </div>
+          <div class="row">
+            <label for="chamfer">Back chamfer</label>
+            <output id="chamfer-out"></output>
+            <input id="chamfer" type="range" min="0" max="3" step="0.1" value="1.2" />
+          </div>
+          <label class="check"><input type="checkbox" id="skipCenter" checked /> Leave the center solid</label>
+          <div id="warnings"></div>
+          <div class="readout" id="readout"></div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Outer ring</summary>
+        <div class="group-body">
+          <p class="group-note">One width on every side. The source border was 21 mm on the left and right and 25 mm on the top and bottom. This ring stays even, and thicker than that 21 mm side.</p>
+          <div class="row">
+            <label for="ring">Ring width</label>
+            <output id="ring-out"></output>
+            <input id="ring" type="range" min="10" max="48" step="0.5" value="22" />
+          </div>
+          <div class="row">
+            <label for="corner">Corner radius</label>
+            <output id="corner-out"></output>
+            <input id="corner" type="range" min="0" max="14" step="0.5" value="3" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Arms</summary>
+        <div class="group-body">
+          <p class="group-note">Four arms rise from the corners. Thickness is the same from the plate to the tip — the source arms tapered from about 20 mm down to 15 mm.</p>
+          <div class="row">
+            <label for="armLength">Arm length</label>
+            <output id="armLength-out"></output>
+            <input id="armLength" type="range" min="40" max="280" step="1" value="200" />
+          </div>
+          <div class="row">
+            <label for="armThick">Arm thickness</label>
+            <output id="armThick-out"></output>
+            <input id="armThick" type="range" min="8" max="40" step="0.5" value="18" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div class="actions">
+            <button type="button" class="wide" id="download">Download STL</button>
+          </div>
+          <p class="status" id="status"></p>
+          <p class="notes">Print the plate on the bed, arms straight up, 0.2 mm layers, no supports. In use the plate stands vertical and the arms stick out to hold cups.</p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Kitchen shelf cups v1 · Nov 15, 2026</p>
+    </aside>
+  </div>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+    if (new URLSearchParams(location.search).has("capture")) document.body.classList.add("capture");
+  </script>
+</body>
+</html>
