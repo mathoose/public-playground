@@ -128,6 +128,21 @@ function check(label, raw) {
   const cornerHit = front.intersect(corner);
   temps.push(corner, cornerHit);
   assert.ok(cornerHit.volume() > 0.05, `${label} bottom corner of the card box is still rounded (${cornerHit.volume().toFixed(3)})`);
+  const jointCorner = Manifold.cube([1.2, 4, 1.2], true).translate([
+    d.barW / 2 + d.p.stroke - 0.8,
+    0,
+    caseBottom - d.p.stroke + 0.8,
+  ]);
+  const pastCorner = Manifold.cube([1.2, 4, 1.2], true).translate([
+    d.barW / 2 + d.p.stroke + 1.4,
+    0,
+    caseBottom - 0.8,
+  ]);
+  const jointHit = sign.intersect(jointCorner);
+  const pastHit = sign.intersect(pastCorner);
+  temps.push(jointCorner, pastCorner, jointHit, pastHit);
+  assert.ok(jointHit.volume() > 0.4, `${label} the square joint does not reach the case corner (${jointHit.volume().toFixed(2)})`);
+  assert.ok(pastHit.volume() < 0.4, `${label} the S still curves past the square corner (${pastHit.volume().toFixed(2)})`);
   assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
   assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
   const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);

@@ -52,36 +52,6 @@ function roundRect(CS, w, h, r, segs, temps) {
   return keep(temps, core.offset(rr, "Round", 2, segs));
 }
 
-/** Case profile. Bottom corners are square so the box meets the stroke with no curve. Top corners stay lightly rounded. x is world Y, y is world Z. */
-function caseProfileSection(CS, w, h, topR, segs) {
-  const r = Math.max(0, Math.min(topR, w / 2 - 0.4, h / 4));
-  const x0 = -w / 2;
-  const x1 = w / 2;
-  const y0 = -h / 2;
-  const y1 = h / 2;
-  const n = Math.max(3, Math.round(segs / 6));
-  const arc = (cx, cy, a0, a1) => {
-    const pts = [];
-    for (let i = 1; i < n; i++) {
-      const a = a0 + ((a1 - a0) * i) / n;
-      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
-    }
-    return pts;
-  };
-  const pts = [
-    [x0, y0],
-    [x1, y0],
-    [x1, y1 - r],
-    ...arc(x1 - r, y1 - r, 0, Math.PI / 2),
-    [x1 - r, y1],
-    [x0 + r, y1],
-    ...arc(x0 + r, y1 - r, Math.PI / 2, Math.PI),
-    [x0, y1 - r],
-  ];
-  if (polygonArea(pts) < 0) pts.reverse();
-  return new CS([pts]);
-}
-
 function cubic(p0, p1, p2, p3, n) {
   const pts = [];
   for (let i = 0; i <= n; i++) {
@@ -299,7 +269,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const fittedBarH = Math.max(4, layout.top - layout.bottom);
   const bar2d = keep(
     temps,
-    roundRect(CrossSection, d.barW, fittedBarH, d.barR, q.segs, temps).translate([0, (layout.top + layout.bottom) / 2])
+    CrossSection.square([d.barW, fittedBarH], true).translate([0, (layout.top + layout.bottom) / 2])
   );
   const profile = keep(temps, CrossSection.union([ess, bar2d]));
   const extruded = keep(temps, profile.extrude(d.signT));
@@ -314,13 +284,10 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   sign = keep(temps, sign.add(deep));
 
+  const caseBottomZ = d.caseCenterZ - d.caseZ / 2;
   const caseBox = keep(
     temps,
-    Manifold.cube([d.caseX + 0.28, d.caseY + 0.28, d.caseZ + 1.2], true).translate([
-      0,
-      0,
-      d.caseCenterZ + 0.35,
-    ])
+    Manifold.cube([d.caseX, d.caseY, d.caseZ], true).translate([0, 0, d.caseCenterZ])
   );
   const slot = bowtie(
     CrossSection,
@@ -336,9 +303,33 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   sign = keep(temps, sign.subtract(caseBox).subtract(slot));
 
+  // The round S meets the bar right under the case and fillets those two corners.
+  // Cut that bulge so the stroke drops straight from a sharp horizontal edge.
+  const seamDrop = d.p.stroke;
+  const seamBand = keep(
+    temps,
+    Manifold.cube([900, d.caseY + 6, seamDrop], false).translate([-450, -(d.caseY + 6) / 2, caseBottomZ - seamDrop])
+  );
+  const seamBar = keep(
+    temps,
+    Manifold.cube([d.barW, d.caseY + 6, seamDrop + 2], true).translate([0, 0, caseBottomZ - seamDrop / 2])
+  );
+  const seamBulge = keep(temps, seamBand.subtract(seamBar));
+  sign = keep(temps, sign.subtract(seamBulge));
+  // Put a square joint back so the S meets the bar with a sharp corner and no gap.
+  const reach = d.p.stroke;
+  for (const side of [1, -1]) {
+    const x0 = side > 0 ? d.barW / 2 : -d.barW / 2 - reach;
+    const joint = keep(
+      temps,
+      Manifold.cube([reach, d.signT, seamDrop], false).translate([x0, -d.signT / 2, caseBottomZ - seamDrop])
+    );
+    sign = keep(temps, sign.add(joint));
+  }
+
   const caseProfile = keep(
     temps,
-    caseProfileSection(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs).translate([d.cardCenterY, d.caseCenterZ])
+    CrossSection.square([d.caseY, d.caseZ], true).translate([d.cardCenterY, d.caseCenterZ])
   );
   const caseEx = keep(temps, caseProfile.extrude(d.caseX));
   let caseSolid = standAcross(caseEx, d.xCaseBack, temps);
