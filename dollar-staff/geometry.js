@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "5 · Nov 14, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Nov 15, 2026";
+export const APP_VERSION_TAG = "v6";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -65,9 +65,11 @@ export function fileName(part) {
 /**
  * Layout in millimeters. Z up, socket mouth on z = 0. This replaces a screw-off broom
  * head: the 3/4"-5 socket is at the bottom, and the dollar sign and card sit up on a
- * neck, clear of the handle. The card plane is YZ, perpendicular to the S, and the
- * vertical stroke passes through the middle of the card. Two shells snap around the
- * card; the closed case slides down a dovetail in the bar.
+ * neck, clear of the handle. The sign is one S with a single vertical stroke through
+ * it. That stroke ends at the top of the S, even with the top of the card. The card
+ * plane is YZ, perpendicular to the S, and the stroke passes through the middle of
+ * the card. Two shells snap around the card; the closed case slides down a dovetail
+ * in the bar.
  */
 export function derive(raw) {
   const p = mergeParams(raw);
@@ -84,9 +86,11 @@ export function derive(raw) {
   const pocketR = Math.min(CARD.corner + p.clearance * 0.5, pocketY / 2 - 0.8);
 
   const wall = 4.2;
+  const topLip = 1.6;
+  const bottomWall = wall;
   const caseX = pocketX + 2 * wall;
   const caseY = pocketY + 2 * wall;
-  const caseZ = pocketZ + 2 * wall;
+  const caseZ = pocketZ + topLip + bottomWall;
   const caseR = 3.2;
   const frontT = caseX / 2;
   const backFloor = caseX / 2;
@@ -97,22 +101,11 @@ export function derive(raw) {
   const flare = 3.2;
   const barW = Math.max(p.barW, neck + flare + 6.5);
   const barRaised = barW - p.barW > 0.05;
-  const barR = Math.min(5.5, barW * 0.28);
-  const poke = 11;
-  const loopW = Math.max(p.dollarW, barW + p.stroke * 3.4);
-  const loopH = Math.max(loopW * 1.05, caseZ * 0.72);
-  const barH = Math.max(loopH + 2 * poke, caseZ + 36);
-
+  const barR = Math.min(3.2, barW * 0.16);
+  const loopW = Math.max(p.dollarW, barW + p.stroke * 2.8);
+  const loopH = Math.max(loopW * 1.32, CARD.h + p.stroke);
   const half = p.stroke / 2;
-  const topCL = loopH / 2 - half;
-  const R = topCL / 2;
-  const cuy = R;
-  const cux = -loopW / 2 + half + R;
-  const barEdge = -barW / 2;
-  const cosT = clamp((barEdge - cux) / R, -1, 1);
-  const theta = Math.acos(cosT);
-  const ext = Math.min(0.3, Math.max(0.05, theta - 0.45));
-  const hook = { R, cux, cuy, theta, ext, half, a0: theta - ext, a1: Math.PI * 2 - theta + ext };
+  const hook = { R: (loopH - p.stroke) / 4, half };
 
   const signT = 9.2;
   const signFrontY = signT / 2;
@@ -125,7 +118,6 @@ export function derive(raw) {
   const tip = neck + flare;
   const tailClear = 0.22;
   const yCore = signT / 2 - 1.7;
-  const tailLen = caseZ - 2.4;
 
   const socketR = 17;
   const threadStart = 1.8;
@@ -134,23 +126,33 @@ export function derive(raw) {
   const socketTop = boreEnd + 3.6;
   const neckH = 46;
   const barBottomZ = socketTop + neckH;
+  const barH = loopH;
+  const strokeTop = barBottomZ + barH;
   const barCenterZ = barBottomZ + barH / 2;
-  const totalH = barCenterZ + barH / 2;
+  const totalH = strokeTop;
+  const cardTop = strokeTop;
+  const cardCenterZ = cardTop - CARD.h / 2;
+  const caseTop = cardTop + p.clearance + topLip;
+  const caseCenterZ = caseTop - caseZ / 2;
 
-  const tailZ0 = barCenterZ - caseZ / 2 + 1.2;
-  const slotZ0 = tailZ0 - 0.3;
-  const slotTop = barCenterZ + barH / 2 + 0.6;
+  const caseBottom = caseCenterZ - caseZ / 2;
+  const tailZ0 = caseBottom + 1.4;
+  const tailTop = Math.min(caseTop - 1.4, strokeTop - 0.45);
+  const tailLen = Math.max(8, tailTop - tailZ0);
+  const slotZ0 = tailZ0 - 0.4;
+  const slotTop = strokeTop + 0.35;
   const slotLen = slotTop - slotZ0;
 
   const snapHeadR = Math.min(1.7, wall * 0.34);
   const snapShaftR = snapHeadR * 0.72;
   const snapHoleR = snapShaftR + 0.18;
-  const rim = wall * 0.5;
+  const snapY = pocketY / 2 + Math.min(2.05, wall * 0.48);
+  const snapZ = pocketZ * 0.3;
   const snaps = [
-    { y: cardCenterY - pocketY * 0.28, z: barCenterZ + pocketZ / 2 + rim },
-    { y: cardCenterY + pocketY * 0.28, z: barCenterZ + pocketZ / 2 + rim },
-    { y: cardCenterY - pocketY * 0.28, z: barCenterZ - pocketZ / 2 - rim },
-    { y: cardCenterY + pocketY * 0.28, z: barCenterZ - pocketZ / 2 - rim },
+    { y: cardCenterY - snapY, z: cardCenterZ + snapZ },
+    { y: cardCenterY + snapY, z: cardCenterZ + snapZ },
+    { y: cardCenterY - snapY, z: cardCenterZ - snapZ },
+    { y: cardCenterY + snapY, z: cardCenterZ - snapZ },
   ];
 
   const widthRaised = loopW - p.dollarW > 0.05;
@@ -181,6 +183,11 @@ export function derive(raw) {
     xCaseBack,
     caseBackY,
     cardCenterX,
+    cardCenterZ,
+    cardTop,
+    caseCenterZ,
+    strokeTop,
+    topLip,
     yBack: signBackY,
     totalT: signT,
     signT,
@@ -199,7 +206,7 @@ export function derive(raw) {
     tailClear,
     yCore,
     tailLen,
-    lead: slotTop - (tailZ0 + tailLen),
+    lead: strokeTop - (tailZ0 + tailLen),
     tailZ0,
     slotZ0,
     slotLen,

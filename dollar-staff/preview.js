@@ -121,7 +121,7 @@ export class StaffPreview {
     this.signPositions = result.signPositions;
     this.cardX = d.cardCenterX;
     this.cardY = d.cardCenterY;
-    this.cardZ = d.barCenterZ;
+    this.cardZ = d.cardCenterZ;
     this._set(this.sign, result.signPositions);
     this.applyPose();
     if (!this.fitted) this.fit();

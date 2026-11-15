@@ -52,25 +52,111 @@ function roundRect(CS, w, h, r, segs, temps) {
   return keep(temps, core.offset(rr, "Round", 2, segs));
 }
 
-/** Constant-width circular hook. sign = 1 is the upper-left bowl; -1 is the lower-right bowl. */
-function hookPolygon(d, sign, steps) {
-  const { R, cux, cuy, half, a0, a1 } = d.hook;
-  const Ro = R + half;
-  const Ri = Math.max(1.2, R - half);
-  const cx = sign * cux;
-  const cy = sign * cuy;
+function cubic(p0, p1, p2, p3, n) {
   const pts = [];
-  for (let i = 0; i <= steps; i++) {
-    const a = a0 + ((a1 - a0) * i) / steps;
-    const aa = sign === 1 ? a : a + Math.PI;
-    pts.push([cx + Ro * Math.cos(aa), cy + Ro * Math.sin(aa) + d.barCenterZ]);
-  }
-  for (let i = steps; i >= 0; i--) {
-    const a = a0 + ((a1 - a0) * i) / steps;
-    const aa = sign === 1 ? a : a + Math.PI;
-    pts.push([cx + Ri * Math.cos(aa), cy + Ri * Math.sin(aa) + d.barCenterZ]);
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const u = 1 - t;
+    pts.push([
+      u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1],
+    ]);
   }
   return pts;
+}
+
+function ellipsePoint(cx, cy, rx, ry, deg) {
+  const a = (deg * Math.PI) / 180;
+  return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+}
+
+function ellipseTangent(rx, ry, deg, dir) {
+  const a = (deg * Math.PI) / 180;
+  const tx = -rx * Math.sin(a) * dir;
+  const ty = ry * Math.cos(a) * dir;
+  const len = Math.hypot(tx, ty) || 1;
+  return [tx / len, ty / len];
+}
+
+function arcPoints(cx, cy, rx, ry, deg0, deg1, steps) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const deg = deg0 + ((deg1 - deg0) * i) / steps;
+    pts.push(ellipsePoint(cx, cy, rx, ry, deg));
+  }
+  return pts;
+}
+
+/** One S centerline: top arch, waist, bottom arch. Angles run so the stroke does not close into a ring. */
+function sSpine(rx, ry) {
+  const upper0 = 16;
+  const upper1 = 196;
+  const lower0 = 16;
+  const lower1 = -164;
+  const upper = arcPoints(0, ry, rx, ry, upper0, upper1, 18);
+  const lower = arcPoints(0, -ry, rx, ry, lower0, lower1, 18);
+  const p0 = upper[upper.length - 1];
+  const p3 = lower[0];
+  const t0 = ellipseTangent(rx, ry, upper1, 1);
+  const t3 = ellipseTangent(rx, ry, lower0, -1);
+  const span = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]);
+  const handle = span * 0.46;
+  const mid = cubic(
+    p0,
+    [p0[0] + t0[0] * handle, p0[1] + t0[1] * handle],
+    [p3[0] - t3[0] * handle, p3[1] - t3[1] * handle],
+    p3,
+    12
+  );
+  mid.shift();
+  mid.pop();
+  return [...upper, ...mid, ...lower];
+}
+
+/** Spine in profile coordinates, shifted so the top of the stroke is strokeTop. */
+function sLayout(d) {
+  const stroke = d.p.stroke;
+  const rx = (d.loopW - stroke) / 2;
+  const ry = (d.loopH - stroke) / 4;
+  const spine = sSpine(rx, ry);
+  let maxY = -Infinity;
+  let minY = Infinity;
+  for (const p of spine) {
+    maxY = Math.max(maxY, p[1]);
+    minY = Math.min(minY, p[1]);
+  }
+  const half = stroke / 2;
+  const shift = d.strokeTop - (maxY + half);
+  return {
+    pts: spine.map(([x, y]) => [x, y + shift]),
+    half,
+    top: d.strokeTop,
+    bottom: minY + shift - half,
+  };
+}
+
+/** Round stroke along the spine. Overlaps fuse, so a tight bend cannot notch the end. */
+function strokeSection(CrossSection, pts, half, segs, temps) {
+  const parts = [];
+  const n = Math.max(10, Math.round(segs * 0.45));
+  for (let i = 0; i < pts.length; i++) {
+    parts.push(keep(temps, CrossSection.circle(half, n).translate(pts[i])));
+    if (i === pts.length - 1) break;
+    const a = pts[i];
+    const b = pts[i + 1];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 0.2) continue;
+    const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const core = keep(temps, CrossSection.square([len + half * 0.25, half * 2], true));
+    parts.push(keep(temps, core.rotate(ang).translate([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])));
+  }
+  let acc = parts[0];
+  for (let i = 1; i < parts.length; i += 16) {
+    acc = keep(temps, CrossSection.union([acc, ...parts.slice(i, i + 16)]));
+  }
+  return acc;
 }
 
 /** Through-bar dovetail. Narrow at the sign faces, wide in the core. Extruded along Z. */
@@ -178,18 +264,18 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const q = QUALITY[quality] || QUALITY.preview;
   const d = derive(raw);
 
-  const upperPts = hookPolygon(d, 1, q.arcSteps);
-  const lowerPts = hookPolygon(d, -1, q.arcSteps);
-  if (polygonArea(upperPts) < 0) upperPts.reverse();
-  if (polygonArea(lowerPts) < 0) lowerPts.reverse();
-  const upper = keep(temps, new CrossSection([upperPts]));
-  const lower = keep(temps, new CrossSection([lowerPts]));
-  const bar2d = keep(temps, roundRect(CrossSection, d.barW, d.barH, d.barR, q.segs, temps).translate([0, d.barCenterZ]));
-  const profile = keep(temps, CrossSection.union([upper, lower, bar2d]));
+  const layout = sLayout(d);
+  const ess = strokeSection(CrossSection, layout.pts, layout.half, q.segs, temps);
+  const fittedBarH = Math.max(4, layout.top - layout.bottom);
+  const bar2d = keep(
+    temps,
+    roundRect(CrossSection, d.barW, fittedBarH, d.barR, q.segs, temps).translate([0, (layout.top + layout.bottom) / 2])
+  );
+  const profile = keep(temps, CrossSection.union([ess, bar2d]));
   const extruded = keep(temps, profile.extrude(d.signT));
   let sign = standUp(extruded, d.signBackY, temps);
 
-  const channelZ0 = d.barCenterZ - d.caseZ / 2 - 0.8;
+  const channelZ0 = d.caseCenterZ - d.caseZ / 2 - 0.8;
   const channel = bowtie(
     CrossSection,
     {
@@ -198,7 +284,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
       yFace: d.signT / 2 + 0.8,
       yCore: d.signT / 2 + 0.4,
       z0: channelZ0,
-      len: d.barCenterZ + d.barH / 2 + 0.8 - channelZ0,
+      len: d.strokeTop + 0.35 - channelZ0,
     },
     temps
   );
@@ -218,7 +304,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
 
   const caseProfile = keep(
     temps,
-    roundRect(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs, temps).translate([d.cardCenterY, d.barCenterZ])
+    roundRect(CrossSection, d.caseY, d.caseZ, d.caseR, q.segs, temps).translate([d.cardCenterY, d.caseCenterZ])
   );
   const caseEx = keep(temps, caseProfile.extrude(d.caseX));
   let caseSolid = standAcross(caseEx, d.xCaseBack, temps);
@@ -238,7 +324,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
 
   const pocketProfile = keep(
     temps,
-    roundRect(CrossSection, d.pocketY, d.pocketZ, d.pocketR, q.segs, temps).translate([d.cardCenterY, d.barCenterZ])
+    roundRect(CrossSection, d.pocketY, d.pocketZ, d.pocketR, q.segs, temps).translate([d.cardCenterY, d.cardCenterZ])
   );
   const pocketEx = keep(temps, pocketProfile.extrude(d.pocketX + 0.04));
   const pocket = standAcross(pocketEx, d.cardCenterX - (d.pocketX + 0.04) / 2, temps);
@@ -333,7 +419,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const stemW = Math.max(d.barW * 0.92, 16);
   const foot = keep(
     temps,
-    Manifold.cube([stemW, d.signT * 0.92, 8], true).translate([0, d.yCenter, d.barBottomZ + 2.4])
+    Manifold.cube([stemW, d.signT * 0.92, 8], true).translate([0, d.yCenter, layout.bottom + 2.2])
   );
   const neck = keep(temps, Manifold.hull([disk, foot]));
   socket = keep(temps, Manifold.union([socket, neck]));
@@ -355,7 +441,7 @@ export function cardSolid(wasm, raw, temps) {
   const d = derive(raw);
   const profile = keep(
     temps,
-    roundRect(CrossSection, CARD.w, CARD.h, CARD.corner, 24, temps).translate([d.cardCenterY, d.barCenterZ])
+    roundRect(CrossSection, CARD.w, CARD.h, CARD.corner, 24, temps).translate([d.cardCenterY, d.cardCenterZ])
   );
   const ex = keep(temps, profile.extrude(CARD.t));
   return standAcross(ex, d.cardCenterX - CARD.t / 2, temps);

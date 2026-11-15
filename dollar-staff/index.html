@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: dollar-staff-v5 -->
+<!-- build: dollar-staff-v6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/dollar-staff-8168/3d-printing/index.html">← 3D printing library</a>
         <h1>Dollar staff</h1>
       </div>
-      <p id="header-version">v5 · Nov 14, 2026</p>
+      <p id="header-version">v6 · Nov 15, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -25,7 +25,7 @@
       <details class="settings-group view-group" open>
         <summary>View</summary>
         <div class="group-body">
-          <p class="group-note">Preview only. The socket is the broom head. The dollar sign and the pale card sit up on the neck, and the S crosses the middle of the card. Apart slides the case up the dovetail and opens a shell.</p>
+          <p class="group-note">Preview only. The socket is the broom head. One S with a vertical stroke through it sits up on the neck, and the top of the card is even with the top of that stroke. Apart slides the case up the dovetail and opens a shell.</p>
           <div class="seg view-seg">
             <button class="chip active" type="button" data-part="closed" aria-pressed="true">Closed</button>
             <button class="chip" type="button" data-part="apart" aria-pressed="false">Apart</button>
@@ -40,14 +40,14 @@
       <details class="settings-group" open>
         <summary>Dollar sign</summary>
         <div class="group-body" id="g-dollar">
-          <p class="group-note">One solid dollar sign: a vertical bar and two S loops, raised on a neck above the broom socket. The bar stays narrow and crosses the middle of the card. Width grows the loops.</p>
+          <p class="group-note">One solid dollar sign: a single S with the vertical stroke through it, raised on a neck above the broom socket. The stroke stops at the top of the S, even with the card. Width grows the S.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Card slot</summary>
         <div class="group-body" id="g-card">
-          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical, the card sticks out both sides, and the stroke crosses its middle. Clearance is extra gap on each side and on the thickness. Drop the card in one shell, snap the other on, then slide the case down the dovetail.</p>
+          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical, the stroke crosses the middle, and the top of the card lines up with the top of the stroke. Clearance is extra gap on each side and on the thickness. Drop the card in one shell, snap the other on, then slide the case down the dovetail.</p>
         </div>
       </details>
 
@@ -69,10 +69,10 @@
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
           <div class="ready">
-            <a href="dollar-staff-v5-case-front.stl" download>Case front</a>
-            <a href="dollar-staff-v5-case-back.stl" download>Case back</a>
-            <a href="dollar-staff-v5-sign.stl" download>Dollar sign</a>
-            <a href="dollar-staff-v5.3mf" download>3MF</a>
+            <a href="dollar-staff-v6-case-front.stl" download>Case front</a>
+            <a href="dollar-staff-v6-case-back.stl" download>Case back</a>
+            <a href="dollar-staff-v6-sign.stl" download>Dollar sign</a>
+            <a href="dollar-staff-v6.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
@@ -83,7 +83,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Dollar staff v5 · Nov 14, 2026</p>
+      <p class="foot" id="app-version">Dollar staff v6 · Nov 15, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
