@@ -275,18 +275,22 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const extruded = keep(temps, profile.extrude(d.signT));
   let sign = standUp(extruded, d.signBackY, temps);
 
-  const channelZ0 = d.caseCenterZ - d.caseZ / 2 - 0.8;
-  const channel = bowtie(
-    CrossSection,
-    {
-      neck: d.neck + 2 * d.tailClear,
-      tip: d.neck + 2 * d.tailClear,
-      yFace: d.signT / 2 + 0.8,
-      yCore: d.signT / 2 + 0.4,
-      z0: channelZ0,
-      len: d.strokeTop + 0.35 - channelZ0,
-    },
-    temps
+  // The vertical stroke is deepened perpendicular to the S, out to the case faces,
+  // so the card box is the top of that stroke instead of a block stuck on the sign.
+  const deepH = Math.max(4, layout.top - layout.bottom);
+  const deep = keep(
+    temps,
+    Manifold.cube([d.barW, d.caseY, deepH], true).translate([0, 0, (layout.top + layout.bottom) / 2])
+  );
+  sign = keep(temps, sign.add(deep));
+
+  const caseBox = keep(
+    temps,
+    Manifold.cube([d.caseX + 0.28, d.caseY + 0.28, d.caseZ + 1.2], true).translate([
+      0,
+      0,
+      d.caseCenterZ + 0.35,
+    ])
   );
   const slot = bowtie(
     CrossSection,
@@ -300,7 +304,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     },
     temps
   );
-  sign = keep(temps, sign.subtract(channel).subtract(slot));
+  sign = keep(temps, sign.subtract(caseBox).subtract(slot));
 
   const caseProfile = keep(
     temps,
@@ -416,10 +420,9 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   socket = keep(temps, socket.add(ridge));
 
   const disk = cylZ(Manifold, 2.2, d.socketR, q.segs, [0, d.yCenter, d.socketTop - 1.2], temps);
-  const stemW = Math.max(d.barW * 0.92, 16);
   const foot = keep(
     temps,
-    Manifold.cube([stemW, d.signT * 0.92, 8], true).translate([0, d.yCenter, layout.bottom + 2.2])
+    Manifold.cube([d.barW, d.caseY, 8], true).translate([0, d.yCenter, layout.bottom + 2.2])
   );
   const neck = keep(temps, Manifold.hull([disk, foot]));
   socket = keep(temps, Manifold.union([socket, neck]));

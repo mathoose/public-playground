@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "6 · Nov 15, 2026";
-export const APP_VERSION_TAG = "v6";
+export const APP_VERSION = "7 · Nov 15, 2026";
+export const APP_VERSION_TAG = "v7";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -66,10 +66,10 @@ export function fileName(part) {
  * Layout in millimeters. Z up, socket mouth on z = 0. This replaces a screw-off broom
  * head: the 3/4"-5 socket is at the bottom, and the dollar sign and card sit up on a
  * neck, clear of the handle. The sign is one S with a single vertical stroke through
- * it. That stroke ends at the top of the S, even with the top of the card. The card
- * plane is YZ, perpendicular to the S, and the stroke passes through the middle of
- * the card. Two shells snap around the card; the closed case slides down a dovetail
- * in the bar.
+ * it. That stroke ends at the top of the S, even with the top of the card. The snap
+ * case is only as thick as the stroke. The stroke is deepened perpendicular to the
+ * S so it reaches the same depth as the case and the card box blends into the sign.
+ * The card plane is YZ and the stroke passes through the middle of the card.
  */
 export function derive(raw) {
   const p = mergeParams(raw);
@@ -85,10 +85,13 @@ export function derive(raw) {
   const pocketZ = CARD.h + 2 * p.clearance;
   const pocketR = Math.min(CARD.corner + p.clearance * 0.5, pocketY / 2 - 0.8);
 
-  const wall = 4.2;
-  const topLip = 1.6;
+  const wall = 3.2;
+  const topLip = 1.2;
   const bottomWall = wall;
-  const caseX = pocketX + 2 * wall;
+  // The case is only as thick as the vertical stroke. Depth (Y) still holds the card.
+  const barW = Math.max(p.barW, 20);
+  const barRaised = barW - p.barW > 0.05;
+  const caseX = barW;
   const caseY = pocketY + 2 * wall;
   const caseZ = pocketZ + topLip + bottomWall;
   const caseR = 3.2;
@@ -97,10 +100,8 @@ export function derive(raw) {
   const xCaseBack = -caseX / 2;
   const cardCenterX = 0;
 
-  const neck = caseX;
+  const neck = Math.min(barW * 0.42, barW - 8);
   const flare = 3.2;
-  const barW = Math.max(p.barW, neck + flare + 6.5);
-  const barRaised = barW - p.barW > 0.05;
   const barR = Math.min(3.2, barW * 0.16);
   const loopW = Math.max(p.dollarW, barW + p.stroke * 2.8);
   const loopH = Math.max(loopW * 1.32, CARD.h + p.stroke);
@@ -114,8 +115,8 @@ export function derive(raw) {
   const caseBackY = -caseY / 2;
   const cardCenterY = 0;
 
-  // Bowtie through the bar: narrow where the case leaves the sign, wide inside.
-  const tip = neck + flare;
+  // Tongue under the case. Narrower than the stroke so the lower bar can close around it.
+  const tip = Math.min(neck + flare, barW - 5);
   const tailClear = 0.22;
   const yCore = signT / 2 - 1.7;
 
@@ -136,11 +137,11 @@ export function derive(raw) {
   const caseCenterZ = caseTop - caseZ / 2;
 
   const caseBottom = caseCenterZ - caseZ / 2;
-  const tailZ0 = caseBottom + 1.4;
-  const tailTop = Math.min(caseTop - 1.4, strokeTop - 0.45);
-  const tailLen = Math.max(8, tailTop - tailZ0);
-  const slotZ0 = tailZ0 - 0.4;
-  const slotTop = strokeTop + 0.35;
+  // Tongue drops out of the case into the stroke below it.
+  const tailZ0 = caseBottom - 12;
+  const tailLen = 13.6;
+  const slotZ0 = tailZ0 - 0.35;
+  const slotTop = caseBottom + 0.4;
   const slotLen = slotTop - slotZ0;
 
   const snapHeadR = Math.min(1.7, wall * 0.34);

@@ -67,8 +67,13 @@ function check(label, raw) {
   assert.ok(cardSpan[1] > 40 && cardSpan[2] > cardSpan[1], `${label} card is not a vertical fin on the sign`);
 
   const flareX = d.neck / 2 + Math.min(0.7, (d.tip - d.neck) / 3);
-  const inTail = Manifold.cube([1.1, d.signT * 0.35, 8], true).translate([flareX, 0, d.caseCenterZ]);
-  const beside = Manifold.cube([2.2, 1.4, 8], true).translate([d.barW * 0.38, d.yCenter, d.barCenterZ]);
+  const tongueZ = d.tailZ0 + d.tailLen * 0.45;
+  const inTail = Manifold.cube([1.1, 1.2, 5], true).translate([flareX, 0, tongueZ]);
+  const beside = Manifold.cube([d.barW * 0.35, d.caseY * 0.35, 6], true).translate([
+    0,
+    0,
+    d.caseCenterZ - d.caseZ / 2 - 8,
+  ]);
   const groove = Manifold.cube([d.neck * 0.34, 1.2, 2.4], true).translate([0, 0, d.strokeTop - 1.5]);
   const prongL = Manifold.cube([4, 4, 6], true).translate([-d.barW * 0.28, 0, d.strokeTop + 8]);
   const prongR = Manifold.cube([4, 4, 6], true).translate([d.barW * 0.28, 0, d.strokeTop + 8]);
@@ -81,7 +86,7 @@ function check(label, raw) {
   const grooveHit = sign.intersect(groove);
   const prongHit = Manifold.union([sign.intersect(prongL), sign.intersect(prongR)]);
   temps.push(inTail, beside, groove, prongL, prongR, tailHit, tailSign, barHit, grooveHit, prongHit);
-  assert.ok(tailHit.volume() > 8, `${label} male dovetail missing (${tailHit.volume().toFixed(1)})`);
+  assert.ok(tailHit.volume() > 4, `${label} male dovetail missing (${tailHit.volume().toFixed(1)})`);
   assert.ok(tailSign.volume() < 4, `${label} dovetail is fused to the dollar (${tailSign.volume().toFixed(1)})`);
   assert.ok(barHit.volume() > 8, `${label} center bar is not solid (${barHit.volume().toFixed(1)})`);
   assert.ok(grooveHit.volume() < 4, `${label} dovetail slot is closed (${grooveHit.volume().toFixed(1)})`);
@@ -97,8 +102,13 @@ function check(label, raw) {
   assert.ok(signBb.max[2] < d.strokeTop + 0.75, `${label} the sign rises above the stroke (${signBb.max[2].toFixed(2)} > ${d.strokeTop.toFixed(2)})`);
   const caseBb = back.boundingBox();
   const frontBb = front.boundingBox();
-  assert.ok(Math.max(caseBb.max[1], frontBb.max[1]) > d.signFrontY + 18, `${label} card case is not sticking out of the sign`);
-  assert.ok(caseBb.min[1] < d.signBackY - 18, `${label} card does not stick out both sides of the sign`);
+  const caseYMax = Math.max(caseBb.max[1], frontBb.max[1]);
+  const caseYMin = Math.min(caseBb.min[1], frontBb.min[1]);
+  assert.ok(caseYMax <= signBb.max[1] + 0.2, `${label} card sticks out past the sign (+Y ${caseYMax.toFixed(2)} > ${signBb.max[1].toFixed(2)})`);
+  assert.ok(caseYMin >= signBb.min[1] - 0.2, `${label} card sticks out past the sign (-Y)`);
+  assert.ok(signBb.max[1] > d.caseY / 2 - 0.4, `${label} sign does not reach the case`);
+  const caseSpanX = frontBb.max[0] - caseBb.min[0];
+  assert.ok(Math.abs(caseSpanX - d.barW) < 1.2, `${label} case is not as thick as the stroke (${caseSpanX.toFixed(2)} vs ${d.barW.toFixed(2)})`);
   assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
   assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
   const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);
