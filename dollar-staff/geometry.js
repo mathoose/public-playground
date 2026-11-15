@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "7 · Nov 15, 2026";
-export const APP_VERSION_TAG = "v7";
+export const APP_VERSION = "8 · Nov 15, 2026";
+export const APP_VERSION_TAG = "v8";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -108,7 +108,9 @@ export function derive(raw) {
   const half = p.stroke / 2;
   const hook = { R: (loopH - p.stroke) / 4, half };
 
-  const signT = 9.2;
+  // Plate thickness along the card (its long axis runs in Z; the S depth is Y).
+  // Four times the old 9.2 mm plate, so the S is closer to the case depth.
+  const signT = 9.2 * 4;
   const signFrontY = signT / 2;
   const signBackY = -signT / 2;
   const yCenter = 0;
@@ -118,7 +120,7 @@ export function derive(raw) {
   // Tongue under the case. Narrower than the stroke so the lower bar can close around it.
   const tip = Math.min(neck + flare, barW - 5);
   const tailClear = 0.22;
-  const yCore = signT / 2 - 1.7;
+  const yCore = 2.9;
 
   const socketR = 17;
   const threadStart = 1.8;

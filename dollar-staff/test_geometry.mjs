@@ -109,6 +109,25 @@ function check(label, raw) {
   assert.ok(signBb.max[1] > d.caseY / 2 - 0.4, `${label} sign does not reach the case`);
   const caseSpanX = frontBb.max[0] - caseBb.min[0];
   assert.ok(Math.abs(caseSpanX - d.barW) < 1.2, `${label} case is not as thick as the stroke (${caseSpanX.toFixed(2)} vs ${d.barW.toFixed(2)})`);
+  assert.ok(Math.abs(d.signT - 36.8) < 0.05, `${label} S is not four times as thick (${d.signT})`);
+  const curveY = d.loopW * 0.42;
+  const curveZ = d.strokeTop - d.loopH * 0.22;
+  const onPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 - 2, curveZ]);
+  const offPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 + 3, curveZ]);
+  const onHit = sign.intersect(onPlate);
+  const offHit = sign.intersect(offPlate);
+  temps.push(onPlate, offPlate, onHit, offHit);
+  assert.ok(onHit.volume() > 4, `${label} thicker S misses the plate (${onHit.volume().toFixed(1)})`);
+  assert.ok(offHit.volume() < 2, `${label} S is thicker than four times (${offHit.volume().toFixed(1)})`);
+  const caseBottom = d.caseCenterZ - d.caseZ / 2;
+  const corner = Manifold.cube([d.caseX * 0.28, 0.7, 0.7], true).translate([
+    d.caseX * 0.25,
+    d.caseY / 2 - 0.35,
+    caseBottom + 0.35,
+  ]);
+  const cornerHit = front.intersect(corner);
+  temps.push(corner, cornerHit);
+  assert.ok(cornerHit.volume() > 0.05, `${label} bottom corner of the card box is still rounded (${cornerHit.volume().toFixed(3)})`);
   assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
   assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
   const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);
