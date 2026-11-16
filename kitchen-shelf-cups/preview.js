@@ -78,7 +78,7 @@ export class ShelfPreview {
     const cx = w / 2;
     const cy = h / 2;
     const cz = z * 0.42;
-    const dist = Math.max(w, h, z) * 2.05;
+    const dist = Math.max(w, h, z) * 2.75;
     const views = {
       angle: new THREE.Vector3(cx + dist * 0.62, cy - dist * 0.78, cz + dist * 0.42),
       plate: new THREE.Vector3(cx + dist * 0.01, cy - dist * 0.04, cz + dist * 0.95),

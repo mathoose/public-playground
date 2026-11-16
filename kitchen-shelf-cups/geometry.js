@@ -9,10 +9,12 @@
  *
  * Defaults enlarge the through-holes and replace that border with one
  * even ring, thicker than the source's thin sides. Arms keep one thickness.
+ * Holes sit on a honeycomb: one center spacing, so every wall is the same
+ * thickness and the points do not pinch.
  */
 
-export const APP_VERSION = "1 · Nov 15, 2026";
-export const APP_VERSION_TAG = "v1";
+export const APP_VERSION = "2 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v2";
 export const APP_NAME = "Kitchen shelf cups";
 
 /** Source through-hole flat-to-flat, for the readout. */
@@ -27,9 +29,8 @@ export const DEFAULT_PARAMS = Object.freeze({
   height: 250,
   plate: 10,
   ring: 22,
-  hexFlat: 18,
-  cols: 7,
-  rows: 7,
+  hexFlat: 24,
+  wall: 4,
   skipCenter: true,
   chamfer: 1.2,
   armLength: 200,
@@ -43,8 +44,7 @@ export const SLIDERS = [
   { key: "plate", min: 4, max: 18, step: 0.5, unit: "mm" },
   { key: "ring", min: 10, max: 48, step: 0.5, unit: "mm" },
   { key: "hexFlat", min: 8, max: 48, step: 0.5, unit: "mm" },
-  { key: "cols", min: 3, max: 12, step: 1, unit: "" },
-  { key: "rows", min: 3, max: 14, step: 1, unit: "" },
+  { key: "wall", min: 3.2, max: 12, step: 0.1, unit: "mm" },
   { key: "chamfer", min: 0, max: 3, step: 0.1, unit: "mm" },
   { key: "armLength", min: 40, max: 280, step: 1, unit: "mm" },
   { key: "armThick", min: 8, max: 40, step: 0.5, unit: "mm" },
@@ -72,9 +72,11 @@ export function mergeParams(overrides = {}) {
   return clampParams({ ...DEFAULT_PARAMS, ...overrides });
 }
 
-/** Flat-to-flat F, points on the left and right. R is center-to-vertex. */
+const SQRT3 = Math.sqrt(3);
+
+/** Flat-to-flat distance to center-to-vertex radius. */
 export function hexRadius(flat) {
-  return flat / Math.sqrt(3);
+  return flat / SQRT3;
 }
 
 function hitsArm(cx, cy, hexW, hexH, arm, width, height) {
@@ -92,71 +94,149 @@ function hitsArm(cx, cy, hexW, hexH, arm, width, height) {
   return boxes.some(([ax0, ax1, ay0, ay1]) => x0 < ax1 && x1 > ax0 && y0 < ay1 && y1 > ay0);
 }
 
-export function derive(raw = {}) {
-  const p = mergeParams(raw);
-  const cols = p.cols;
-  const rows = p.rows;
-  const innerW = p.width - 2 * p.ring;
-  const innerH = p.height - 2 * p.ring;
-  const maxHexW = cols <= 1 ? innerW : (innerW - (cols - 1) * MIN_WEB) / cols;
-  const maxFlatW = (maxHexW * Math.sqrt(3)) / 2;
-  const maxFlatH = rows <= 1 ? innerH : (innerH - (rows - 1) * MIN_WEB) / rows;
-  const flat = Math.min(p.hexFlat, maxFlatW, maxFlatH);
-  const hexClamped = flat < p.hexFlat - 0.05;
-  const R = hexRadius(flat);
-  const hexW = 2 * R;
-  const hexH = flat;
-  const webX = cols <= 1 ? innerW - hexW : (innerW - cols * hexW) / (cols - 1);
-  const webY = rows <= 1 ? innerH - hexH : (innerH - rows * hexH) / (rows - 1);
-  const pitchX = hexW + (cols <= 1 ? 0 : webX);
-  const pitchY = hexH + (rows <= 1 ? 0 : webY);
-  const originX = p.ring + hexW / 2;
-  const originY = p.ring + hexH / 2;
-  const midC = (cols - 1) / 2;
-  const midR = (rows - 1) / 2;
+/**
+ * Pointy-top honeycomb. Every neighbor sits at distance flat+wall,
+ * which is the flat-to-flat gap plus the wall, so the six walls match.
+ * Odd rows are shifted half a pitch and hold one fewer hex, so the
+ * outline stays symmetric inside the ring.
+ */
+function pointyLattice(outerFlat, wall, innerW, innerH) {
+  const D = outerFlat + wall;
+  const R = outerFlat / SQRT3;
+  const rowPitch = (D * SQRT3) / 2;
+  if (outerFlat > innerW + 1e-6 || 2 * R > innerH + 1e-6 || D <= outerFlat) return null;
+  const cols = Math.floor((innerW - outerFlat) / D + 1e-9) + 1;
+  const rows = Math.floor((innerH - 2 * R) / rowPitch + 1e-9) + 1;
+  if (cols < 2 || rows < 2) return null;
+  return { cols, rows, D, rowPitch, R, pointy: true };
+}
+
+/** One column, flats facing, used only when two honeycomb columns will not fit. */
+function columnLattice(outerFlat, wall, innerW, innerH) {
+  const D = outerFlat + wall;
+  const R = outerFlat / SQRT3;
+  if (2 * R > innerW + 1e-6 || outerFlat > innerH + 1e-6) return null;
+  const rows = Math.floor((innerH - outerFlat) / D + 1e-9) + 1;
+  if (rows < 1) return null;
+  return { cols: 1, rows, D, rowPitch: D, R, pointy: false };
+}
+
+function placeCenters(layout, outerFlat, width, height) {
+  const { cols, rows, D, rowPitch, R, pointy } = layout;
+  const hexW = pointy ? outerFlat : 2 * R;
+  const hexH = pointy ? 2 * R : outerFlat;
+  const patternW = pointy ? (cols - 1) * D + outerFlat : hexW;
+  const patternH = pointy ? (rows - 1) * rowPitch + hexH : (rows - 1) * D + outerFlat;
+  const originX = (width - patternW) / 2 + hexW / 2;
+  const originY = (height - patternH) / 2 + hexH / 2;
   const centers = [];
-  let droppedForArms = 0;
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const isCenter =
-        p.skipCenter && cols % 2 === 1 && rows % 2 === 1 && c === midC && r === midR;
-      if (isCenter) continue;
-      const x = originX + c * pitchX;
-      const y = originY + r * pitchY;
-      if (hitsArm(x, y, hexW, hexH, p.armThick, p.width, p.height)) {
-        droppedForArms += 1;
-        continue;
-      }
-      centers.push({ x, y });
+    const odd = pointy && r % 2 === 1;
+    const n = odd ? cols - 1 : cols;
+    const x0 = originX + (odd ? D / 2 : 0);
+    for (let c = 0; c < n; c++) {
+      centers.push({ x: x0 + c * (pointy ? D : 0), y: originY + r * rowPitch });
     }
   }
-  const chamfer = Math.min(
-    p.chamfer,
-    p.plate * 0.4,
-    Math.max(0, webX / 2 - 0.5),
-    Math.max(0, webY / 2 - 0.5),
-    Math.max(0, p.ring - 12),
-  );
+  return {
+    centers,
+    hexW,
+    hexH,
+    patternW,
+    patternH,
+    marginX: (width - patternW) / 2,
+    marginY: (height - patternH) / 2,
+  };
+}
+
+export function derive(raw = {}) {
+  const p = mergeParams(raw);
+  const innerW = p.width - 2 * p.ring;
+  const innerH = p.height - 2 * p.ring;
+  const wall = Math.max(p.wall, MIN_WEB);
+  let through = p.hexFlat;
+  let chamfer = p.chamfer;
+  let hexClamped = wall > p.wall + 0.05;
+  let layout = null;
+  let outer = through;
+
+  for (let guard = 0; guard < 500; guard++) {
+    chamfer = Math.min(chamfer, through * 0.3, p.plate * 0.4);
+    outer = through + 2 * chamfer;
+    layout = pointyLattice(outer, wall, innerW, innerH) || columnLattice(outer, wall, innerW, innerH);
+    if (layout) break;
+    if (chamfer > 0.05) {
+      chamfer = Math.max(0, chamfer - 0.1);
+      hexClamped = true;
+      continue;
+    }
+    if (through > 8) {
+      through = Math.max(8, Number((through - 0.25).toFixed(2)));
+      hexClamped = true;
+      continue;
+    }
+    break;
+  }
+  if (!layout) {
+    through = 8;
+    chamfer = 0;
+    outer = 8;
+    layout = columnLattice(outer, wall, Math.max(innerW, 8), Math.max(innerH, 8));
+    hexClamped = true;
+  }
+  if (through < p.hexFlat - 0.05 || chamfer < p.chamfer - 0.05) hexClamped = true;
+
+  const placed = placeCenters(layout, outer, p.width, p.height);
+  const R = hexRadius(through);
+  const outerR = hexRadius(outer);
+  let droppedForArms = 0;
+  const kept = [];
+  for (const c of placed.centers) {
+    if (hitsArm(c.x, c.y, placed.hexW, placed.hexH, p.armThick, p.width, p.height)) {
+      droppedForArms += 1;
+      continue;
+    }
+    kept.push(c);
+  }
+  if (p.skipCenter && kept.length > 1) {
+    let best = 0;
+    let bestD = Infinity;
+    const mx = p.width / 2;
+    const my = p.height / 2;
+    for (let i = 0; i < kept.length; i++) {
+      const d2 = (kept[i].x - mx) ** 2 + (kept[i].y - my) ** 2;
+      if (d2 < bestD) {
+        bestD = d2;
+        best = i;
+      }
+    }
+    kept.splice(best, 1);
+  }
+
   const corner = Math.min(p.corner, p.ring, p.armThick / 2 - 0.4, p.width / 4, p.height / 4);
   return {
     p,
-    flat,
+    flat: through,
     hexClamped,
     R,
-    hexW,
-    hexH,
-    webX,
-    webY,
-    pitchX,
-    pitchY,
-    centers,
+    outerR,
+    outerFlat: outer,
+    wall,
+    pitch: layout.D,
+    pointy: layout.pointy,
+    cols: layout.cols,
+    rows: layout.rows,
+    hexW: placed.hexW,
+    hexH: placed.hexH,
+    marginX: placed.marginX,
+    marginY: placed.marginY,
+    centers: kept,
     droppedForArms,
-    holeCount: centers.length,
+    holeCount: kept.length,
     chamfer,
     corner: Math.max(0, corner),
     totalZ: p.plate + p.armLength,
-    minWeb: Math.min(webX, webY),
-    backMargin: p.ring - chamfer,
+    minWeb: wall,
   };
 }
 
@@ -170,7 +250,7 @@ export function warnings(raw) {
   const notes = [];
   if (d.hexClamped) {
     notes.push(
-      `Hex size was reduced to ${formatMm(d.flat)} so the ${formatMm(d.p.ring, 1)} outer ring stays intact and the walls between holes stay at least ${formatMm(MIN_WEB)}.`,
+      `Hex size was reduced to ${formatMm(d.flat)} so the ${formatMm(d.p.ring, 1)} outer ring stays intact and every wall stays ${formatMm(d.wall)}.`,
     );
   }
   if (d.droppedForArms > 0) {

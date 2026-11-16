@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: kitchen-shelf-cups-v1 -->
+<!-- build: kitchen-shelf-cups-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/kitchen-shelf-cups-6ee3/3d-printing/index.html">← 3D printing library</a>
         <h1>Kitchen shelf cups</h1>
       </div>
-      <p>v1 · Nov 15, 2026</p>
+      <p>v2 · Nov 16, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -52,21 +52,16 @@
       <details class="settings-group" open>
         <summary>Hex cutouts</summary>
         <div class="group-body">
-          <p class="group-note">Larger flats remove more plastic. The source through-hole was 12.4 mm flat to flat. Holes stay inside the outer ring, with at least 3.2 mm of wall between them.</p>
+          <p class="group-note">A honeycomb, not a square grid. Every neighboring pair is the same distance apart, so the wall is one thickness and the points do not pinch. The source through-hole was 12.4 mm flat to flat.</p>
           <div class="row">
             <label for="hexFlat">Hex flat to flat</label>
             <output id="hexFlat-out"></output>
-            <input id="hexFlat" type="range" min="8" max="48" step="0.5" value="18" />
+            <input id="hexFlat" type="range" min="8" max="48" step="0.5" value="24" />
           </div>
           <div class="row">
-            <label for="cols">Columns</label>
-            <output id="cols-out"></output>
-            <input id="cols" type="range" min="3" max="12" step="1" value="7" />
-          </div>
-          <div class="row">
-            <label for="rows">Rows</label>
-            <output id="rows-out"></output>
-            <input id="rows" type="range" min="3" max="14" step="1" value="7" />
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out"></output>
+            <input id="wall" type="range" min="3.2" max="12" step="0.1" value="4" />
           </div>
           <div class="row">
             <label for="chamfer">Back chamfer</label>
@@ -82,7 +77,7 @@
       <details class="settings-group" open>
         <summary>Outer ring</summary>
         <div class="group-body">
-          <p class="group-note">One width on every side. The source border was 21 mm on the left and right and 25 mm on the top and bottom. This ring stays even, and thicker than that 21 mm side.</p>
+          <p class="group-note">Clearance from the plate edge to the honeycomb. The source border was 21 mm on the left and right and 25 mm on the top and bottom. This ring stays at least 22 mm, and the same on the left and right, and on the top and bottom.</p>
           <div class="row">
             <label for="ring">Ring width</label>
             <output id="ring-out"></output>
@@ -123,7 +118,7 @@
           <p class="notes">Print the plate on the bed, arms straight up, 0.2 mm layers, no supports. In use the plate stands vertical and the arms stick out to hold cups.</p>
         </div>
       </details>
-      <p class="foot" id="app-version">Kitchen shelf cups v1 · Nov 15, 2026</p>
+      <p class="foot" id="app-version">Kitchen shelf cups v2 · Nov 16, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

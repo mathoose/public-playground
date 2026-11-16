@@ -30,11 +30,29 @@ function check(label, raw, expect) {
   assert.ok(Math.abs(bb.max[2] - d.totalZ) < 0.2, `${label} total Z ${bb.max[2]} vs ${d.totalZ}`);
   assert.equal(solid.genus(), d.holeCount, `${label} genus ${solid.genus()} holes ${d.holeCount}`);
   assert.ok(d.minWeb + 1e-6 >= MIN_WEB, `${label} web ${d.minWeb}`);
+  assert.ok(d.marginX + 1e-6 >= d.p.ring - 0.05, `${label} ring x ${d.marginX}`);
+  assert.ok(d.marginY + 1e-6 >= d.p.ring - 0.05, `${label} ring y ${d.marginY}`);
   for (const c of d.centers) {
-    assert.ok(c.x - d.hexW / 2 >= d.p.ring - 0.05, `${label} ring left`);
-    assert.ok(d.p.width - (c.x + d.hexW / 2) >= d.p.ring - 0.05, `${label} ring right`);
-    assert.ok(c.y - d.hexH / 2 >= d.p.ring - 0.05, `${label} ring bottom`);
-    assert.ok(d.p.height - (c.y + d.hexH / 2) >= d.p.ring - 0.05, `${label} ring top`);
+    assert.ok(c.x - d.hexW / 2 >= d.p.ring - 0.08, `${label} ring left ${c.x}`);
+    assert.ok(d.p.width - (c.x + d.hexW / 2) >= d.p.ring - 0.08, `${label} ring right`);
+    assert.ok(c.y - d.hexH / 2 >= d.p.ring - 0.08, `${label} ring bottom`);
+    assert.ok(d.p.height - (c.y + d.hexH / 2) >= d.p.ring - 0.08, `${label} ring top`);
+  }
+  if (d.centers.length > 2) {
+    let min = Infinity;
+    const near = [];
+    for (let i = 0; i < d.centers.length; i++) {
+      for (let j = i + 1; j < d.centers.length; j++) {
+        const dist = Math.hypot(d.centers[i].x - d.centers[j].x, d.centers[i].y - d.centers[j].y);
+        if (dist < min) min = dist;
+        if (dist < d.pitch * 1.2) near.push(dist);
+      }
+    }
+    assert.ok(Math.abs(min - d.pitch) < 0.05, `${label} nearest ${min} pitch ${d.pitch}`);
+    for (const dist of near) {
+      assert.ok(Math.abs(dist - d.pitch) < 0.05, `${label} uneven spacing ${dist} vs ${d.pitch}`);
+    }
+    assert.ok(Math.abs(d.pitch - (d.outerFlat + d.wall)) < 0.05, `${label} wall ${d.wall}`);
   }
   const hole = d.centers[0];
   const emptied = volumeIn(solid, hole.x - 1.2, hole.y - 1.2, 0.4, hole.x + 1.2, hole.y + 1.2, d.p.plate - 0.4);
@@ -54,7 +72,7 @@ function check(label, raw, expect) {
   }
   console.log(
     `${label}: ${(solid.volume() / 1000).toFixed(1)} cm³, ${d.holeCount} holes, ` +
-      `hex ${d.flat.toFixed(2)} mm, ring ${d.p.ring} mm, web ${d.webX.toFixed(2)}×${d.webY.toFixed(2)} mm, ` +
+      `hex ${d.flat.toFixed(2)} mm, wall ${d.wall.toFixed(2)} mm, ring ${d.marginX.toFixed(1)}×${d.marginY.toFixed(1)} mm, ` +
       `genus ${solid.genus()}`,
   );
   if (expect?.stl) writeFileSync(expect.stl, Buffer.from(meshToStl(solid.getMesh(), "kitchen-shelf-cups")));
@@ -64,11 +82,11 @@ function check(label, raw, expect) {
 const sourceVolumeMm3 = 700.3 * 1000;
 check("default", DEFAULT_PARAMS, { maxVolume: sourceVolumeMm3 * 0.95, stl: "/tmp/kitchen-shelf-cups.stl" });
 check("center cut", { ...DEFAULT_PARAMS, skipCenter: false });
-check("big hex clamped", { ...DEFAULT_PARAMS, hexFlat: 40, ring: 22 });
-const big = derive({ ...DEFAULT_PARAMS, hexFlat: 40, ring: 22 });
+check("big hex clamped", { ...DEFAULT_PARAMS, hexFlat: 48, ring: 48, width: 120, height: 160 });
+const big = derive({ ...DEFAULT_PARAMS, hexFlat: 48, ring: 48, width: 120, height: 160 });
 assert.ok(big.hexClamped, "oversized hex is clamped");
-assert.ok(big.flat + 0.2 < 40, `clamped flat ${big.flat}`);
+assert.ok(big.flat + 0.2 < 48, `clamped flat ${big.flat}`);
 check("thick ring", { ...DEFAULT_PARAMS, ring: 28, hexFlat: 14, armThick: 16 });
-check("short arms", { ...DEFAULT_PARAMS, armLength: 60, armThick: 12, cols: 5, rows: 5, skipCenter: false });
+check("short arms", { ...DEFAULT_PARAMS, armLength: 60, armThick: 12, hexFlat: 14, wall: 5, skipCenter: false });
 assert.equal(mergeParams({ width: 9999 }).width, 360);
 console.log("ok");

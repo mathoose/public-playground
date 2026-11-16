@@ -76,11 +76,12 @@ export function roundedRect(x0, y0, x1, y1, r, segs) {
   return dedupe(pts);
 }
 
-/** Flat top and bottom, points left and right. R is center-to-vertex. */
-export function hexPoints(cx, cy, R) {
+/** Pointy top when pointy is true, otherwise flats on the top and bottom. R is center-to-vertex. */
+export function hexPoints(cx, cy, R, pointy = true) {
+  const rot = pointy ? Math.PI / 2 : 0;
   const pts = [];
   for (let i = 0; i < 6; i++) {
-    const a = (i * Math.PI) / 3;
+    const a = rot + (i * Math.PI) / 3;
     pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
   }
   return pts;
@@ -128,13 +129,12 @@ export function buildSolid(wasm, raw, temps, quality = "preview") {
 
   const cutters = [];
   for (const c of d.centers) {
-    const hole = extrude(CrossSection, hexPoints(c.x, c.y, d.R), p.plate + 0.8, temps);
+    const hole = extrude(CrossSection, hexPoints(c.x, c.y, d.R, d.pointy), p.plate + 0.8, temps);
     const moved = hole.translate(0, 0, -0.4);
     temps.push(moved);
     cutters.push(moved);
     if (d.chamfer > 0.05) {
-      const backR = (d.flat + 2 * d.chamfer) / Math.sqrt(3);
-      const cham = extrude(CrossSection, hexPoints(c.x, c.y, backR), d.chamfer + 0.4, temps);
+      const cham = extrude(CrossSection, hexPoints(c.x, c.y, d.outerR, d.pointy), d.chamfer + 0.4, temps);
       const placed = cham.translate(0, 0, -0.4);
       temps.push(placed);
       cutters.push(placed);

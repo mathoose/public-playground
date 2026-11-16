@@ -78,8 +78,8 @@ function renderReadout(result) {
   const cm3 = result?.volume != null ? (result.volume / 1000).toFixed(0) : "—";
   el.innerHTML = `
     <b>${d.p.width.toFixed(0)} × ${d.p.height.toFixed(0)} × ${d.totalZ.toFixed(0)} mm.</b>
-    ${d.holeCount} hexes, flat ${formatMm(d.flat)} (source through-hole ${formatMm(SOURCE_HEX_FLAT)}).
-    Outer ring ${formatMm(d.p.ring)} on every side · walls ${formatMm(d.webX)} and ${formatMm(d.webY)} ·
+    ${d.holeCount} hexes on a honeycomb, flat ${formatMm(d.flat)} (source through-hole ${formatMm(SOURCE_HEX_FLAT)}).
+    Wall ${formatMm(d.wall)} on every side · outer ring ${formatMm(d.marginX)} by ${formatMm(d.marginY)} ·
     arms ${formatMm(d.p.armThick, 0)} × ${formatMm(d.p.armLength, 0)}.
     ~${cm3} cm³ · ~${grams} g PLA
   `;
