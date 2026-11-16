@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { derive, mergeParams, outsidePhoto, warnings } from "./geometry.js";
+import { derive, lobeSwing, mergeParams, outsidePhoto, warnings } from "./geometry.js";
 import { buildFrame } from "./stl.js";
 
 function meshBounds(mesh) {
@@ -22,7 +22,8 @@ function overlaps(a, b) {
 }
 
 const wall = derive({ seed: 7, mode: "wall", tube: 11, photoW: 4, photoH: 6, units: "in" });
-assert.equal(outsidePhoto(wall), true, "centerline stays outside the photo");
+assert.equal(outsidePhoto(wall), true, "outline stays larger than the photo");
+assert.ok(lobeSwing(wall) > Math.min(wall.photoW, wall.photoH) * 0.22, "lobes are deep, not a thin ripple");
 assert.ok(wall.clips.length >= 4, "clips spaced around the frame");
 for (const clip of wall.clips) {
   assert.ok(clip.uOut > clip.photoEdge, "clip reaches the outside of the photo edge");

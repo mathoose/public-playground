@@ -8,7 +8,7 @@ Browser apps for parts you can customize and download as STL.
 
 | Folder | App |
 | --- | --- |
-| [`../squiggle-frame/`](../squiggle-frame/) | Squiggle photo frame: random closed wavy tube, thickness slider, snap clips, flat wall back or two peg holes |
+| [`../squiggle-frame/`](../squiggle-frame/) | Squiggle photo frame: thick rounded squiggle, Randomize, thickness slider, snap clips, flat wall back or two peg holes |
 | [`../bubble-frame/`](../bubble-frame/) | Bubble photo frame |
 | [`../postit-wall-clip/`](../postit-wall-clip/) | Post-it wall clip |
 | [`../striped-frame/`](../striped-frame/) | Striped photo frame (path stripes) |

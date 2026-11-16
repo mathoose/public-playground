@@ -4,6 +4,7 @@ import { buildExport, buildFrame, downloadArrayBuffer, stlTriangleCount } from "
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "squiggle-frame";
 const pageSearch = new URLSearchParams(location.search);
@@ -270,6 +271,23 @@ const headerVersion = $("header-version");
 if (headerVersion) headerVersion.textContent = `v${APP_VERSION}`;
 
 preview = new FramePreview({ canvas: $("view") });
+wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: ["units", "photoW", "photoH", "tube", "mode", "seed"],
+  getParams: () => params,
+  setParams: (next) => {
+    const merged = mergeParams(next);
+    const refit =
+      merged.mode !== params.mode ||
+      merged.seed !== params.seed ||
+      Math.abs(merged.photoW - params.photoW) > 0.05 ||
+      Math.abs(merged.photoH - params.photoH) > 0.05;
+    writeParams(merged);
+    if (refit) preview.fitted = false;
+    scheduleRebuild();
+  },
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({

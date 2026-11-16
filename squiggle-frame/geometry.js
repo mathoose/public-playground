@@ -1,22 +1,22 @@
 /**
  * Closed squiggle photo frame.
  *
- * The centerline is a star-shaped wavy loop outside the photo, so the outline
- * cannot cross itself and stays larger than the print. A round tube with a
+ * The centerline is a star-shaped blob: an ellipse around the photo plus a few
+ * big smooth lobes, like a thick marker squiggle. It cannot cross itself. A round tube with a
  * flat back is swept along that loop. Snap clips are spaced around the back,
  * on the outside of the opening, and pinch the photo border. Stand mode adds
  * two holes in that flat back for pegs.
  */
 
 export const APP_NAME = "Squiggle frame";
-export const APP_VERSION = "1 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v1";
+export const APP_VERSION = "2 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v2";
 
 export const DEFAULT_PARAMS = {
   units: "in",
   photoW: 4,
   photoH: 6,
-  tube: 11,
+  tube: 14,
   mode: "wall",
   seed: 7,
 };
@@ -56,7 +56,7 @@ export function mergeParams(raw = {}) {
     units,
     photoW: clamp(photoMin, photoMax, Number(raw.photoW) || DEFAULT_PARAMS.photoW),
     photoH: clamp(photoMin, photoMax, Number(raw.photoH) || DEFAULT_PARAMS.photoH),
-    tube: clamp(8, 16, Number(raw.tube) || DEFAULT_PARAMS.tube),
+    tube: clamp(8, 20, Number(raw.tube) || DEFAULT_PARAMS.tube),
     mode,
     seed: seed % 1000000000,
   };
@@ -71,32 +71,45 @@ export function photoRadius(theta, halfW, halfH) {
   return Math.min(rw, rh);
 }
 
+function rawWave(theta, harmonics) {
+  let w = 0;
+  for (const h of harmonics) w += h.weight * Math.sin(h.n * theta + h.phase);
+  return w;
+}
+
+/** Several fat lobes, scaled so the deepest one actually reaches full size. */
 export function waveHarmonics(seed) {
   const rnd = mulberry32(seed || 1);
-  const freqs = [2, 3, 4, 5, 6, 7];
-  for (let k = freqs.length - 1; k > 0; k--) {
+  const primaries = [5, 5, 6, 6, 6];
+  const primary = primaries[Math.floor(rnd() * primaries.length)];
+  const lows = [3, 4];
+  const highs = [4, 5, 7, 8].filter((n) => n !== primary);
+  for (let k = highs.length - 1; k > 0; k--) {
     const j = Math.floor(rnd() * (k + 1));
-    [freqs[k], freqs[j]] = [freqs[j], freqs[k]];
+    [highs[k], highs[j]] = [highs[j], highs[k]];
   }
-  const harmonics = [];
-  for (let i = 0; i < 3; i++) {
-    harmonics.push({
-      n: freqs[i],
-      phase: rnd() * Math.PI * 2,
-      weight: 0.4 + rnd() * 0.6,
-    });
+  const harmonics = [
+    { n: primary, phase: rnd() * Math.PI * 2, weight: 1 },
+    { n: lows[Math.floor(rnd() * lows.length)], phase: rnd() * Math.PI * 2, weight: 0.08 + rnd() * 0.08 },
+    { n: highs[0], phase: rnd() * Math.PI * 2, weight: 0.06 + rnd() * 0.08 },
+  ];
+  let peak = 1e-6;
+  for (let i = 0; i < 480; i++) {
+    peak = Math.max(peak, Math.abs(rawWave((i / 480) * Math.PI * 2, harmonics)));
   }
-  return harmonics;
+  return harmonics.map((h) => ({ ...h, weight: h.weight / peak }));
 }
 
 function waveAt(theta, harmonics) {
-  let w = 0;
-  let norm = 0;
-  for (const h of harmonics) {
-    w += h.weight * Math.sin(h.n * theta + h.phase);
-    norm += h.weight;
-  }
-  return norm > 0 ? w / norm : 0;
+  return rawWave(theta, harmonics);
+}
+
+/** Polar radius of an ellipse. Smooth, so the squiggle is not a rectangle. */
+function ellipseRadius(theta, rx, ry) {
+  const c = Math.cos(theta);
+  const s = Math.sin(theta);
+  const denom = Math.hypot(ry * c, rx * s);
+  return denom < 1e-8 ? Math.max(rx, ry) : (rx * ry) / denom;
 }
 
 /**
@@ -123,20 +136,31 @@ export function profilePoints(radius, steps) {
 }
 
 function sampleCenterline(count, halfW, halfH, R, harmonics, ampScale) {
-  const short = Math.min(halfW, halfH) * 2;
-  const amp = Math.min(short * 0.2, Math.max(16, R * 1.8)) * ampScale;
-  const base = amp + R * 0.42;
+  // Offset the ellipse along its outward normal. Lobes bulge sideways off the
+  // photo instead of shooting out as radial spikes, and valleys stay close in.
+  const amp = Math.min(halfW, halfH) * 0.62 * ampScale;
   const pts = [];
   for (let i = 0; i < count; i++) {
-    const theta = (i / count) * Math.PI * 2;
-    const edge = photoRadius(theta, halfW, halfH);
-    const radius = edge + base + waveAt(theta, harmonics) * amp;
+    const t = (i / count) * Math.PI * 2;
+    const ex = halfW * Math.cos(t);
+    const ey = halfH * Math.sin(t);
+    let nx = halfH * Math.cos(t);
+    let ny = halfW * Math.sin(t);
+    const nlen = Math.hypot(nx, ny) || 1;
+    nx /= nlen;
+    ny /= nlen;
+    const wave = waveAt(t, harmonics);
+    const offset = amp * (0.42 + 0.58 * wave) + R * 0.55;
+    const x = ex + nx * offset;
+    const y = ey + ny * offset;
+    const theta = Math.atan2(y, x);
+    const radius = Math.hypot(x, y);
     pts.push({
-      x: Math.cos(theta) * radius,
-      y: Math.sin(theta) * radius,
+      x,
+      y,
       theta,
       radius,
-      edge,
+      edge: photoRadius(theta, halfW, halfH),
     });
   }
   return pts;
@@ -266,8 +290,15 @@ function pickHoles(points, R) {
 function placeClips(points, holes, R, seed) {
   const { total } = pathLength(points);
   const n = points.length;
+  // Clips sit in the bays, where the tube is just outside the photo. A valley
+  // inside a photo corner gets sliced open, and a clip on a far lobe becomes a long tab.
+  const clear = (pt) => {
+    const gap = pt.radius - pt.edge;
+    return gap > R * 0.5 && gap < R * 2.7;
+  };
   const valleys = [];
   for (let i = 0; i < n; i++) {
+    if (!clear(points[i])) continue;
     const gap = points[i].radius - points[i].edge;
     const prev = points[(i - 1 + n) % n].radius - points[(i - 1 + n) % n].edge;
     const next = points[(i + 1) % n].radius - points[(i + 1) % n].edge;
@@ -275,23 +306,30 @@ function placeClips(points, holes, R, seed) {
   }
   valleys.sort((a, b) => a.radius - a.edge - (b.radius - b.edge));
   const chosen = [];
-  const minSep = Math.max(18, R * 3.2);
-  const pool = valleys.length ? valleys : points.filter((_, i) => i % Math.ceil(n / 8) === 0);
-  for (const pt of pool) {
-    if (chosen.some((c) => Math.hypot(c.x - pt.x, c.y - pt.y) < minSep)) continue;
-    if (holes.some((h) => Math.hypot(h.x - pt.x, h.y - pt.y) < R * 2.5)) continue;
+  const minSep = Math.max(22, R * 3.4);
+  const tooClose = (pt, sep) =>
+    chosen.some((c) => Math.hypot(c.x - pt.x, c.y - pt.y) < sep) ||
+    holes.some((h) => Math.hypot(h.x - pt.x, h.y - pt.y) < R * 2.4);
+  for (const pt of valleys) {
+    if (tooClose(pt, minSep)) continue;
     chosen.push(pt);
-    if (chosen.length >= 10) break;
+    if (chosen.length >= 8) break;
   }
-  if (chosen.length < 6) {
-    const stride = Math.max(1, Math.floor(n / 8));
-    const shift = Math.floor(mulberry32(seed + 17)() * stride);
-    for (let i = shift; i < n && chosen.length < 6; i += stride) {
-      const pt = points[i];
-      if (chosen.some((c) => Math.hypot(c.x - pt.x, c.y - pt.y) < minSep * 0.7)) continue;
-      if (holes.some((h) => Math.hypot(h.x - pt.x, h.y - pt.y) < R * 2.5)) continue;
+  const fill = (accept, sep, limit) => {
+    const shift = Math.floor(mulberry32(seed + 17)() * n);
+    for (let k = 0; k < n && chosen.length < limit; k++) {
+      const pt = points[(shift + k) % n];
+      if (!accept(pt) || tooClose(pt, sep)) continue;
       chosen.push(pt);
     }
+  };
+  if (chosen.length < 6) fill(clear, minSep * 0.72, 6);
+  if (chosen.length < 4) {
+    const wider = (pt) => {
+      const gap = pt.radius - pt.edge;
+      return gap > R * 0.5 && gap < R * 4;
+    };
+    fill(wider, minSep * 0.65, 4);
   }
   const clips = [];
   for (const pt of chosen) {
@@ -355,8 +393,8 @@ export function derive(raw, quality = "preview") {
   const halfW = photoW / 2;
   const halfH = photoH / 2;
   const R = p.tube / 2;
-  const count = quality === "export" ? 150 : 88;
-  const profileSteps = quality === "export" ? 32 : 20;
+  const count = quality === "export" ? 168 : 112;
+  const profileSteps = quality === "export" ? 36 : 26;
   const harmonics = waveHarmonics(p.seed);
   const loop = buildLoop(count, halfW, halfH, R, harmonics);
   loop.points.halfW = halfW;
@@ -418,7 +456,21 @@ export function warnings(raw) {
 }
 
 export function outsidePhoto(d) {
-  return d.points.every((pt) => pt.radius > pt.edge + 0.05);
+  const spanX = d.bounds.maxX - d.bounds.minX;
+  const spanY = d.bounds.maxY - d.bounds.minY;
+  return spanX > d.photoW + d.R && spanY > d.photoH + d.R;
+}
+
+/** How deep the lobes are, in millimeters. A ripple on a rectangle stays small. */
+export function lobeSwing(d) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const pt of d.points) {
+    const extra = pt.radius - ellipseRadius(pt.theta, d.halfW, d.halfH);
+    if (extra < lo) lo = extra;
+    if (extra > hi) hi = extra;
+  }
+  return hi - lo;
 }
 
 export function clipOutsideOpening(d) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: squiggle-frame-v1 -->
+<!-- build: squiggle-frame-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,10 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/squiggle-frame-4335/3d-printing/index.html">← 3D printing library</a>
         <h1>Squiggle frame</h1>
       </div>
-      <p id="header-version">v1 · Nov 16, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version" id="header-version">v2 · Nov 16, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -30,9 +33,9 @@
       <details class="settings-group" open>
         <summary>Squiggle</summary>
         <div class="group-body">
-          <p class="group-note">A new closed wave each time you open the page. The outline stays larger than the photo. Undo brings a pattern back.</p>
+          <p class="group-note">Randomize draws a new thick closed squiggle. The outline stays larger than the photo. Undo brings a pattern back.</p>
           <div class="actions">
-            <button type="button" class="wide" id="newSquiggle">New squiggle</button>
+            <button type="button" class="wide" id="newSquiggle">Randomize</button>
           </div>
         </div>
       </details>
@@ -70,8 +73,8 @@
           <p class="group-note">Thickness of the wavy tube. The flat back stays on the bed, and the round front prints without supports.</p>
           <div class="row">
             <label for="tube">Tube thickness</label>
-            <output id="tube-out">11.0 mm</output>
-            <input id="tube" type="range" min="8" max="16" step="0.5" value="11" data-unit="mm" />
+            <output id="tube-out">14.0 mm</output>
+            <input id="tube" type="range" min="8" max="20" step="0.5" value="14" data-unit="mm" />
           </div>
         </div>
       </details>
@@ -107,7 +110,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Squiggle frame v1 · Nov 16, 2026</p>
+      <p class="foot" id="app-version">Squiggle frame v2 · Nov 16, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
