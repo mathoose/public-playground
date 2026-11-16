@@ -469,6 +469,36 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   let back = keep(temps, caseSolid.intersect(backSpace));
   let front = keep(temps, caseSolid.intersect(frontSpace));
 
+  const cup = threadedSocket(wasm, d, q, temps);
+
+  const disk = cylZ(Manifold, 2.2, d.socketR, q.segs, [0, d.yCenter, d.socketTop - 1.2], temps);
+  const foot = keep(
+    temps,
+    Manifold.cube([d.barW, d.caseY, 8], true).translate([0, d.yCenter, layout.bottom + 2.2])
+  );
+  const neck = keep(temps, Manifold.hull([disk, foot]));
+  const socket = keep(temps, Manifold.union([cup, neck]));
+  sign = keep(temps, sign.add(socket));
+
+  const joined = joinLooseStroke(Manifold, sign, back, front, d, temps);
+  sign = joined.sign;
+  back = joined.back;
+  front = joined.front;
+  const latched = latchShells(Manifold, front, back, sign, d, joined.cutZ, temps);
+  sign = latched.sign;
+  back = latched.back;
+  front = latched.front;
+
+  assertOk(front, "case front");
+  assertOk(back, "case back");
+  assertOk(sign, "dollar sign");
+  assertOk(cup, "socket test");
+  return { front, back, sign, socket: cup, d };
+}
+
+/** The broom socket only: 3/4"-5 ACME female thread, no neck and no dollar sign. */
+function threadedSocket(wasm, d, q, temps) {
+  const { CrossSection, Manifold } = wasm;
   const { minorR, majorR, pitch } = d;
   const tan = Math.tan((14.5 * Math.PI) / 180);
   const wTip = 0.3707 * pitch;
@@ -515,29 +545,7 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   let socket = keep(temps, outer.subtract(bore).subtract(mouth));
   socket = keep(temps, socket.add(ridge));
-
-  const disk = cylZ(Manifold, 2.2, d.socketR, q.segs, [0, d.yCenter, d.socketTop - 1.2], temps);
-  const foot = keep(
-    temps,
-    Manifold.cube([d.barW, d.caseY, 8], true).translate([0, d.yCenter, layout.bottom + 2.2])
-  );
-  const neck = keep(temps, Manifold.hull([disk, foot]));
-  socket = keep(temps, Manifold.union([socket, neck]));
-  sign = keep(temps, sign.add(socket));
-
-  const joined = joinLooseStroke(Manifold, sign, back, front, d, temps);
-  sign = joined.sign;
-  back = joined.back;
-  front = joined.front;
-  const latched = latchShells(Manifold, front, back, sign, d, joined.cutZ, temps);
-  sign = latched.sign;
-  back = latched.back;
-  front = latched.front;
-
-  assertOk(front, "case front");
-  assertOk(back, "case back");
-  assertOk(sign, "dollar sign");
-  return { front, back, sign, d };
+  return socket;
 }
 
 function clamp01(t) {
@@ -583,21 +591,24 @@ export async function buildDollar(raw, { quality = "preview" } = {}) {
   const wasm = await loadManifold();
   const temps = [];
   try {
-    const { front, back, sign, d } = buildShells(wasm, raw, temps, quality);
+    const { front, back, sign, socket, d } = buildShells(wasm, raw, temps, quality);
     return {
       d,
       frontMesh: copyMesh(front.getMesh()),
       backMesh: copyMesh(back.getMesh()),
       signMesh: copyMesh(sign.getMesh()),
+      socketMesh: copyMesh(socket.getMesh()),
       frontPositions: meshPositions(front.getMesh()),
       backPositions: meshPositions(back.getMesh()),
       signPositions: meshPositions(sign.getMesh()),
       frontVolume: front.volume(),
       backVolume: back.volume(),
       signVolume: sign.volume(),
+      socketVolume: socket.volume(),
       frontTris: front.getMesh().triVerts.length / 3,
       backTris: back.getMesh().triVerts.length / 3,
       signTris: sign.getMesh().triVerts.length / 3,
+      socketTris: socket.getMesh().triVerts.length / 3,
     };
   } finally {
     deleteAll(temps);
@@ -654,6 +665,26 @@ export function assembly3mf(frontMesh, backMesh, signMesh) {
   );
 }
 
+/** Export-quality STL of the broom socket alone. Does not build the dollar sign. */
+export async function buildSocketTest(raw) {
+  const wasm = await loadManifold();
+  const temps = [];
+  try {
+    const d = derive(raw);
+    const socket = threadedSocket(wasm, d, QUALITY.export, temps);
+    assertOk(socket, "socket test");
+    const socketMesh = copyMesh(socket.getMesh());
+    return {
+      d,
+      socketMesh,
+      socketVolume: socket.volume(),
+      socketStl: meshToStl(socketMesh, "dollar-staff-socket-test"),
+    };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
 export async function buildExports(raw) {
   const built = await buildDollar(raw, { quality: "export" });
   return {
@@ -661,6 +692,7 @@ export async function buildExports(raw) {
     frontStl: meshToStl(built.frontMesh, "dollar-staff-case-front"),
     backStl: meshToStl(built.backMesh, "dollar-staff-case-back"),
     signStl: meshToStl(built.signMesh, "dollar-staff-sign"),
+    socketStl: meshToStl(built.socketMesh, "dollar-staff-socket-test"),
     threemf: assembly3mf(built.frontMesh, built.backMesh, built.signMesh),
   };
 }

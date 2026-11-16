@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "13 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v13";
+export const APP_VERSION = "14 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v14";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -59,6 +59,7 @@ export function fileName(part) {
   if (part === "sign") return `dollar-staff-${APP_VERSION_TAG}-sign.stl`;
   if (part === "front") return `dollar-staff-${APP_VERSION_TAG}-case-front.stl`;
   if (part === "back") return `dollar-staff-${APP_VERSION_TAG}-case-back.stl`;
+  if (part === "socket") return `dollar-staff-${APP_VERSION_TAG}-socket-test.stl`;
   return `dollar-staff-${APP_VERSION_TAG}-${part}.stl`;
 }
 

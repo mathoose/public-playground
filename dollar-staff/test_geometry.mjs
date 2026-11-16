@@ -24,7 +24,7 @@ function grownCard(raw, temps) {
 
 function check(label, raw) {
   const temps = [];
-  const { front, back, sign, d } = buildShells(wasm, raw, temps, "preview");
+  const { front, back, sign, socket, d } = buildShells(wasm, raw, temps, "preview");
   for (const [name, solid] of [
     ["case front", front],
     ["case back", back],
@@ -185,6 +185,26 @@ function check(label, raw) {
   temps.push(probe, bite, clearHit, crestHit);
   assert.ok(clearHit.volume() < 8, `${label} bore narrower than thread ID (${clearHit.volume().toFixed(2)})`);
   assert.ok(crestHit.volume() > 40, `${label} thread crests do not reach the minor ID (${crestHit.volume().toFixed(1)})`);
+
+  assert.equal(socket.status(), "NoError", `${label} socket test status`);
+  const socketParts = socket.decompose();
+  assert.equal(socketParts.length, 1, `${label} socket test is not one solid`);
+  for (const part of socketParts) part.delete?.();
+  const socketBb = socket.boundingBox();
+  assert.ok(Math.abs(socketBb.min[2]) < 0.2, `${label} socket test mouth not on z=0`);
+  assert.ok(socketBb.max[2] <= d.socketTop + 0.05, `${label} socket test includes the neck (${socketBb.max[2].toFixed(1)} > ${d.socketTop.toFixed(1)})`);
+  assert.ok(socketBb.max[2] > d.boreEnd, `${label} socket test is shorter than the thread`);
+  const socketCm3 = socket.volume() / 1000;
+  assert.ok(socketCm3 > 8 && socketCm3 < 80, `${label} socket test volume ${socketCm3.toFixed(1)} cm³ is not just the thread`);
+  const socketClear = socket.intersect(probe);
+  const socketCrest = socket.intersect(bite);
+  temps.push(socketClear, socketCrest);
+  assert.ok(socketClear.volume() < 8, `${label} socket test bore is blocked (${socketClear.volume().toFixed(2)})`);
+  assert.ok(socketCrest.volume() > 40, `${label} socket test has no thread (${socketCrest.volume().toFixed(1)})`);
+  const above = Manifold.cube([80, 80, 40], true).translate([0, 0, d.socketTop + 30]);
+  const aboveHit = socket.intersect(above);
+  temps.push(above, aboveHit);
+  assert.ok(aboveHit.volume() < 0.01, `${label} socket test includes the dollar sign`);
 
   console.log(
     `${label}: $ ${d.loopW.toFixed(0)}×${d.barH.toFixed(0)} mm, bar ${d.barW.toFixed(1)} mm, ${d.totalH.toFixed(0)} mm tall, ` +

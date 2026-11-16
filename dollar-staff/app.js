@@ -9,7 +9,7 @@ import {
   warnings,
 } from "./geometry.js";
 import { StaffPreview } from "./preview.js";
-import { buildDollar, buildExports, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
+import { buildDollar, buildExports, buildSocketTest, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
 import { installUndo } from "../shared/undo-history.js";
 import { wireHeaderSaves } from "../shared/wire-designer.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
@@ -141,6 +141,14 @@ async function downloadPart(part) {
   setStatus(`Building ${part} STL…`);
   await new Promise((r) => setTimeout(r, 30));
   try {
+    if (part === "socket") {
+      const built = await buildSocketTest(params);
+      const filename = fileName("socket");
+      downloadArrayBuffer(filename, built.socketStl);
+      noteDownload(filename);
+      setStatus(`${filename} · ${stlTriangleCount(built.socketStl)} tris · ~${((built.socketVolume / 1000) * PLA).toFixed(1)} g PLA`);
+      return;
+    }
     const built = await buildExports(params);
     const stl = part === "front" ? built.frontStl : part === "back" ? built.backStl : built.signStl;
     const filename = fileName(part);
@@ -209,6 +217,7 @@ function bind() {
   $("dlFront")?.addEventListener("click", () => downloadPart("front"));
   $("dlBack")?.addEventListener("click", () => downloadPart("back"));
   $("dlSign")?.addEventListener("click", () => downloadPart("sign"));
+  $("dlSocket")?.addEventListener("click", () => downloadPart("socket"));
   $("dl3mf")?.addEventListener("click", () => download3mf());
 }
 
