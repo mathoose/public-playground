@@ -11,6 +11,7 @@ import {
 import { StaffPreview } from "./preview.js";
 import { buildDollar, buildExports, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
 import { installUndo } from "../shared/undo-history.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
 
@@ -38,6 +39,7 @@ const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -70,6 +72,7 @@ function writeParams(p) {
     if (el) el.value = String(params[spec.key]);
     if (out) out.textContent = fmtValue(spec, params[spec.key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -215,6 +218,16 @@ const headerVersion = $("header-version");
 if (headerVersion) headerVersion.textContent = `v${APP_VERSION}`;
 
 preview = new StaffPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDERS.map((s) => s.key),
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({

@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "12 · Nov 15, 2026";
-export const APP_VERSION_TAG = "v12";
+export const APP_VERSION = "13 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v13";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
