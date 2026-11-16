@@ -23,8 +23,10 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "candy-cane-stand";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 const $ = (id) => document.getElementById(id);
 
 function skipLibrary() {
@@ -34,6 +36,7 @@ function skipLibrary() {
 
 let params = mergeParams(!skipLibrary() && wantsRestore() ? lastSettings(APP_ID) || {} : {});
 let preview;
+let savesUi;
 let latest = null;
 
 function fmtValue(key, n) {
@@ -56,6 +59,7 @@ function writeParams(next) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -139,8 +143,18 @@ function bindUi() {
   const query = new URLSearchParams(location.search);
   if (query.has("capture") || query.has("shot")) document.body.classList.add("capture");
 
-  writeParams(params);
   preview = new StandPreview({ canvas: $("view") });
+  savesUi = wireHeaderSaves({
+    appId: APP_ID,
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      writeParams(p);
+      rebuild();
+    },
+  });
+  writeParams(params);
   if (!skipLibrary()) rememberVisit(APP_ID);
 
   document.querySelectorAll("[data-view]").forEach((button) => {
