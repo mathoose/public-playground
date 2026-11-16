@@ -256,7 +256,6 @@ export function mountDesignerSaves({
   const hintEl = wrap.querySelector(".designer-saves-hint");
   const panelEl = wrap.querySelector(".designer-saves-panel");
   const toggleBtn = wrap.querySelector(".designer-saves-toggle");
-  const tbody = wrap.querySelector("tbody");
 
   let saves = [];
 
@@ -273,7 +272,6 @@ export function mountDesignerSaves({
   }
 
   function renderList() {
-    tbody.replaceChildren();
     const params = getParams();
     if (!saves.length) {
       panelEl.innerHTML = `<p class="designer-saves-empty">No saves in this browser yet.</p>`;
@@ -288,6 +286,7 @@ export function mountDesignerSaves({
       `;
     }
     const body = panelEl.querySelector("tbody");
+    body.replaceChildren();
     saves.forEach((save, index) => {
       const tr = document.createElement("tr");
       if (sameParams(save.params, params)) tr.classList.add("active");
