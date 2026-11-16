@@ -8,6 +8,7 @@ Browser apps for parts you can customize and download as STL.
 
 | Folder | App |
 | --- | --- |
+| [`../squiggle-frame/`](../squiggle-frame/) | Squiggle photo frame: random closed wavy tube, thickness slider, snap clips, flat wall back or two peg holes |
 | [`../bubble-frame/`](../bubble-frame/) | Bubble photo frame |
 | [`../postit-wall-clip/`](../postit-wall-clip/) | Post-it wall clip |
 | [`../striped-frame/`](../striped-frame/) | Striped photo frame (path stripes) |
@@ -25,7 +26,7 @@ Browser apps for parts you can customize and download as STL.
 | [`lamp.html`](lamp.html) | Shade list for BambooSegD / Bambu LED Lamp Kit-001 |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 
-On the live site those are `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, `/costco-bin-lock/`, `/coaster-base/`, `/poop-bag-holder/`, `/bone-side-bag/`, `/pumpkin-lantern/`, `/lamp.html`, and `/private/` (behind the small lock in the footer).
+On the live site those are `/squiggle-frame/`, `/bubble-frame/`, `/clip/`, `/striped-frame/`, `/photive-snap-box/`, `/henson-razor-tool/`, `/power-bank-wrap/`, `/paddington-tag/`, `/gingerbread-switch/`, `/baroque-frame/`, `/costco-bin-lock/`, `/coaster-base/`, `/poop-bag-holder/`, `/bone-side-bag/`, `/pumpkin-lantern/`, `/lamp.html`, and `/private/` (behind the small lock in the footer).
 
 ## Add another app
 
