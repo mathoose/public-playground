@@ -21,8 +21,10 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "pumpkin-lantern";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 const $ = (id) => document.getElementById(id);
 
 function skipLibrary() {
@@ -32,6 +34,7 @@ function skipLibrary() {
 
 let params = mergeParams(!skipLibrary() && wantsRestore() ? lastSettings(APP_ID) || {} : {});
 let preview;
+let savesUi;
 let source = null;
 let seat = null;
 let latest = null;
@@ -64,6 +67,7 @@ function writeParams(p) {
   document.querySelectorAll("[data-preset]").forEach((button) => {
     button.classList.toggle("active", button.dataset.preset === current);
   });
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -170,8 +174,18 @@ async function downloadStl() {
 }
 
 function bindUi() {
-  writeParams(params);
   preview = new LanternPreview({ canvas: $("view") });
+  savesUi = wireHeaderSaves({
+    appId: APP_ID,
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      writeParams(p);
+      scheduleRebuild();
+    },
+  });
+  writeParams(params);
   if (!skipLibrary()) rememberVisit(APP_ID);
 
   document.querySelectorAll("[data-view]").forEach((button) => {
