@@ -57,6 +57,15 @@ function check(label, raw, expect) {
   const hole = d.centers[0];
   const emptied = volumeIn(solid, hole.x - 1.2, hole.y - 1.2, 0.4, hole.x + 1.2, hole.y + 1.2, d.p.plate - 0.4);
   assert.ok(emptied < 0.01, `${label} hex is open (${emptied})`);
+  if (d.pointy && d.chamfer > 0.3 && d.p.plate > d.chamfer + 1.5) {
+    const x = hole.x + d.flat / 2 + Math.min(0.45, d.chamfer * 0.4);
+    const lowTop = Math.min(d.chamfer * 0.45, 0.6);
+    const low = volumeIn(solid, x - 0.15, hole.y - 0.15, 0.12, x + 0.15, hole.y + 0.15, lowTop);
+    const highZ = d.chamfer + 0.7;
+    const high = volumeIn(solid, x - 0.15, hole.y - 0.15, highZ, x + 0.15, hole.y + 0.15, highZ + 0.45);
+    assert.ok(low < 0.01, `${label} chamfer is open near the bed (${low})`);
+    assert.ok(high > 0.02, `${label} wall above the chamfer is solid (${high})`);
+  }
   const ringSolid = volumeIn(solid, 2, d.p.height / 2 - 2, 1, 6, d.p.height / 2 + 2, d.p.plate - 1);
   assert.ok(ringSolid > 10, `${label} ring is solid (${ringSolid})`);
   const zMid = d.p.plate + 24;

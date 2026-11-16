@@ -87,12 +87,20 @@ export function hexPoints(cx, cy, R, pointy = true) {
   return pts;
 }
 
-function extrude(CrossSection, pts, height, temps) {
+function extrude(CrossSection, pts, height, temps, scaleTop) {
   const cs = new CrossSection([pts]);
   temps.push(cs);
-  const solid = cs.extrude(height);
+  const solid = scaleTop == null ? cs.extrude(height) : cs.extrude(height, 0, 0, scaleTop);
   temps.push(solid);
   return solid;
+}
+
+/** Hex prism centered on the hole. scaleTop shrinks the top about the hex center. */
+function hexCutter(CrossSection, cx, cy, radius, z0, height, pointy, temps, scaleTop) {
+  const solid = extrude(CrossSection, hexPoints(0, 0, radius, pointy), height, temps, scaleTop);
+  const moved = solid.translate(cx, cy, z0);
+  temps.push(moved);
+  return moved;
 }
 
 export function buildSolid(wasm, raw, temps, quality = "preview") {
@@ -129,15 +137,16 @@ export function buildSolid(wasm, raw, temps, quality = "preview") {
 
   const cutters = [];
   for (const c of d.centers) {
-    const hole = extrude(CrossSection, hexPoints(c.x, c.y, d.R, d.pointy), p.plate + 0.8, temps);
-    const moved = hole.translate(0, 0, -0.4);
-    temps.push(moved);
-    cutters.push(moved);
-    if (d.chamfer > 0.05) {
-      const cham = extrude(CrossSection, hexPoints(c.x, c.y, d.outerR, d.pointy), d.chamfer + 0.4, temps);
-      const placed = cham.translate(0, 0, -0.4);
-      temps.push(placed);
-      cutters.push(placed);
+    cutters.push(hexCutter(CrossSection, c.x, c.y, d.R, -0.4, p.plate + 0.8, d.pointy, temps));
+    if (d.chamfer > 0.05 && d.outerR > d.R + 1e-4) {
+      // Wide on the bed, narrowing up to the through-hole over the chamfer
+      // height. The cutter starts below the bed so the plate face is the full
+      // opening; a stepped ledge here is an overhang and does not print.
+      const pad = 0.4;
+      const bottomR = d.outerR + (d.outerR - d.R) * (pad / d.chamfer);
+      cutters.push(
+        hexCutter(CrossSection, c.x, c.y, bottomR, -pad, d.chamfer + pad, d.pointy, temps, d.R / bottomR),
+      );
     }
   }
   if (cutters.length) {

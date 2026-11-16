@@ -13,8 +13,8 @@
  * thickness and the points do not pinch.
  */
 
-export const APP_VERSION = "2 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v2";
+export const APP_VERSION = "3 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v3";
 export const APP_NAME = "Kitchen shelf cups";
 
 /** Source through-hole flat-to-flat, for the readout. */
