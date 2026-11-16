@@ -18,8 +18,10 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "belt-holder";
+const SLIDER_KEYS = ["mode", ...SLIDERS.map((s) => s.key)];
 const $ = (id) => document.getElementById(id);
 
 function skipLibrary() {
@@ -37,6 +39,7 @@ function initialParams() {
 
 let params = initialParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -67,6 +70,7 @@ function writeParams(p) {
   });
   const download = $("download");
   if (download) download.textContent = bin ? "Download square bin STL" : "Download belt clip STL";
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -131,8 +135,18 @@ async function downloadStl() {
 
 function bindUi() {
   if (skipLibrary()) document.body.classList.add("capture");
-  writeParams(params);
   preview = new HolderPreview({ canvas: $("view") });
+  savesUi = wireHeaderSaves({
+    appId: APP_ID,
+    mergeParams,
+    sliderKeys: SLIDER_KEYS,
+    getParams: () => params,
+    setParams: (p) => {
+      writeParams(p);
+      scheduleRebuild();
+    },
+  });
+  writeParams(params);
   if (!skipLibrary()) rememberVisit(APP_ID);
 
   document.querySelectorAll("[data-mode]").forEach((button) => {
