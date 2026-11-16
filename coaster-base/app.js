@@ -20,8 +20,10 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "coaster-base";
+const SLIDER_KEYS = SLIDERS.map((s) => s.key);
 const $ = (id) => document.getElementById(id);
 
 function skipLibrary() {
@@ -31,6 +33,7 @@ function skipLibrary() {
 
 let params = mergeParams(!skipLibrary() && wantsRestore() ? lastSettings(APP_ID) || {} : {});
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -55,6 +58,7 @@ function writeParams(p) {
     }
     if (out) out.textContent = fmtValue(spec.key, params[spec.key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -165,4 +169,14 @@ function bindUi() {
   scheduleRebuild();
 }
 
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
 bindUi();

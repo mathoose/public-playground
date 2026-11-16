@@ -3,7 +3,10 @@ import { HolderPreview } from "./preview.js";
 import { buildHolder, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
+const APP_ID = "poop-bag-holder";
+const SLIDER_KEYS = [...SLIDERS.map((s) => s.key), "slotShape", "knurlStyle", "winTeardrop"];
 const $ = (id) => document.getElementById(id);
 const CHOICES = ["slotShape", "knurlStyle"];
 const TOGGLES = ["winTeardrop"];
@@ -18,6 +21,7 @@ const VIEWS = {
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -62,6 +66,7 @@ function writeParams(p) {
     const el = $(key);
     if (el) el.checked = Boolean(params[key]);
   }
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -185,6 +190,16 @@ function bind() {
 $("app-version").textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new HolderPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    writeParams(p);
+    scheduleRebuild();
+  },
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({

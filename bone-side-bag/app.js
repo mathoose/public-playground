@@ -14,8 +14,10 @@ import { buildBag, buildBagStls, downloadArrayBuffer, stlTriangleCount } from ".
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "bone-side-bag";
+const SLIDER_KEYS = ["mode", ...SLIDERS.map((s) => s.key)];
 const pageSearch = new URLSearchParams(location.search);
 
 function skipLibrary() {
@@ -38,6 +40,7 @@ const $ = (id) => document.getElementById(id);
 
 let params = mergeParams();
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -75,6 +78,7 @@ function writeParams(p) {
   });
   const title = $("piece-title");
   if (title) title.textContent = params.mode === "phone" ? "Phone cage" : "Side bag";
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -237,6 +241,18 @@ const versionEl = $("app-version");
 if (versionEl) versionEl.textContent = `${APP_NAME} v${APP_VERSION}`;
 
 preview = new BagPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (p) => {
+    const modeChanged = mergeParams(p).mode !== params.mode;
+    writeParams(p);
+    if (modeChanged) preview.fitted = false;
+    scheduleRebuild();
+  },
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({
