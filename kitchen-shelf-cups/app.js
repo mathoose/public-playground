@@ -21,8 +21,10 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const APP_ID = "kitchen-shelf-cups";
+const SLIDER_KEYS = [...SLIDERS.map((s) => s.key), "skipCenter"];
 const PLA = 1.24;
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +35,7 @@ function skipLibrary() {
 
 let params = mergeParams(!skipLibrary() && wantsRestore() ? lastSettings(APP_ID) || {} : {});
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -59,6 +62,7 @@ function writeParams(p) {
   }
   const skip = $("skipCenter");
   if (skip) skip.checked = params.skipCenter;
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -177,4 +181,14 @@ function bindUi() {
   scheduleRebuild();
 }
 
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SLIDER_KEYS,
+  getParams: () => params,
+  setParams: (next) => {
+    writeParams(next);
+    scheduleRebuild();
+  },
+});
 bindUi();
