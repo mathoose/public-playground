@@ -260,6 +260,139 @@ function assertOk(solid, label) {
   return solid;
 }
 
+function boxAt(Manifold, size, at, temps) {
+  return keep(temps, Manifold.cube(size, true).translate(at));
+}
+
+/** Capsule along Z. Same nub the other snap cases use: a short bead, not a hair pin. */
+function beadZ(Manifold, r, len, at, temps) {
+  const s0 = keep(temps, Manifold.sphere(Math.max(0.2, r), 18));
+  const half = Math.max(0, len / 2 - r);
+  const a = keep(temps, s0.translate([0, 0, -half]));
+  const b = keep(temps, s0.translate([0, 0, half]));
+  return keep(temps, Manifold.hull([a, b]).translate(at));
+}
+
+/**
+ * The case cut leaves the free end of the S as its own solid. Overlap that end
+ * into the back shell so the two print as one piece. A wall rail, at least
+ * 2.4 mm thick, walks around the card pocket. The front keeps everything
+ * below that end, so the lid still slides off.
+ */
+function joinLooseStroke(Manifold, sign, back, front, d, temps) {
+  const parts = sign.decompose().map((part) => keep(temps, part));
+  parts.sort((a, b) => b.volume() - a.volume());
+  const body = parts[0];
+  const loose = parts.slice(1).filter((part) => part.volume() > 80);
+  const xFace = d.caseX / 2;
+  const caseTop = d.caseCenterZ + d.caseZ / 2;
+  const pocketHalf = d.pocketX / 2 + 0.15;
+  let cutZ = caseTop;
+
+  for (const island of loose) {
+    const bb = island.boundingBox();
+    if (bb.max[0] <= -xFace + 0.8) {
+      const zh = Math.min(18, Math.max(4, bb.max[2] - bb.min[2]));
+      const zc = Math.min(bb.max[2], caseTop - 0.4) - zh / 2;
+      const grip = boxAt(Manifold, [1.8, Math.max(4, d.signT - 2), zh], [-xFace + 0.5, 0, zc], temps);
+      const pocket = boxAt(
+        Manifold,
+        [d.pocketX + 0.5, d.pocketY + 0.4, d.pocketZ + 0.4],
+        [d.cardCenterX, d.cardCenterY, d.cardCenterZ],
+        temps
+      );
+      const bridge = keep(temps, grip.subtract(pocket).subtract(body));
+      back = keep(temps, back.add(island).add(bridge));
+      continue;
+    }
+
+    const slab = boxAt(
+      Manifold,
+      [4, d.caseY + 4, d.caseZ + 40],
+      [bb.min[0] + 1.4, 0, (bb.min[2] + bb.max[2]) / 2],
+      temps
+    );
+    const contact = keep(temps, island.intersect(slab));
+    if (contact.volume() < 1) {
+      back = keep(temps, back.add(island));
+      continue;
+    }
+    const cb = contact.boundingBox();
+    const z0 = cb.min[2] - 0.15;
+    cutZ = Math.min(cutZ, z0);
+    const z1 = caseTop + 0.15;
+    const zh = Math.max(4, z1 - z0);
+    const zc = z0 + zh / 2;
+    const x0 = pocketHalf;
+    const x1 = bb.min[0] + 2.6;
+    const plate = boxAt(Manifold, [Math.max(2.8, x1 - x0), d.caseY - 0.4, zh], [(x0 + x1) / 2, 0, zc], temps);
+    const railT = Math.max(2.6, d.wall - 0.8);
+    const railY = d.pocketY / 2 + d.wall / 2;
+    const rails = [-1, 1].map((side) =>
+      boxAt(Manifold, [d.caseX - 0.5, railT, zh], [0, side * railY, zc], temps)
+    );
+    const pocket = boxAt(
+      Manifold,
+      [d.pocketX + 0.4, d.pocketY + 0.3, d.pocketZ + 0.3],
+      [d.cardCenterX, d.cardCenterY, d.cardCenterZ],
+      temps
+    );
+    const bridge = keep(temps, Manifold.union([plate, ...rails]).subtract(pocket).subtract(body));
+    const cut = boxAt(Manifold, [d.caseX + 4, d.caseY + 4, zh + 0.35], [xFace / 2, 0, zc + 0.05], temps);
+    front = keep(temps, front.subtract(cut));
+    back = keep(temps, back.add(bridge).add(island));
+  }
+
+  return { sign: body, back, front, cutZ };
+}
+
+/**
+ * Sandwich latch, sized like the Photive snap box: a lip at least 2.2 mm
+ * thick and a 0.6 mm bead that bites 0.3 mm. Plus a 2.4 mm fin on the
+ * dovetail so the case clicks onto the bar instead of sliding back off.
+ */
+function latchShells(Manifold, front, back, sign, d, cutZ, temps) {
+  const proud = 2.2;
+  const beadR = 0.6;
+  const clear = 0.28;
+  const caseBottom = d.caseBottom;
+  const ribT = 2.6;
+  const ribLen = 12;
+  const yRib = d.pocketY / 2 + d.wall / 2;
+  const zs = [caseBottom + d.wall + 9, d.cardCenterZ - d.pocketZ * 0.2];
+  for (const z of zs) {
+    if (z + ribLen / 2 > cutZ - 1.2) continue;
+    if (z - ribLen / 2 < caseBottom + d.wall) continue;
+    for (const side of [-1, 1]) {
+      const rib = boxAt(Manifold, [proud, ribT, ribLen], [proud / 2, side * yRib, z], temps);
+      const nub = beadZ(Manifold, beadR, 8, [proud, side * yRib, z], temps);
+      back = keep(temps, back.add(rib).add(nub));
+      const groove = boxAt(
+        Manifold,
+        [proud + beadR + 0.4, ribT + 2 * clear, ribLen + 2 * clear],
+        [(proud + beadR) / 2 - 0.15, side * yRib, z],
+        temps
+      );
+      const nubClear = beadZ(Manifold, beadR + clear, 8.6, [proud, side * yRib, z], temps);
+      front = keep(temps, front.subtract(groove).subtract(nubClear));
+    }
+  }
+
+  const finT = 2.4;
+  const finW = 8;
+  const finH = 10;
+  const finX = -(d.tip / 2 + finT / 2 + 0.8);
+  const finZ = caseBottom - finH / 2 + 2.6;
+  const fin = boxAt(Manifold, [finT, finW, finH], [finX, 0, finZ], temps);
+  const nub = beadZ(Manifold, beadR, 6, [finX - finT / 2, 0, finZ - 1.4], temps);
+  back = keep(temps, back.add(fin).add(nub));
+  const recess = boxAt(Manifold, [finT + 0.55, finW + 0.55, finH + 0.4], [finX, 0, finZ - 0.5], temps);
+  const seat = beadZ(Manifold, beadR + 0.22, 6.6, [finX - finT / 2 - 0.12, 0, finZ - 1.4], temps);
+  const lead = boxAt(Manifold, [finT + 1.8, finW + 0.55, 3.4], [finX - 0.4, 0, caseBottom - 1.4], temps);
+  sign = keep(temps, sign.subtract(recess).subtract(seat).subtract(lead));
+  return { front, back, sign };
+}
+
 export function buildShells(wasm, raw, temps, quality = "preview") {
   const { CrossSection, Manifold } = wasm;
   const q = QUALITY[quality] || QUALITY.preview;
@@ -336,39 +469,6 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   let back = keep(temps, caseSolid.intersect(backSpace));
   let front = keep(temps, caseSolid.intersect(frontSpace));
 
-  const headH = 1.25;
-  const shaftLen = d.frontT - headH + 0.15;
-  for (const snap of d.snaps) {
-    const shaft = keep(
-      temps,
-      Manifold.cylinder(shaftLen + 0.35, d.snapShaftR, d.snapShaftR, 28, false)
-        .rotate([0, 90, 0])
-        .translate([-0.35, snap.y, snap.z])
-    );
-    const head = keep(
-      temps,
-      Manifold.cylinder(headH, d.snapHeadR, d.snapHeadR * 0.72, 28, false)
-        .rotate([0, 90, 0])
-        .translate([shaftLen - 0.2, snap.y, snap.z])
-    );
-    const post = keep(temps, Manifold.union([shaft, head]));
-    back = keep(temps, back.add(post));
-
-    const through = keep(
-      temps,
-      Manifold.cylinder(d.frontT - headH + 0.45, d.snapHoleR, d.snapHoleR, 28, false)
-        .rotate([0, 90, 0])
-        .translate([-0.2, snap.y, snap.z])
-    );
-    const counter = keep(
-      temps,
-      Manifold.cylinder(headH + 0.45, d.snapHeadR + 0.28, d.snapHeadR + 0.28, 28, false)
-        .rotate([0, 90, 0])
-        .translate([d.frontT - headH - 0.05, snap.y, snap.z])
-    );
-    front = keep(temps, front.subtract(keep(temps, Manifold.union([through, counter]))));
-  }
-
   const { minorR, majorR, pitch } = d;
   const tan = Math.tan((14.5 * Math.PI) / 180);
   const wTip = 0.3707 * pitch;
@@ -424,6 +524,15 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const neck = keep(temps, Manifold.hull([disk, foot]));
   socket = keep(temps, Manifold.union([socket, neck]));
   sign = keep(temps, sign.add(socket));
+
+  const joined = joinLooseStroke(Manifold, sign, back, front, d, temps);
+  sign = joined.sign;
+  back = joined.back;
+  front = joined.front;
+  const latched = latchShells(Manifold, front, back, sign, d, joined.cutZ, temps);
+  sign = latched.sign;
+  back = latched.back;
+  front = latched.front;
 
   assertOk(front, "case front");
   assertOk(back, "case back");

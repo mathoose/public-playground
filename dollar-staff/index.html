@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: dollar-staff-v11 -->
+<!-- build: dollar-staff-v12 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/dollar-staff-8168/3d-printing/index.html">← 3D printing library</a>
         <h1>Dollar staff</h1>
       </div>
-      <p id="header-version">v11 · Nov 15, 2026</p>
+      <p id="header-version">v12 · Nov 15, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -40,14 +40,14 @@
       <details class="settings-group" open>
         <summary>Dollar sign</summary>
         <div class="group-body" id="g-dollar">
-          <p class="group-note">One solid dollar sign: a single S with the vertical stroke through it. The S is four times as thick along the card, and the stroke is deepened out to the case so the box stays flush. The bottom corners of the case are sharp squares, and the case meets the stroke on a straight edge. Width grows the S.</p>
+          <p class="group-note">One solid dollar sign: a single S with the vertical stroke through it. The free end of the S prints on the case back, so it is not a loose piece. The S is four times as thick along the card, and the stroke is deepened out to the case so the box stays flush. The bottom corners of the case are sharp squares. Width grows the S.</p>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Card slot</summary>
         <div class="group-body" id="g-card">
-          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical, the stroke crosses the middle, and the top of the card lines up with the top of the stroke. Clearance is extra gap on each side and on the thickness. Drop the card in one shell, snap the other on, then slide the case down the dovetail.</p>
+          <p class="group-note">ISO ID-1 card, 85.60 × 53.98 × 0.76 mm, rotated around the broom so the card is perpendicular to the S. The long side stays vertical, the stroke crosses the middle, and the top of the card lines up with the top of the stroke. Clearance is extra gap on each side and on the thickness. Drop the card in the back, snap the front on the lip, then slide the case down the bar until the fin clicks.</p>
         </div>
       </details>
 
@@ -69,21 +69,21 @@
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
           <div class="ready">
-            <a href="dollar-staff-v11-case-front.stl" download>Case front</a>
-            <a href="dollar-staff-v11-case-back.stl" download>Case back</a>
-            <a href="dollar-staff-v11-sign.stl" download>Dollar sign</a>
-            <a href="dollar-staff-v11.3mf" download>3MF</a>
+            <a href="dollar-staff-v12-case-front.stl" download>Case front</a>
+            <a href="dollar-staff-v12-case-back.stl" download>Case back</a>
+            <a href="dollar-staff-v12-sign.stl" download>Dollar sign</a>
+            <a href="dollar-staff-v12.3mf" download>3MF</a>
           </div>
           <div id="readout" class="readout"></div>
           <div id="warnings"></div>
           <p class="status" id="status"></p>
           <p class="notes">
-            Print the <b>dollar sign</b> with the socket mouth on the bed so the thread is vertical. The dovetail is open at the top of the bar. Print the <b>case halves</b> flat. Snap them around the card, then slide the case down the bar until it stops. The head sits up on the neck; the handle ends in the socket.
+            Print the <b>dollar sign</b> with the socket mouth on the bed so the thread is vertical. Print the <b>case back</b> with it — the free end of the S is part of that piece. Print the <b>case front</b> flat. Drop the card in the back, snap the front on the lip, then slide the case down the bar until the fin clicks. The head sits up on the neck; the handle ends in the socket.
             A plain wooden dowel with no thread will not hold — this socket is threaded, not a slip sleeve. Cut a 3/4″-5 ACME on the stick, or use a broom or mop handle that already has that thread.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Dollar staff v11 · Nov 15, 2026</p>
+      <p class="foot" id="app-version">Dollar staff v12 · Nov 15, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

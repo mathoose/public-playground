@@ -107,15 +107,38 @@ function check(label, raw) {
   assert.ok(caseYMax <= signBb.max[1] + 0.2, `${label} card sticks out past the sign (+Y ${caseYMax.toFixed(2)} > ${signBb.max[1].toFixed(2)})`);
   assert.ok(caseYMin >= signBb.min[1] - 0.2, `${label} card sticks out past the sign (-Y)`);
   assert.ok(signBb.max[1] > d.caseY / 2 - 0.4, `${label} sign does not reach the case`);
-  const caseSpanX = frontBb.max[0] - caseBb.min[0];
+  const midWall = Manifold.cube([d.caseX + 8, 1.4, 3], true).translate([0, d.caseY / 2 - 0.8, d.caseCenterZ]);
+  const wallFront = front.intersect(midWall);
+  const wallBack = back.intersect(midWall);
+  temps.push(midWall, wallFront, wallBack);
+  const caseSpanX = wallFront.boundingBox().max[0] - wallBack.boundingBox().min[0];
   assert.ok(Math.abs(caseSpanX - d.barW) < 1.2, `${label} case is not as thick as the stroke (${caseSpanX.toFixed(2)} vs ${d.barW.toFixed(2)})`);
+  for (const [name, solid] of [
+    ["dollar sign", sign],
+    ["case back", back],
+    ["case front", front],
+  ]) {
+    const bits = solid.decompose();
+    assert.equal(bits.length, 1, `${label} ${name} is ${bits.length} pieces`);
+    for (const bit of bits) bit.delete();
+  }
+  const hookTip = Manifold.cube([10, 10, 8], true).translate([d.caseX / 2 + 6, 0, d.strokeTop - 10]);
+  const hookOnBack = back.intersect(hookTip);
+  const hookOnSign = sign.intersect(hookTip);
+  temps.push(hookTip, hookOnBack, hookOnSign);
+  assert.ok(hookOnBack.volume() > 15, `${label} the end of the S is not on the back case (${hookOnBack.volume().toFixed(1)})`);
+  assert.ok(hookOnSign.volume() < 4, `${label} the end of the S is still loose on the sign (${hookOnSign.volume().toFixed(1)})`);
+  const tongueDeep = Manifold.cube([3, 10, 4], true).translate([0, 0, d.tailZ0 + d.tailLen * 0.5]);
+  const tongueDeepHit = Manifold.union([front.intersect(tongueDeep), back.intersect(tongueDeep)]);
+  temps.push(tongueDeep, tongueDeepHit);
+  assert.ok(tongueDeepHit.volume() > 70, `${label} dovetail tongue is still a thin fin (${tongueDeepHit.volume().toFixed(1)})`);
   assert.ok(Math.abs(d.signT - 36.8) < 0.05, `${label} S is not four times as thick (${d.signT})`);
   const curveY = d.loopW * 0.42;
   const curveZ = d.strokeTop - d.loopH * 0.22;
   const onPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 - 2, curveZ]);
   const offPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 + 3, curveZ]);
-  const onHit = sign.intersect(onPlate);
-  const offHit = sign.intersect(offPlate);
+  const onHit = Manifold.union([sign.intersect(onPlate), back.intersect(onPlate)]);
+  const offHit = Manifold.union([sign.intersect(offPlate), back.intersect(offPlate)]);
   temps.push(onPlate, offPlate, onHit, offHit);
   assert.ok(onHit.volume() > 4, `${label} thicker S misses the plate (${onHit.volume().toFixed(1)})`);
   assert.ok(offHit.volume() < 2, `${label} S is thicker than four times (${offHit.volume().toFixed(1)})`);
