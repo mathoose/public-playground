@@ -42,8 +42,8 @@ function keep(temps, item) {
 }
 
 const QUALITY = {
-  preview: { segs: 40, arcSteps: 28, twistStep: 12, flankStep: 0.14 },
-  export: { segs: 72, arcSteps: 42, twistStep: 6, flankStep: 0.07 },
+  preview: { segs: 40, arcSteps: 28, twistStep: 12, flankStep: 0.14, sSteps: 48, sSegs: 40 },
+  export: { segs: 72, arcSteps: 42, twistStep: 6, flankStep: 0.07, sSteps: 80, sSegs: 64 },
 };
 
 function roundRect(CS, w, h, r, segs, temps) {
@@ -88,13 +88,14 @@ function arcPoints(cx, cy, rx, ry, deg0, deg1, steps) {
 }
 
 /** One S centerline: top arch, waist, bottom arch. Angles run so the stroke does not close into a ring. */
-function sSpine(rx, ry) {
+function sSpine(rx, ry, steps) {
   const upper0 = 16;
   const upper1 = 196;
   const lower0 = 16;
   const lower1 = -164;
-  const upper = arcPoints(0, ry, rx, ry, upper0, upper1, 18);
-  const lower = arcPoints(0, -ry, rx, ry, lower0, lower1, 18);
+  const arcN = Math.max(24, steps);
+  const upper = arcPoints(0, ry, rx, ry, upper0, upper1, arcN);
+  const lower = arcPoints(0, -ry, rx, ry, lower0, lower1, arcN);
   const p0 = upper[upper.length - 1];
   const p3 = lower[0];
   const t0 = ellipseTangent(rx, ry, upper1, 1);
@@ -106,7 +107,7 @@ function sSpine(rx, ry) {
     [p0[0] + t0[0] * handle, p0[1] + t0[1] * handle],
     [p3[0] - t3[0] * handle, p3[1] - t3[1] * handle],
     p3,
-    12
+    Math.max(16, Math.round(arcN * 0.4))
   );
   mid.shift();
   mid.pop();
@@ -114,11 +115,11 @@ function sSpine(rx, ry) {
 }
 
 /** Spine in profile coordinates, shifted so the top of the stroke is strokeTop. */
-function sLayout(d) {
+function sLayout(d, steps) {
   const stroke = d.p.stroke;
   const rx = (d.loopW - stroke) / 2;
   const ry = (d.loopH - stroke) / 4;
-  const spine = sSpine(rx, ry);
+  const spine = sSpine(rx, ry, steps);
   let maxY = -Infinity;
   let minY = Infinity;
   for (const p of spine) {
@@ -138,7 +139,7 @@ function sLayout(d) {
 /** Round stroke along the spine. Overlaps fuse, so a tight bend cannot notch the end. */
 function strokeSection(CrossSection, pts, half, segs, temps) {
   const parts = [];
-  const n = Math.max(10, Math.round(segs * 0.45));
+  const n = Math.max(24, segs);
   for (let i = 0; i < pts.length; i++) {
     parts.push(keep(temps, CrossSection.circle(half, n).translate(pts[i])));
     if (i === pts.length - 1) break;
@@ -149,7 +150,7 @@ function strokeSection(CrossSection, pts, half, segs, temps) {
     const len = Math.hypot(dx, dy);
     if (len < 0.2) continue;
     const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
-    const core = keep(temps, CrossSection.square([len + half * 0.25, half * 2], true));
+    const core = keep(temps, CrossSection.square([len, half * 2], true));
     parts.push(keep(temps, core.rotate(ang).translate([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])));
   }
   let acc = parts[0];
@@ -264,8 +265,8 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const q = QUALITY[quality] || QUALITY.preview;
   const d = derive(raw);
 
-  const layout = sLayout(d);
-  const ess = strokeSection(CrossSection, layout.pts, layout.half, q.segs, temps);
+  const layout = sLayout(d, q.sSteps);
+  const ess = strokeSection(CrossSection, layout.pts, layout.half, q.sSegs, temps);
   const fittedBarH = Math.max(4, layout.top - layout.bottom);
   const bar2d = keep(
     temps,
