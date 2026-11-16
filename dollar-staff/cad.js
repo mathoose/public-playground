@@ -284,7 +284,6 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   sign = keep(temps, sign.add(deep));
 
-  const caseBottomZ = d.caseCenterZ - d.caseZ / 2;
   const caseBox = keep(
     temps,
     Manifold.cube([d.caseX, d.caseY, d.caseZ], true).translate([0, 0, d.caseCenterZ])
@@ -302,30 +301,6 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
     temps
   );
   sign = keep(temps, sign.subtract(caseBox).subtract(slot));
-
-  // The round S meets the bar right under the case and fillets those two corners.
-  // Cut that bulge so the stroke drops straight from a sharp horizontal edge.
-  const seamDrop = d.p.stroke;
-  const seamBand = keep(
-    temps,
-    Manifold.cube([900, d.caseY + 6, seamDrop], false).translate([-450, -(d.caseY + 6) / 2, caseBottomZ - seamDrop])
-  );
-  const seamBar = keep(
-    temps,
-    Manifold.cube([d.barW, d.caseY + 6, seamDrop + 2], true).translate([0, 0, caseBottomZ - seamDrop / 2])
-  );
-  const seamBulge = keep(temps, seamBand.subtract(seamBar));
-  sign = keep(temps, sign.subtract(seamBulge));
-  // Put a square joint back so the S meets the bar with a sharp corner and no gap.
-  const reach = d.p.stroke;
-  for (const side of [1, -1]) {
-    const x0 = side > 0 ? d.barW / 2 : -d.barW / 2 - reach;
-    const joint = keep(
-      temps,
-      Manifold.cube([reach, d.signT, seamDrop], false).translate([x0, -d.signT / 2, caseBottomZ - seamDrop])
-    );
-    sign = keep(temps, sign.add(joint));
-  }
 
   const caseProfile = keep(
     temps,
