@@ -32,7 +32,14 @@ function skipLibrary() {
 function startingParams() {
   const base = skipLibrary() || !wantsRestore() ? DEFAULT_PARAMS : lastSettings(APP_ID) || DEFAULT_PARAMS;
   const pattern = pageSearch.get("pattern");
-  if (skipLibrary() && (pattern === "square" || pattern === "hex")) return mergeParams({ ...base, pattern });
+  if (skipLibrary() && (pattern === "square" || pattern === "hex")) {
+    const extra = { pattern };
+    for (const spec of SLIDERS) {
+      const raw = pageSearch.get(spec.key);
+      if (raw != null && raw !== "") extra[spec.key] = Number(raw);
+    }
+    return mergeParams({ ...base, ...extra });
+  }
   return mergeParams(base);
 }
 
@@ -211,7 +218,7 @@ if (shot) {
 
 rebuild().then(() => {
   if (!shot) return;
-  preview.setNamedView(shot === "1" ? "stack" : shot);
+  preview.setNamedView(shot === "1" ? "stack" : shot, latest?.d);
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       document.body.dataset.ready = "1";

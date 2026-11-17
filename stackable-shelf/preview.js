@@ -37,8 +37,10 @@ export class ShelfPreview {
     this.controls.enableDamping = true;
     this.controls.target.set(0, 0, 50);
 
-    this.scene.add(new THREE.AmbientLight(0xfff6ea, 0.62));
-    this.scene.add(new THREE.HemisphereLight(0xfff8ef, 0xcbbba6, 0.38));
+    this.ambient = new THREE.AmbientLight(0xfff6ea, 0.62);
+    this.hemi = new THREE.HemisphereLight(0xfff8ef, 0xcbbba6, 0.38);
+    this.scene.add(this.ambient);
+    this.scene.add(this.hemi);
     this.key = new THREE.DirectionalLight(0xfffaf3, 1.25);
     this.key.position.set(140, -180, 260);
     this.key.castShadow = true;
@@ -52,16 +54,18 @@ export class ShelfPreview {
     this.key.shadow.camera.bottom = -span;
     this.key.shadow.bias = -0.0006;
     this.scene.add(this.key);
-    const fill = new THREE.DirectionalLight(0xffe0c2, 0.45);
-    fill.position.set(-160, 80, 90);
-    this.scene.add(fill);
+    this.fill = new THREE.DirectionalLight(0xffe0c2, 0.45);
+    this.fill.position.set(-160, 80, 90);
+    this.scene.add(this.fill);
+    this.rim = new THREE.DirectionalLight(0xfff3e4, 0);
+    this.scene.add(this.rim);
 
     this.grid = new THREE.GridHelper(640, 32, 0xc9bfb0, 0xddd4c8);
     this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
 
-    this.shelfMat = new THREE.MeshStandardMaterial({ color: SHELF, roughness: 0.72, metalness: 0.02 });
-    this.legMat = new THREE.MeshStandardMaterial({ color: LEG, roughness: 0.58, metalness: 0.04 });
+    this.shelfMat = new THREE.MeshStandardMaterial({ color: SHELF, roughness: 0.72, metalness: 0.02, flatShading: true });
+    this.legMat = new THREE.MeshStandardMaterial({ color: LEG, roughness: 0.5, metalness: 0.02, flatShading: true });
     this.lower = new THREE.Mesh(new THREE.BufferGeometry(), this.shelfMat);
     this.upper = new THREE.Mesh(new THREE.BufferGeometry(), this.shelfMat);
     this.legs = new THREE.Mesh(new THREE.BufferGeometry(), this.legMat);
@@ -127,12 +131,71 @@ export class ShelfPreview {
     this.grid.visible = true;
   }
 
-  setNamedView(name) {
+  setNamedView(name, detail) {
+    this.legs.position.set(0, 0, 0);
+    this.ambient.intensity = 0.62;
+    this.hemi.intensity = 0.38;
+    this.key.intensity = 1.25;
+    this.fill.intensity = 0.45;
+    this.rim.intensity = 0;
+    const span = 420;
+    const shadow = this.key.shadow.camera;
+    shadow.left = -span;
+    shadow.right = span;
+    shadow.top = span;
+    shadow.bottom = -span;
+    shadow.near = 10;
+    shadow.far = 1400;
+    shadow.updateProjectionMatrix();
+    this.camera.fov = 38;
+    if (name === "close" && detail) {
+      this.view = "stack";
+      this.applyVisibility();
+      this.frameCorner(detail);
+      this.fitted = true;
+      return;
+    }
     this.view = DIRS[name] ? name : "stack";
     this.dir = DIRS[this.view];
     this.applyVisibility();
     this.fit(this.dir);
     this.fitted = true;
+  }
+
+  frameCorner(d) {
+    const x = d.p.shelfLength / 2 - d.inset;
+    const y = -(d.p.shelfWidth / 2 - d.inset);
+    const z = d.p.thickness;
+    this.upper.visible = false;
+    this.grid.visible = false;
+    this.ambient.intensity = 0.07;
+    this.hemi.intensity = 0.04;
+    const shiftY = 18;
+    this.legs.position.set(0, shiftY, d.socketDepth);
+    this.key.intensity = 1.85;
+    this.fill.intensity = 0.08;
+    this.rim.intensity = 0.42;
+    this.key.position.set(x + 28, y - 24, z + 16);
+    this.key.target.position.set(x, y + shiftY * 0.5, z);
+    this.scene.add(this.key.target);
+    this.rim.position.set(x - 22, y + shiftY + 6, z + 26);
+    const shadow = this.key.shadow.camera;
+    const s = 46;
+    shadow.left = -s;
+    shadow.right = s;
+    shadow.top = s;
+    shadow.bottom = -s;
+    shadow.near = 1;
+    shadow.far = 140;
+    shadow.updateProjectionMatrix();
+    this.key.shadow.bias = -0.00035;
+    this.camera.fov = 30;
+    this.camera.position.set(x + 14, y + shiftY * 0.5 - 1, z + 84);
+    this.controls.target.set(x + 1, y + shiftY * 0.5, z + 17);
+    this.camera.near = 0.4;
+    this.camera.far = 500;
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
   }
 
   visibleBounds() {
