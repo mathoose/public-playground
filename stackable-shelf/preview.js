@@ -138,6 +138,9 @@ export class ShelfPreview {
     this.key.intensity = 1.25;
     this.fill.intensity = 0.45;
     this.rim.intensity = 0;
+    this.shelfMat.clippingPlanes = [];
+    this.legMat.clippingPlanes = [];
+    this.shelfMat.side = THREE.FrontSide;
     const span = 420;
     const shadow = this.key.shadow.camera;
     shadow.left = -span;
@@ -168,17 +171,16 @@ export class ShelfPreview {
     const z = d.p.thickness;
     this.upper.visible = false;
     this.grid.visible = false;
-    this.ambient.intensity = 0.07;
-    this.hemi.intensity = 0.04;
-    const shiftY = 18;
-    this.legs.position.set(0, shiftY, d.socketDepth);
-    this.key.intensity = 1.85;
-    this.fill.intensity = 0.08;
-    this.rim.intensity = 0.42;
-    this.key.position.set(x + 28, y - 24, z + 16);
-    this.key.target.position.set(x, y + shiftY * 0.5, z);
+    this.ambient.intensity = 0.14;
+    this.hemi.intensity = 0.08;
+    this.legs.position.set(0, 0, 0);
+    this.key.intensity = 1.55;
+    this.fill.intensity = 0.18;
+    this.rim.intensity = 0.5;
+    this.key.position.set(x + 24, y - 20, z + 26);
+    this.key.target.position.set(x, y, z + 8);
     this.scene.add(this.key.target);
-    this.rim.position.set(x - 22, y + shiftY + 6, z + 26);
+    this.rim.position.set(x - 18, y + 16, z + 20);
     const shadow = this.key.shadow.camera;
     const s = 46;
     shadow.left = -s;
@@ -189,9 +191,17 @@ export class ShelfPreview {
     shadow.far = 140;
     shadow.updateProjectionMatrix();
     this.key.shadow.bias = -0.00035;
-    this.camera.fov = 30;
-    this.camera.position.set(x + 14, y + shiftY * 0.5 - 1, z + 84);
-    this.controls.target.set(x + 1, y + shiftY * 0.5, z + 17);
+    this.renderer.localClippingEnabled = true;
+    const clip = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      new THREE.Vector3(-1, 0.55, 0).normalize(),
+      new THREE.Vector3(x, y + 0.8, z)
+    );
+    this.shelfMat.clippingPlanes = [clip];
+    this.shelfMat.side = THREE.DoubleSide;
+    this.legMat.clippingPlanes = [];
+    this.camera.fov = 32;
+    this.camera.position.set(x + 26, y - 20, z + 54);
+    this.controls.target.set(x - 1, y + 2, z + 14);
     this.camera.near = 0.4;
     this.camera.far = 500;
     this.camera.updateProjectionMatrix();

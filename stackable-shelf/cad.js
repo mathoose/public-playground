@@ -69,6 +69,30 @@ function prism(CS, pattern, flat, height, x, y, z, temps) {
   return keep(temps, section.extrude(Math.max(0.2, height)).translate([0, 0, z]));
 }
 
+function taperedHex(CS, startFlat, endFlat, height, x, y, z, temps) {
+  const scale = endFlat / Math.max(0.4, startFlat);
+  const section = keep(temps, CS.ofPolygons([profilePoints(LEG_PATTERN, startFlat)]));
+  const solid = section.extrude(Math.max(0.2, height), 0, 0, [scale, scale]);
+  return keep(temps, solid.translate([x, y, z]));
+}
+
+function socketCutters(CS, d, x, y, temps, side) {
+  const mouth = d.mouthFlat;
+  const floor = d.floorFlat;
+  const depth = d.socketDepth;
+  const thick = d.p.thickness;
+  if (side === "bottom") {
+    return [
+      prism(CS, LEG_PATTERN, mouth, 0.32, x, y, -0.26, temps),
+      taperedHex(CS, mouth, floor, depth + 0.08, x, y, 0, temps),
+    ];
+  }
+  return [
+    taperedHex(CS, floor, mouth, depth + 0.08, x, y, thick - depth - 0.02, temps),
+    prism(CS, LEG_PATTERN, mouth, 0.32, x, y, thick - 0.06, temps),
+  ];
+}
+
 function capture(solid) {
   assertOk(solid, "shelf");
   const mesh = solid.getMesh();
@@ -99,21 +123,8 @@ function buildFlat(wasm, d, temps) {
     cutters.push(prism(CS, d.p.pattern, d.cellFlat, d.p.thickness + 1, cell.x, cell.y, -0.5, temps));
   }
   for (const socket of d.sockets) {
-    cutters.push(
-      prism(CS, LEG_PATTERN, d.holeFlat, d.socketDepth + 0.4, socket.x, socket.y, -0.2, temps)
-    );
-    cutters.push(
-      prism(
-        CS,
-        LEG_PATTERN,
-        d.holeFlat,
-        d.socketDepth + 0.4,
-        socket.x,
-        socket.y,
-        d.p.thickness - d.socketDepth,
-        temps
-      )
-    );
+    cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "bottom"));
+    cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "top"));
   }
   if (cutters.length) plate = keep(temps, plate.subtract(unionAll(cutters, temps)));
   return plate;
@@ -147,16 +158,7 @@ function buildTest(wasm, d, temps) {
   const size = d.coupon.size;
   const plate2d = roundedRect(CS, size, size, d.cornerR, 16, temps);
   let plate = keep(temps, plate2d.extrude(d.p.thickness));
-  const cutter = prism(
-    CS,
-    LEG_PATTERN,
-    d.holeFlat,
-    d.socketDepth + 0.4,
-    d.coupon.holeX,
-    d.coupon.holeY,
-    d.p.thickness - d.socketDepth,
-    temps
-  );
+  const cutter = unionAll(socketCutters(CS, d, d.coupon.holeX, d.coupon.holeY, temps, "top"), temps);
   plate = keep(temps, plate.subtract(cutter));
   return plate;
 }

@@ -1,17 +1,18 @@
 /**
  * Stackable shelf.
  *
- * The uploaded reference is a 200 mm plate, 6 mm thick, with a grid of openings
- * and four 10 mm round legs. Each leg nests about 0.4 mm per side into a socket
- * on the next shelf (10 mm leg, 10.8 mm hole). Openings can be hexagons or
- * squares. The legs and the sockets stay hexagonal, and the legs print on a face.
+ * The uploaded reference is a 200 mm plate with a grid of openings and four
+ * 10 mm round legs. These legs are hexagonal. The socket is a light press:
+ * wider at the mouth so the leg starts, tighter than the leg at the bottom so
+ * it stays put once pressed in. Openings can be hexagons or squares. The legs
+ * and the sockets stay hexagonal, and the legs print on a face.
  *
  * Leg length is the clear height between the top of one shelf and the bottom of
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "3 · Nov 17, 2026";
-export const APP_VERSION_TAG = "v3";
+export const APP_VERSION = "4 · Nov 17, 2026";
+export const APP_VERSION_TAG = "v4";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -29,8 +30,8 @@ export const DEFAULT_PARAMS = Object.freeze({
   pattern: "hex",
   count: 4,
   wall: 4,
-  thickness: 6,
-  holeOffset: 0.4,
+  thickness: 8,
+  holeOffset: -0.1,
 });
 
 export const SLIDERS = [
@@ -40,15 +41,17 @@ export const SLIDERS = [
   { key: "count", label: "Along the length", min: 1, max: 16, step: 1, unit: "", group: "pattern" },
   { key: "wall", label: "Wall thickness", min: 1.2, max: 20, step: 0.1, unit: "mm", group: "pattern" },
   { key: "thickness", label: "Flat-piece thickness", min: 2.4, max: 16, step: 0.1, unit: "mm", group: "stock" },
-  { key: "holeOffset", label: "Hole offset", min: 0, max: 2, step: 0.05, unit: "mm", group: "stock" },
+  { key: "holeOffset", label: "Hole offset", min: -0.25, max: 1, step: 0.05, unit: "mm", group: "stock" },
 ];
 
 const LEG_FLAT = 10;
 const LEG_PATTERN = "hex";
 const RIM = 3.2;
 const OPEN_MIN = 8;
-const WEB = 1.2;
+const WEB = 1;
 const PATTERN_GAP = 2.4;
+/** Extra room per side at the socket mouth, above the floor offset. */
+const MOUTH_RELIEF = 0.4;
 
 export function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
@@ -120,13 +123,13 @@ export function profileArea(pattern, flat) {
 
 export function socketDepthFor(thickness) {
   const maxDepth = Math.max(0.8, (thickness - WEB) / 2);
-  const wanted = Math.min(8, Math.max(2, thickness * 0.45));
+  const wanted = Math.min(5, Math.max(2.6, thickness * 0.5));
   let depth = Math.min(wanted, maxDepth);
   depth = Math.round(depth * 100) / 100;
   if (thickness - 2 * depth < WEB - 0.05) {
     depth = Math.round(((thickness - WEB) / 2) * 100) / 100;
   }
-  return depth;
+  return Math.max(0.6, depth);
 }
 
 function cornerRadiusFor(inset, circum) {
@@ -219,8 +222,10 @@ function keepClear(cells, sockets, cellRadius, holeRadius) {
 export function derive(raw) {
   const p = clampParams(raw);
   const legFlat = LEG_FLAT;
-  const holeFlat = legFlat + 2 * p.holeOffset;
-  const circum = circumRadius(LEG_PATTERN, holeFlat);
+  const floorFlat = legFlat + 2 * p.holeOffset;
+  const mouthFlat = floorFlat + 2 * MOUTH_RELIEF;
+  const holeFlat = floorFlat;
+  const circum = circumRadius(LEG_PATTERN, mouthFlat);
   const inset = circum + RIM;
   const cornerR = cornerRadiusFor(inset, circum);
   const socketDepth = socketDepthFor(p.thickness);
@@ -258,10 +263,10 @@ export function derive(raw) {
       `Only ${layout.countUsed} ${patternNoun(p.pattern)} fit along this shelf, so the count came down from ${p.count}.`
     );
   }
-  if (p.holeOffset < 0.15) {
-    notes.push("A hole offset under 0.15 mm is a tight fit. Print the corner test before the full shelf.");
-  } else if (p.holeOffset > 1.2) {
-    notes.push("A hole offset over 1.2 mm leaves a loose socket. The corner test shows the gap.");
+  if (p.holeOffset < -0.2) {
+    notes.push("That offset is a hard press. Print the corner test before the full shelf.");
+  } else if (p.holeOffset > 0.15) {
+    notes.push("A positive offset is a slip fit. The leg can move in the socket. The corner test shows the gap.");
   }
   if (socketDepth < 2) {
     notes.push("The sockets are shallow. A thicker flat piece gives the legs more to sit in.");
@@ -279,6 +284,8 @@ export function derive(raw) {
     p,
     legFlat,
     holeFlat,
+    floorFlat,
+    mouthFlat,
     circum,
     inset,
     cornerR,
