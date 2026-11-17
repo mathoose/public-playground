@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
 
-export const APP_VERSION = "14 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v14";
+export const APP_VERSION = "15 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v15";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -60,6 +60,7 @@ export function fileName(part) {
   if (part === "front") return `dollar-staff-${APP_VERSION_TAG}-case-front.stl`;
   if (part === "back") return `dollar-staff-${APP_VERSION_TAG}-case-back.stl`;
   if (part === "socket") return `dollar-staff-${APP_VERSION_TAG}-socket-test.stl`;
+  if (part === "hook") return `dollar-staff-${APP_VERSION_TAG}-lower-hook.stl`;
   return `dollar-staff-${APP_VERSION_TAG}-${part}.stl`;
 }
 
@@ -121,7 +122,8 @@ export function derive(raw) {
   // Tongue under the case. Narrower than the stroke so the lower bar can close around it.
   const tip = Math.min(neck + flare, barW - 5);
   const tailClear = 0.22;
-  const yCore = 8;
+  // Bite most of the sign thickness, and leave a printable wall on each face.
+  const yCore = Math.min(14, signT / 2 - 3.6);
 
   const socketR = 17;
   const threadStart = 1.8;
@@ -140,9 +142,10 @@ export function derive(raw) {
   const caseCenterZ = caseTop - caseZ / 2;
 
   const caseBottom = caseCenterZ - caseZ / 2;
-  // Tongue drops out of the case into the stroke below it.
-  const tailZ0 = caseBottom - 12;
-  const tailLen = 13.6;
+  // Tongue runs well down into the stroke so the case cannot rock off the staff.
+  const tailDrop = 36;
+  const tailZ0 = caseBottom - tailDrop;
+  const tailLen = tailDrop + 2.4;
   const slotZ0 = tailZ0 - 0.35;
   const slotTop = caseBottom + 0.4;
   const slotLen = slotTop - slotZ0;

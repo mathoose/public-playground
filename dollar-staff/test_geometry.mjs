@@ -24,7 +24,7 @@ function grownCard(raw, temps) {
 
 function check(label, raw) {
   const temps = [];
-  const { front, back, sign, socket, d } = buildShells(wasm, raw, temps, "preview");
+  const { front, back, sign, hook, socket, d } = buildShells(wasm, raw, temps, "preview");
   for (const [name, solid] of [
     ["case front", front],
     ["case back", back],
@@ -69,11 +69,7 @@ function check(label, raw) {
   const flareX = d.neck / 2 + Math.min(0.7, (d.tip - d.neck) / 3);
   const tongueZ = d.tailZ0 + d.tailLen * 0.45;
   const inTail = Manifold.cube([1.1, 1.2, 5], true).translate([flareX, 0, tongueZ]);
-  const beside = Manifold.cube([d.barW * 0.35, d.caseY * 0.35, 6], true).translate([
-    0,
-    0,
-    d.caseCenterZ - d.caseZ / 2 - 8,
-  ]);
+  const beside = Manifold.cube([d.barW * 0.28, 4, 6], true).translate([0, 0, d.tailZ0 - 8]);
   const groove = Manifold.cube([d.neck * 0.34, 1.2, 2.4], true).translate([0, 0, d.strokeTop - 1.5]);
   const prongL = Manifold.cube([4, 4, 6], true).translate([-d.barW * 0.28, 0, d.strokeTop + 8]);
   const prongR = Manifold.cube([4, 4, 6], true).translate([d.barW * 0.28, 0, d.strokeTop + 8]);
@@ -117,6 +113,7 @@ function check(label, raw) {
     ["dollar sign", sign],
     ["case back", back],
     ["case front", front],
+    ["lower hook", hook],
   ]) {
     const bits = solid.decompose();
     assert.equal(bits.length, 1, `${label} ${name} is ${bits.length} pieces`);
@@ -156,9 +153,24 @@ function check(label, raw) {
     0,
     caseBottom - d.p.stroke * 0.55,
   ]);
-  const waistHit = sign.intersect(waist);
+  const waistHit = Manifold.union([sign.intersect(waist), hook.intersect(waist)]);
   temps.push(waist, waistHit);
   assert.ok(waistHit.volume() > 20, `${label} the S is broken at the waist (${waistHit.volume().toFixed(1)})`);
+  const otherTop = Manifold.cube([24, 24, 24], true).translate([-d.loopW * 0.32, 0, d.strokeTop - 20]);
+  const otherOnBack = back.intersect(otherTop);
+  const otherOnSign = sign.intersect(otherTop);
+  temps.push(otherTop, otherOnBack, otherOnSign);
+  assert.ok(otherOnBack.volume() > 40, `${label} the other half of the top S is not on the case (${otherOnBack.volume().toFixed(1)})`);
+  assert.ok(otherOnSign.volume() < 4, `${label} the other half of the top S is still on the sign (${otherOnSign.volume().toFixed(1)})`);
+  const edgeTongue = Manifold.cube([4, 8, 12], true).translate([d.barW / 2 - 3.2, -10, d.tailZ0 - 18]);
+  const edgeOnHook = hook.intersect(edgeTongue);
+  const edgeOnSign = sign.intersect(edgeTongue);
+  temps.push(edgeTongue, edgeOnHook, edgeOnSign);
+  assert.ok(edgeOnHook.volume() > 30, `${label} the lower edge dovetail is missing (${edgeOnHook.volume().toFixed(1)})`);
+  assert.ok(edgeOnSign.volume() < 4, `${label} the lower edge dovetail is still filled (${edgeOnSign.volume().toFixed(1)})`);
+  const hookClash = hook.intersect(sign);
+  temps.push(hookClash);
+  assert.ok(hookClash.volume() < 8, `${label} the lower hook intersects the staff (${hookClash.volume().toFixed(1)})`);
   assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
   assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
   const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);
@@ -222,11 +234,16 @@ check("large loose", { ...DEFAULT_PARAMS, dollarW: 180, stroke: 18, barW: 30, cl
 
 const temps = [];
 const built = buildShells(wasm, DEFAULT_PARAMS, temps, "preview");
-const text = Buffer.from(assembly3mf(built.front.getMesh(), built.back.getMesh(), built.sign.getMesh())).toString("latin1");
+const text = Buffer.from(
+  assembly3mf(built.front.getMesh(), built.back.getMesh(), built.sign.getMesh(), built.hook.getMesh())
+).toString("latin1");
 assert.equal((text.match(/<item /g) || []).length, 1, "3MF should have one build item");
-assert.equal((text.match(/<component /g) || []).length, 3, "3MF assembly should reference the case halves and the dollar");
+assert.equal((text.match(/<component /g) || []).length, 4, "3MF assembly should reference the case, the dollar, and the lower hook");
 assert.ok(text.includes('unit="millimeter"'), "3MF unit");
-assert.ok(text.includes("Case front") && text.includes("Case back") && text.includes("Dollar sign"), "3MF part names");
+assert.ok(
+  text.includes("Case front") && text.includes("Case back") && text.includes("Dollar sign") && text.includes("Lower hook"),
+  "3MF part names"
+);
 for (const t of temps) t.delete?.();
 
 console.log("ok");
