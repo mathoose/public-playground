@@ -20,10 +20,10 @@ const pageSearch = new URLSearchParams(location.search);
 const PLA = 1.24;
 
 const VIEWS = {
-  closed: { front: true, back: true, sign: true, hook: true, slide: 0, lid: 0, hookSlide: 0 },
-  apart: { front: true, back: true, sign: true, hook: true, slide: 42, lid: 16, hookSlide: 36 },
-  case: { front: true, back: true, sign: false, hook: false, slide: 0, lid: 16, hookSlide: 0 },
-  sign: { front: false, back: false, sign: true, hook: true, slide: 0, lid: 0, hookSlide: 0 },
+  closed: { front: true, back: true, sign: true, slide: 0, lid: 0 },
+  apart: { front: true, back: true, sign: true, slide: 36, lid: 22 },
+  case: { front: true, back: true, sign: false, slide: 0, lid: 16 },
+  sign: { front: false, back: false, sign: true, slide: 0, lid: 0 },
 };
 
 function skipLibrary() {
@@ -88,22 +88,22 @@ function renderReadout(result) {
   if (warnEl) warnEl.innerHTML = warnings(params).map((n) => `<p class="warn">${n}</p>`).join("");
   const el = $("readout");
   if (!el) return;
-  const volume = result ? result.frontVolume + result.backVolume + result.signVolume + (result.hookVolume || 0) : 0;
+  const volume = result ? result.frontVolume + result.backVolume + result.signVolume : 0;
   const grams = result ? ((volume / 1000) * PLA).toFixed(0) : "—";
   el.innerHTML = `
     Solid $ <b>${d.loopW.toFixed(0)} × ${d.barH.toFixed(0)} mm</b>, center bar <b>${d.barW.toFixed(1)} mm</b>, about <b>${d.totalH.toFixed(0)} mm</b> tall<br />
     Card pocket <b>${d.pocketZ.toFixed(2)} × ${d.pocketY.toFixed(2)} × ${d.pocketX.toFixed(2)} mm</b>
     — edge-on, S four times as thick along the card, flush with the stroke, square bottom corners, top even with the stroke, ISO card + ${d.p.clearance.toFixed(2)} mm each side<br />
-    Dovetail <b>${d.neck.toFixed(1)} → ${d.tip.toFixed(1)} mm</b>, <b>${d.yCore.toFixed(0)} mm</b> deep into the staff · both halves of the top S print on the case<br />
+    Cube keys seat the case on the bottom staff · each shell carries its half of the top S<br />
     Socket <b>3/4″-5 ACME</b> · minor ID <b>${d.threadID.toFixed(2)} mm</b> · pitch <b>${d.pitch.toFixed(2)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />
-    Case front + case back + dollar sign + lower hook · PLA ~<b>${grams} g</b>
+    Case front + case back + bottom staff · PLA ~<b>${grams} g</b>
   `;
 }
 
 function applyView() {
   const view = VIEWS[partView] || VIEWS.closed;
-  preview.setShow({ front: view.front, back: view.back, sign: view.sign, hook: view.hook });
-  preview.setPose(view.slide, view.lid, view.hookSlide);
+  preview.setShow({ front: view.front, back: view.back, sign: view.sign });
+  preview.setPose(view.slide, view.lid);
 }
 
 async function rebuild() {
@@ -150,11 +150,11 @@ async function downloadPart(part) {
       return;
     }
     const built = await buildExports(params);
-    const stl = part === "front" ? built.frontStl : part === "back" ? built.backStl : part === "hook" ? built.hookStl : built.signStl;
+    const stl = part === "front" ? built.frontStl : part === "back" ? built.backStl : built.signStl;
     const filename = fileName(part);
     downloadArrayBuffer(filename, stl);
     noteDownload(filename);
-    const volume = part === "front" ? built.frontVolume : part === "back" ? built.backVolume : part === "hook" ? built.hookVolume : built.signVolume;
+    const volume = part === "front" ? built.frontVolume : part === "back" ? built.backVolume : built.signVolume;
     setStatus(`${filename} · ${stlTriangleCount(stl)} tris · ~${((volume / 1000) * PLA).toFixed(1)} g PLA`);
   } catch (err) {
     console.error(err);
@@ -169,7 +169,7 @@ async function download3mf() {
     const filename = fileName("3mf");
     downloadArrayBuffer(filename, built.threemf, "model/3mf");
     noteDownload(filename);
-    setStatus(`${filename} · one assembly · case front, case back, and dollar sign`);
+    setStatus(`${filename} · one assembly · case front, case back, and bottom staff`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");
@@ -217,7 +217,6 @@ function bind() {
   $("dlFront")?.addEventListener("click", () => downloadPart("front"));
   $("dlBack")?.addEventListener("click", () => downloadPart("back"));
   $("dlSign")?.addEventListener("click", () => downloadPart("sign"));
-  $("dlHook")?.addEventListener("click", () => downloadPart("hook"));
   $("dlSocket")?.addEventListener("click", () => downloadPart("socket"));
   $("dl3mf")?.addEventListener("click", () => download3mf());
 }
@@ -264,7 +263,7 @@ window.dollarStaff = {
 };
 
 rebuild().then(() => {
-  if (shot === "edge" || shot === "dovetail") {
+  if (shot === "edge" || shot === "keys") {
     preview.setShow({ front: true, back: true, sign: true, card: true });
     preview.setPose(8, 20);
     preview.setNamedView("edge");

@@ -1,7 +1,7 @@
-/** Dollar-sign staff top. A solid $ screws onto a broom. A snap case holds the card and slides on with a dovetail. */
+/** Dollar-sign staff top. A solid $ screws onto a broom. Two snap shells hold the card and seat on cube keys. */
 
-export const APP_VERSION = "15 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v15";
+export const APP_VERSION = "16 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v16";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -60,7 +60,6 @@ export function fileName(part) {
   if (part === "front") return `dollar-staff-${APP_VERSION_TAG}-case-front.stl`;
   if (part === "back") return `dollar-staff-${APP_VERSION_TAG}-case-back.stl`;
   if (part === "socket") return `dollar-staff-${APP_VERSION_TAG}-socket-test.stl`;
-  if (part === "hook") return `dollar-staff-${APP_VERSION_TAG}-lower-hook.stl`;
   return `dollar-staff-${APP_VERSION_TAG}-${part}.stl`;
 }
 
@@ -246,7 +245,7 @@ export function warnings(raw) {
   if (d.widthRaised) out.push(`Dollar width raised to ${d.loopW.toFixed(0)} mm so the S loops still wrap the bar.`);
   if (d.totalH > 250) out.push(`Assembled height is ${d.totalH.toFixed(0)} mm. A 256 mm printer may not have room with the socket on the bed.`);
   if (d.hook.R - d.hook.half < 8) out.push("The S stroke is thick for this width — the counters get small.");
-  if (d.barRaised) out.push(`Center bar raised to ${d.barW.toFixed(0)} mm so the dovetail through the card still has a wall.`);
+  if (d.barRaised) out.push(`Center bar raised to ${d.barW.toFixed(0)} mm so the cube keys beside the card still have a wall.`);
   if (d.barW > 28) out.push("A wider center bar starts to look like the old card-width block. The card is in the case, so the bar can stay narrow.");
   return out;
 }

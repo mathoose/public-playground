@@ -1,14 +1,13 @@
 # Dollar staff
 
-Broom-head replacement. The 3/4″-5 ACME socket is at the bottom and screws onto the handle where a plastic head came off. The head is one S with a vertical stroke through it. Both halves of the top of the S print on the case back. The lower hook locks onto a dovetail on the edge of the stroke, and the center connector runs deep into the staff. The S is four times as thick along the card. The snap case is only as thick as the stroke, and the bottom corners of that box are sharp squares. The front snaps on with a lip and a bead. A fin on the dovetail clicks into the bar.
+Broom-head replacement. The 3/4″-5 ACME socket is at the bottom and screws onto the handle where a plastic head came off. The head is one S with a vertical stroke through it, printed as three solids. The bottom solid is the lower half of the S plus the broom screw. The case front and case back snap together around the card, and each one carries its half of the top of the S. Straight cube keys on the bottom piece seat those shells. The S is four times as thick along the card. The snap case is only as thick as the stroke, and the bottom corners of that box are sharp squares. The front snaps on with a lip and a bead.
 
-Open the designer from the [3D printing library](../3d-printing/). Sliders set the dollar width, the S stroke, the center bar, card clearance, and how long the broom thread runs.
+## Files
 
-- `dollar-staff-v15-case-front.stl` — snap-case lid
-- `dollar-staff-v15-case-back.stl` — snap-case back, the deep dovetail, and both halves of the top of the S
-- `dollar-staff-v15-sign.stl` — dollar sign, neck, and broom socket
-- `dollar-staff-v15-lower-hook.stl` — bottom half of the S, locks onto the edge dovetail
-- `dollar-staff-v15-socket-test.stl` — test print of the 3/4″-5 ACME female socket only
-- `dollar-staff-v15.3mf` — case, sign, and lower hook, assembled
+- `dollar-staff-v16-case-front.stl` — snap-case lid and the +X half of the top of the S
+- `dollar-staff-v16-case-back.stl` — snap-case back and the −X half of the top of the S
+- `dollar-staff-v16-sign.stl` — bottom half of the S, neck, broom socket, and the two cube keys
+- `dollar-staff-v16-socket-test.stl` — test print of the 3/4″-5 ACME female socket only
+- `dollar-staff-v16.3mf` — case front, case back, and bottom staff, assembled
 
-The card is ISO ID-1 (85.60 × 53.98 × 0.76 mm) plus the clearance slider, 0.4 mm per side by default. Snap the front onto the back, slide the case down the bar until the fin clicks, then turn the socket clockwise onto the stick. A plain unthreaded dowel will not grip this socket.
+Open `index.html` to change the dollar width, the stroke, the center bar, the card clearance, and how far the thread engages.

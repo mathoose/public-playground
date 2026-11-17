@@ -2,7 +2,7 @@
 // Card is edge-on to the S, both shells are real solids, broom thread ID is a 3/4"-5 ACME minor.
 import assert from "node:assert/strict";
 import { CARD, DEFAULT_PARAMS, THREAD_ID, derive } from "./geometry.js";
-import { assembly3mf, buildShells, cardSolid, loadManifold } from "./cad.js";
+import { assembly3mf, buildShells, cardSolid, copyMesh, loadManifold } from "./cad.js";
 
 const wasm = await loadManifold();
 const { Manifold } = wasm;
@@ -24,7 +24,7 @@ function grownCard(raw, temps) {
 
 function check(label, raw) {
   const temps = [];
-  const { front, back, sign, hook, socket, d } = buildShells(wasm, raw, temps, "preview");
+  const { front, back, sign, socket, d } = buildShells(wasm, raw, temps, "preview");
   for (const [name, solid] of [
     ["case front", front],
     ["case back", back],
@@ -45,7 +45,6 @@ function check(label, raw) {
   assert.ok(d.pocketX < 3, `${label} card is not edge-on (${d.pocketX.toFixed(2)} mm through the sign)`);
   assert.ok(d.pocketZ > d.pocketY + 10, `${label} long side is not vertical`);
   assert.ok(d.barW < 36, `${label} center bar is still card-width (${d.barW})`);
-  assert.ok(d.tip > d.neck + 2, `${label} dovetail has no flare`);
 
   const { card, grown } = grownCard(raw, temps);
   const hitF = front.intersect(card);
@@ -66,26 +65,20 @@ function check(label, raw) {
   assert.ok(cardSpan[0] < 2, `${label} card is thick across the sign (${cardSpan[0].toFixed(2)})`);
   assert.ok(cardSpan[1] > 40 && cardSpan[2] > cardSpan[1], `${label} card is not a vertical fin on the sign`);
 
-  const flareX = d.neck / 2 + Math.min(0.7, (d.tip - d.neck) / 3);
-  const tongueZ = d.tailZ0 + d.tailLen * 0.45;
-  const inTail = Manifold.cube([1.1, 1.2, 5], true).translate([flareX, 0, tongueZ]);
-  const beside = Manifold.cube([d.barW * 0.28, 4, 6], true).translate([0, 0, d.tailZ0 - 8]);
-  const groove = Manifold.cube([d.neck * 0.34, 1.2, 2.4], true).translate([0, 0, d.strokeTop - 1.5]);
+  const beside = Manifold.cube([d.barW * 0.28, 4, 6], true).translate([0, 0, d.caseBottom - 16]);
   const prongL = Manifold.cube([4, 4, 6], true).translate([-d.barW * 0.28, 0, d.strokeTop + 8]);
   const prongR = Manifold.cube([4, 4, 6], true).translate([d.barW * 0.28, 0, d.strokeTop + 8]);
-  const tailOnBack = back.intersect(inTail);
-  const tailOnFront = front.intersect(inTail);
-  const tailHit = Manifold.union([tailOnBack, tailOnFront]);
-  const tailSign = sign.intersect(inTail);
-  temps.push(tailOnBack, tailOnFront);
   const barHit = sign.intersect(beside);
-  const grooveHit = sign.intersect(groove);
-  const prongHit = Manifold.union([sign.intersect(prongL), sign.intersect(prongR)]);
-  temps.push(inTail, beside, groove, prongL, prongR, tailHit, tailSign, barHit, grooveHit, prongHit);
-  assert.ok(tailHit.volume() > 4, `${label} male dovetail missing (${tailHit.volume().toFixed(1)})`);
-  assert.ok(tailSign.volume() < 4, `${label} dovetail is fused to the dollar (${tailSign.volume().toFixed(1)})`);
+  const prongHit = Manifold.union([
+    front.intersect(prongL),
+    back.intersect(prongL),
+    sign.intersect(prongL),
+    front.intersect(prongR),
+    back.intersect(prongR),
+    sign.intersect(prongR),
+  ]);
+  temps.push(beside, prongL, prongR, barHit, prongHit);
   assert.ok(barHit.volume() > 8, `${label} center bar is not solid (${barHit.volume().toFixed(1)})`);
-  assert.ok(grooveHit.volume() < 4, `${label} dovetail slot is closed (${grooveHit.volume().toFixed(1)})`);
   assert.ok(prongHit.volume() < 4, `${label} two pieces still stick up above the dollar (${prongHit.volume().toFixed(1)})`);
   assert.ok(Math.abs(cardBb.max[2] - d.strokeTop) < 0.4, `${label} card top ${cardBb.max[2].toFixed(2)} is not even with the stroke ${d.strokeTop.toFixed(2)}`);
 
@@ -110,32 +103,48 @@ function check(label, raw) {
   const caseSpanX = wallFront.boundingBox().max[0] - wallBack.boundingBox().min[0];
   assert.ok(Math.abs(caseSpanX - d.barW) < 1.2, `${label} case is not as thick as the stroke (${caseSpanX.toFixed(2)} vs ${d.barW.toFixed(2)})`);
   for (const [name, solid] of [
-    ["dollar sign", sign],
+    ["bottom staff", sign],
     ["case back", back],
     ["case front", front],
-    ["lower hook", hook],
   ]) {
     const bits = solid.decompose();
     assert.equal(bits.length, 1, `${label} ${name} is ${bits.length} pieces`);
     for (const bit of bits) bit.delete();
+    const mesh = copyMesh(solid.getMesh());
+    let broken = 0;
+    const stride = mesh.numProp || 3;
+    const v = mesh.vertProperties;
+    const tv = mesh.triVerts;
+    for (let i = 0; i < tv.length; i += 3) {
+      const a = tv[i] * stride;
+      const b = tv[i + 1] * stride;
+      const c = tv[i + 2] * stride;
+      const ax = v[b] - v[a];
+      const ay = v[b + 1] - v[a + 1];
+      const az = v[b + 2] - v[a + 2];
+      const bx = v[c] - v[a];
+      const by = v[c + 1] - v[a + 1];
+      const bz = v[c + 2] - v[a + 2];
+      const area = Math.hypot(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx) * 0.5;
+      if (!(area > 1e-6)) broken++;
+    }
+    assert.equal(broken, 0, `${label} ${name} still has ${broken} broken triangles`);
   }
   const hookTip = Manifold.cube([10, 10, 8], true).translate([d.caseX / 2 + 6, 0, d.strokeTop - 10]);
+  const hookOnFront = front.intersect(hookTip);
   const hookOnBack = back.intersect(hookTip);
   const hookOnSign = sign.intersect(hookTip);
-  temps.push(hookTip, hookOnBack, hookOnSign);
-  assert.ok(hookOnBack.volume() > 15, `${label} the end of the S is not on the back case (${hookOnBack.volume().toFixed(1)})`);
-  assert.ok(hookOnSign.volume() < 4, `${label} the end of the S is still loose on the sign (${hookOnSign.volume().toFixed(1)})`);
-  const tongueDeep = Manifold.cube([3, 10, 4], true).translate([0, 0, d.tailZ0 + d.tailLen * 0.5]);
-  const tongueDeepHit = Manifold.union([front.intersect(tongueDeep), back.intersect(tongueDeep)]);
-  temps.push(tongueDeep, tongueDeepHit);
-  assert.ok(tongueDeepHit.volume() > 70, `${label} dovetail tongue is still a thin fin (${tongueDeepHit.volume().toFixed(1)})`);
+  temps.push(hookTip, hookOnFront, hookOnBack, hookOnSign);
+  assert.ok(hookOnFront.volume() > 15, `${label} the +X end of the S is not on the case front (${hookOnFront.volume().toFixed(1)})`);
+  assert.ok(hookOnBack.volume() < 4, `${label} the +X end of the S is on the back (${hookOnBack.volume().toFixed(1)})`);
+  assert.ok(hookOnSign.volume() < 4, `${label} the +X end of the S is still on the bottom (${hookOnSign.volume().toFixed(1)})`);
   assert.ok(Math.abs(d.signT - 36.8) < 0.05, `${label} S is not four times as thick (${d.signT})`);
   const curveY = d.loopW * 0.42;
   const curveZ = d.strokeTop - d.loopH * 0.22;
   const onPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 - 2, curveZ]);
   const offPlate = Manifold.cube([5, 3, 5], true).translate([curveY, d.signT / 2 + 3, curveZ]);
-  const onHit = Manifold.union([sign.intersect(onPlate), back.intersect(onPlate)]);
-  const offHit = Manifold.union([sign.intersect(offPlate), back.intersect(offPlate)]);
+  const onHit = Manifold.union([sign.intersect(onPlate), front.intersect(onPlate), back.intersect(onPlate)]);
+  const offHit = Manifold.union([sign.intersect(offPlate), front.intersect(offPlate), back.intersect(offPlate)]);
   temps.push(onPlate, offPlate, onHit, offHit);
   assert.ok(onHit.volume() > 4, `${label} thicker S misses the plate (${onHit.volume().toFixed(1)})`);
   assert.ok(offHit.volume() < 2, `${label} S is thicker than four times (${offHit.volume().toFixed(1)})`);
@@ -153,24 +162,41 @@ function check(label, raw) {
     0,
     caseBottom - d.p.stroke * 0.55,
   ]);
-  const waistHit = Manifold.union([sign.intersect(waist), hook.intersect(waist)]);
+  const waistHit = sign.intersect(waist);
   temps.push(waist, waistHit);
   assert.ok(waistHit.volume() > 20, `${label} the S is broken at the waist (${waistHit.volume().toFixed(1)})`);
   const otherTop = Manifold.cube([24, 24, 24], true).translate([-d.loopW * 0.32, 0, d.strokeTop - 20]);
   const otherOnBack = back.intersect(otherTop);
+  const otherOnFront = front.intersect(otherTop);
   const otherOnSign = sign.intersect(otherTop);
-  temps.push(otherTop, otherOnBack, otherOnSign);
-  assert.ok(otherOnBack.volume() > 40, `${label} the other half of the top S is not on the case (${otherOnBack.volume().toFixed(1)})`);
-  assert.ok(otherOnSign.volume() < 4, `${label} the other half of the top S is still on the sign (${otherOnSign.volume().toFixed(1)})`);
-  const edgeTongue = Manifold.cube([4, 8, 12], true).translate([d.barW / 2 - 3.2, -10, d.tailZ0 - 18]);
-  const edgeOnHook = hook.intersect(edgeTongue);
-  const edgeOnSign = sign.intersect(edgeTongue);
-  temps.push(edgeTongue, edgeOnHook, edgeOnSign);
-  assert.ok(edgeOnHook.volume() > 30, `${label} the lower edge dovetail is missing (${edgeOnHook.volume().toFixed(1)})`);
-  assert.ok(edgeOnSign.volume() < 4, `${label} the lower edge dovetail is still filled (${edgeOnSign.volume().toFixed(1)})`);
-  const hookClash = hook.intersect(sign);
-  temps.push(hookClash);
-  assert.ok(hookClash.volume() < 8, `${label} the lower hook intersects the staff (${hookClash.volume().toFixed(1)})`);
+  temps.push(otherTop, otherOnBack, otherOnFront, otherOnSign);
+  assert.ok(otherOnBack.volume() > 40, `${label} the −X half of the top S is not on the case back (${otherOnBack.volume().toFixed(1)})`);
+  assert.ok(otherOnFront.volume() < 4, `${label} the −X half of the top S is on the front (${otherOnFront.volume().toFixed(1)})`);
+  assert.ok(otherOnSign.volume() < 4, `${label} the −X half of the top S is still on the bottom (${otherOnSign.volume().toFixed(1)})`);
+  const half = d.barW / 2;
+  const pocketHalf = d.pocketX / 2;
+  let keyWall = 3.2;
+  if (half - pocketHalf - 2 * keyWall < 3.4) keyWall = Math.max(2.6, (half - pocketHalf - 3.4) / 2);
+  const keyInner = pocketHalf + keyWall;
+  const keyOuter = half - keyWall;
+  const keyX = (keyInner + keyOuter) / 2;
+  const keyW = Math.max(1.2, keyOuter - keyInner - 0.5);
+  const keyUp = Manifold.cube([keyW, 10, 10], true).translate([keyX, 0, d.caseBottom + 5]);
+  const keyDown = Manifold.cube([keyW, 10, 6], true).translate([keyX, 0, d.caseBottom - 4]);
+  const keyOnSign = sign.intersect(keyUp);
+  const keyOnFront = front.intersect(keyUp);
+  const keyOnBack = back.intersect(keyUp);
+  const keyBuried = sign.intersect(keyDown);
+  const innerWall = Manifold.cube([1.1, 6, 6], true).translate([pocketHalf + keyWall * 0.45, 0, d.caseBottom + 6]);
+  const outerWall = Manifold.cube([1.1, 6, 6], true).translate([half - keyWall * 0.45, 0, d.caseBottom + 6]);
+  const innerHit = front.intersect(innerWall);
+  const outerHit = front.intersect(outerWall);
+  temps.push(keyUp, keyDown, keyOnSign, keyOnFront, keyOnBack, keyBuried, innerWall, outerWall, innerHit, outerHit);
+  assert.ok(keyOnSign.volume() > keyUp.volume() * 0.8, `${label} cube key is not on the bottom (${keyOnSign.volume().toFixed(1)})`);
+  assert.ok(keyOnFront.volume() + keyOnBack.volume() < 4, `${label} cube key still fills the case (${(keyOnFront.volume() + keyOnBack.volume()).toFixed(1)})`);
+  assert.ok(keyBuried.volume() > keyDown.volume() * 0.7, `${label} cube key does not reach the bottom staff (${keyBuried.volume().toFixed(1)})`);
+  assert.ok(innerHit.volume() > innerWall.volume() * 0.6, `${label} wall beside the card is thin (${innerHit.volume().toFixed(1)})`);
+  assert.ok(outerHit.volume() > outerWall.volume() * 0.6, `${label} outer wall beside the key is thin (${outerHit.volume().toFixed(1)})`);
   assert.ok(cardBb.min[0] < 0 && cardBb.max[0] > 0 && cardBb.min[1] < -10 && cardBb.max[1] > 10, `${label} S does not cross the middle of the card`);
   assert.ok(cardBb.min[2] > d.socketTop + 28, `${label} card is still down on the socket (z ${cardBb.min[2].toFixed(1)}, socket top ${d.socketTop.toFixed(1)})`);
   const lowHook = Manifold.cube([8, 8, 6], true).translate([d.loopW * 0.35, 0, d.socketTop + 12]);
@@ -221,7 +247,7 @@ function check(label, raw) {
   console.log(
     `${label}: $ ${d.loopW.toFixed(0)}×${d.barH.toFixed(0)} mm, bar ${d.barW.toFixed(1)} mm, ${d.totalH.toFixed(0)} mm tall, ` +
       `pocket edge ${d.pocketX.toFixed(2)} × out ${d.pocketY.toFixed(2)} × tall ${d.pocketZ.toFixed(2)} (perpendicular to the S), ` +
-      `dovetail ${d.neck.toFixed(1)}→${d.tip.toFixed(1)} mm, ` +
+      `cube keys beside the card, ` +
       `thread ID ${d.threadID.toFixed(2)} mm × ${d.p.engage} mm, ` +
       `case ${(front.volume() / 1000 + back.volume() / 1000).toFixed(1)} cm³, sign ${(sign.volume() / 1000).toFixed(1)} cm³`
   );
@@ -235,13 +261,13 @@ check("large loose", { ...DEFAULT_PARAMS, dollarW: 180, stroke: 18, barW: 30, cl
 const temps = [];
 const built = buildShells(wasm, DEFAULT_PARAMS, temps, "preview");
 const text = Buffer.from(
-  assembly3mf(built.front.getMesh(), built.back.getMesh(), built.sign.getMesh(), built.hook.getMesh())
+  assembly3mf(copyMesh(built.front.getMesh()), copyMesh(built.back.getMesh()), copyMesh(built.sign.getMesh()))
 ).toString("latin1");
 assert.equal((text.match(/<item /g) || []).length, 1, "3MF should have one build item");
-assert.equal((text.match(/<component /g) || []).length, 4, "3MF assembly should reference the case, the dollar, and the lower hook");
+assert.equal((text.match(/<component /g) || []).length, 3, "3MF assembly should be the two case shells and the bottom staff");
 assert.ok(text.includes('unit="millimeter"'), "3MF unit");
 assert.ok(
-  text.includes("Case front") && text.includes("Case back") && text.includes("Dollar sign") && text.includes("Lower hook"),
+  text.includes("Case front") && text.includes("Case back") && text.includes("Bottom staff") && !text.includes("Lower hook"),
   "3MF part names"
 );
 for (const t of temps) t.delete?.();

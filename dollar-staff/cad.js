@@ -160,23 +160,6 @@ function strokeSection(CrossSection, pts, half, segs, temps) {
   return acc;
 }
 
-/** Through-bar dovetail. Narrow at the sign faces, wide in the core. Extruded along Z. */
-function bowtie(CrossSection, { neck, tip, yFace, yCore, z0, len }, temps) {
-  const poly = [
-    [-neck / 2, -yFace],
-    [-tip / 2, -yCore],
-    [-tip / 2, yCore],
-    [-neck / 2, yFace],
-    [neck / 2, yFace],
-    [tip / 2, yCore],
-    [tip / 2, -yCore],
-    [neck / 2, -yFace],
-  ];
-  if (polygonArea(poly) < 0) poly.reverse();
-  const cs = keep(temps, new CrossSection([poly]));
-  return keep(temps, cs.extrude(Math.max(0.4, len)).translate([0, 0, z0]));
-}
-
 function polygonArea(pts) {
   let area = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -273,190 +256,13 @@ function beadZ(Manifold, r, len, at, temps) {
   return keep(temps, Manifold.hull([a, b]).translate(at));
 }
 
-/**
- * The case cut leaves the free end of the S as its own solid. Overlap that end
- * into the back shell so the two print as one piece. A wall rail, at least
- * 2.4 mm thick, walks around the card pocket. The front keeps everything
- * below that end, so the lid still slides off.
- */
-function joinLooseStroke(Manifold, sign, back, front, d, temps) {
-  const parts = sign.decompose().map((part) => keep(temps, part));
-  parts.sort((a, b) => b.volume() - a.volume());
-  const body = parts[0];
-  const loose = parts.slice(1).filter((part) => part.volume() > 80);
-  const xFace = d.caseX / 2;
-  const caseTop = d.caseCenterZ + d.caseZ / 2;
-  const pocketHalf = d.pocketX / 2 + 0.15;
-  let cutZ = caseTop;
-
-  for (const island of loose) {
-    const bb = island.boundingBox();
-    if (bb.max[0] <= -xFace + 0.8) {
-      const zh = Math.min(18, Math.max(4, bb.max[2] - bb.min[2]));
-      const zc = Math.min(bb.max[2], caseTop - 0.4) - zh / 2;
-      const grip = boxAt(Manifold, [1.8, Math.max(4, d.signT - 2), zh], [-xFace + 0.5, 0, zc], temps);
-      const pocket = boxAt(
-        Manifold,
-        [d.pocketX + 0.5, d.pocketY + 0.4, d.pocketZ + 0.4],
-        [d.cardCenterX, d.cardCenterY, d.cardCenterZ],
-        temps
-      );
-      const bridge = keep(temps, grip.subtract(pocket).subtract(body));
-      back = keep(temps, back.add(island).add(bridge));
-      continue;
-    }
-
-    const slab = boxAt(
-      Manifold,
-      [4, d.caseY + 4, d.caseZ + 40],
-      [bb.min[0] + 1.4, 0, (bb.min[2] + bb.max[2]) / 2],
-      temps
-    );
-    const contact = keep(temps, island.intersect(slab));
-    if (contact.volume() < 1) {
-      back = keep(temps, back.add(island));
-      continue;
-    }
-    const cb = contact.boundingBox();
-    const z0 = cb.min[2] - 0.15;
-    cutZ = Math.min(cutZ, z0);
-    const z1 = caseTop + 0.15;
-    const zh = Math.max(4, z1 - z0);
-    const zc = z0 + zh / 2;
-    const x0 = pocketHalf;
-    const x1 = bb.min[0] + 2.6;
-    const plate = boxAt(Manifold, [Math.max(2.8, x1 - x0), d.caseY - 0.4, zh], [(x0 + x1) / 2, 0, zc], temps);
-    const railT = Math.max(2.6, d.wall - 0.8);
-    const railY = d.pocketY / 2 + d.wall / 2;
-    const rails = [-1, 1].map((side) =>
-      boxAt(Manifold, [d.caseX - 0.5, railT, zh], [0, side * railY, zc], temps)
-    );
-    const pocket = boxAt(
-      Manifold,
-      [d.pocketX + 0.4, d.pocketY + 0.3, d.pocketZ + 0.3],
-      [d.cardCenterX, d.cardCenterY, d.cardCenterZ],
-      temps
-    );
-    const bridge = keep(temps, Manifold.union([plate, ...rails]).subtract(pocket).subtract(body));
-    const cut = boxAt(Manifold, [d.caseX + 4, d.caseY + 4, zh + 0.35], [xFace / 2, 0, zc + 0.05], temps);
-    front = keep(temps, front.subtract(cut));
-    back = keep(temps, back.add(bridge).add(island));
-  }
-
-  return { sign: body, back, front, cutZ };
-}
-
-/**
- * The other half of the top of the S is still on the sign. Cut it off and
- * join it to the case back with a wall that stays out of the card pocket
- * and out of the center dovetail.
- */
-function joinOtherTopHalf(Manifold, sign, back, front, d, temps) {
-  const mid = d.barCenterZ;
-  const edge = -(d.barW / 2 - 0.45);
-  const cap = boxAt(
-    Manifold,
-    [d.loopW + 10, d.caseY + d.signT, d.strokeTop - mid + 8],
-    [edge - (d.loopW + 10) / 2, 0, (mid + d.strokeTop) / 2],
-    temps
-  );
-  const island = keep(temps, sign.intersect(cap));
-  if (island.volume() < 200) return { sign, back, front };
-  const body = keep(temps, sign.subtract(island));
-  const slotHalf = (d.tip + 2 * d.tailClear) / 2 + 0.6;
-  const xInner = Math.min(-slotHalf - 0.6, -d.barW / 2 + 3.4);
-  const xOuter = edge - 3.4;
-  const span = Math.abs(xInner - xOuter);
-  const y0 = -22;
-  const y1 = 4;
-  const bridge = boxAt(
-    Manifold,
-    [Math.max(4, span), y1 - y0, d.strokeTop - mid + 1],
-    [(xInner + xOuter) / 2, (y0 + y1) / 2, (mid + d.strokeTop) / 2],
-    temps
-  );
-  const pocket = boxAt(
-    Manifold,
-    [d.pocketX + 0.6, d.pocketY + 0.4, d.pocketZ + 0.4],
-    [d.cardCenterX, d.cardCenterY, d.cardCenterZ],
-    temps
-  );
-  const grip = keep(temps, bridge.subtract(pocket).subtract(body));
-  back = keep(temps, back.add(island).add(grip));
-  front = keep(temps, front.subtract(island).subtract(grip));
-  return { sign: body, back, front };
-}
-
-/**
- * The lower hook slides down a dovetail on the +X edge of the stroke.
- * The groove is closed at the bottom and open above the tongue, and it
- * stops short of the case connector.
- */
-function splitLowerHook(wasm, sign, d, temps) {
-  const { CrossSection, Manifold } = wasm;
-  const edge = d.barW / 2;
-  const zTop = d.barCenterZ + 14;
-  const region = boxAt(
-    Manifold,
-    [d.loopW + 8, d.caseY + d.signT, Math.max(8, zTop - 4)],
-    [edge + d.loopW / 2, 0, zTop / 2 + 2],
-    temps
-  );
-  const guard = cylZ(Manifold, d.socketTop + 14, d.socketR + 2.2, 28, [0, d.yCenter, -1], temps);
-  let hook = keep(temps, sign.intersect(region).subtract(guard));
-  const crumbs = hook.decompose().filter((part) => part.volume() > 400);
-  if (!crumbs.length) return { sign, hook: null };
-  crumbs.sort((a, b) => b.volume() - a.volume());
-  const bare = keep(temps, crumbs.length === 1 ? crumbs[0] : Manifold.union(crumbs));
-  hook = bare;
-  const hb = hook.boundingBox();
-  const depth = Math.min(7.2, edge - 3.4);
-  const z0 = Math.max(hb.min[2] + 3, d.socketTop + 12);
-  const z1 = Math.min(hb.max[2] - 6, d.tailZ0 - 6);
-  if (z1 - z0 < 12 || depth < 3) return { sign, hook };
-  const yMid = -10;
-  const tongue = prismZ(
-    CrossSection,
-    [
-      [edge + 1.4, yMid - 4.0],
-      [edge - depth, yMid - 6.2],
-      [edge - depth, yMid + 6.2],
-      [edge + 1.4, yMid + 4.0],
-    ],
-    z0,
-    z1,
-    temps
-  );
-  const groove = prismZ(
-    CrossSection,
-    [
-      [edge + 0.4, yMid - 4.28],
-      [edge - depth - 0.35, yMid - 6.55],
-      [edge - depth - 0.35, yMid + 6.55],
-      [edge + 0.4, yMid + 4.28],
-    ],
-    z0 - 0.4,
-    z1 + 8,
-    temps
-  );
-  hook = keep(temps, bare.add(tongue));
-  sign = keep(temps, sign.subtract(bare).subtract(tongue).subtract(groove));
-  return { sign, hook };
-}
-
-function prismZ(CrossSection, poly, z0, z1, temps) {
-  const pts = poly.slice();
-  if (polygonArea(pts) < 0) pts.reverse();
-  const cs = keep(temps, new CrossSection([pts]));
-  return keep(temps, cs.extrude(Math.max(0.4, z1 - z0)).translate([0, 0, z0]));
-}
 
 /**
  * Sandwich latch, sized like the Photive snap box: a lip at least 2.2 mm
- * thick and a 0.6 mm bead that bites 0.3 mm. Plus a 2.4 mm fin on the
- * dovetail so the case clicks onto the bar instead of sliding back off.
+ * thick and a 0.6 mm bead that bites 0.3 mm. The two case halves snap
+ * around the card. No dovetail.
  */
-function latchShells(Manifold, front, back, sign, d, cutZ, temps) {
+function latchShells(Manifold, front, back, d, temps) {
   const proud = 2.2;
   const beadR = 0.6;
   const clear = 0.28;
@@ -466,7 +272,6 @@ function latchShells(Manifold, front, back, sign, d, cutZ, temps) {
   const yRib = d.pocketY / 2 + d.wall / 2;
   const zs = [caseBottom + d.wall + 9, d.cardCenterZ - d.pocketZ * 0.2];
   for (const z of zs) {
-    if (z + ribLen / 2 > cutZ - 1.2) continue;
     if (z - ribLen / 2 < caseBottom + d.wall) continue;
     for (const side of [-1, 1]) {
       const rib = boxAt(Manifold, [proud, ribT, ribLen], [proud / 2, side * yRib, z], temps);
@@ -483,19 +288,7 @@ function latchShells(Manifold, front, back, sign, d, cutZ, temps) {
     }
   }
 
-  const finT = 2.4;
-  const finW = 8;
-  const finH = 10;
-  const finX = -(d.tip / 2 + finT / 2 + 0.8);
-  const finZ = caseBottom - finH / 2 + 2.6;
-  const fin = boxAt(Manifold, [finT, finW, finH], [finX, 0, finZ], temps);
-  const nub = beadZ(Manifold, beadR, 6, [finX - finT / 2, 0, finZ - 1.4], temps);
-  back = keep(temps, back.add(fin).add(nub));
-  const recess = boxAt(Manifold, [finT + 0.55, finW + 0.55, finH + 0.4], [finX, 0, finZ - 0.5], temps);
-  const seat = beadZ(Manifold, beadR + 0.22, 6.6, [finX - finT / 2 - 0.12, 0, finZ - 1.4], temps);
-  const lead = boxAt(Manifold, [finT + 1.8, finW + 0.55, 3.4], [finX - 0.4, 0, caseBottom - 1.4], temps);
-  sign = keep(temps, sign.subtract(recess).subtract(seat).subtract(lead));
-  return { front, back, sign };
+  return { front, back };
 }
 
 export function buildShells(wasm, raw, temps, quality = "preview") {
@@ -516,30 +309,14 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
 
   // The vertical stroke is deepened perpendicular to the S, out to the case faces,
   // so the card box is the top of that stroke instead of a block stuck on the sign.
-  const deepH = Math.max(4, layout.top - layout.bottom);
+  // Slightly inside the stroke so the union does not share a face with the S.
+  // A shared face is what leaves zero-area triangles in the mesh.
+  const deepH = Math.max(4, layout.top - layout.bottom - 0.6);
   const deep = keep(
     temps,
-    Manifold.cube([d.barW, d.caseY, deepH], true).translate([0, 0, (layout.top + layout.bottom) / 2])
+    Manifold.cube([Math.max(8, d.barW - 0.8), d.caseY, deepH], true).translate([0, 0, (layout.top + layout.bottom) / 2])
   );
   sign = keep(temps, sign.add(deep));
-
-  const caseBox = keep(
-    temps,
-    Manifold.cube([d.caseX, d.caseY, d.caseZ], true).translate([0, 0, d.caseCenterZ])
-  );
-  const slot = bowtie(
-    CrossSection,
-    {
-      neck: d.tip + 2 * d.tailClear,
-      tip: d.tip + 2 * d.tailClear,
-      yFace: Math.max(0.8, d.yCore - 0.2),
-      yCore: Math.max(0.5, d.yCore - 0.45),
-      z0: d.slotZ0,
-      len: d.slotLen,
-    },
-    temps
-  );
-  sign = keep(temps, sign.subtract(caseBox).subtract(slot));
 
   const caseProfile = keep(
     temps,
@@ -547,19 +324,6 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   );
   const caseEx = keep(temps, caseProfile.extrude(d.caseX));
   let caseSolid = standAcross(caseEx, d.xCaseBack, temps);
-  const male = bowtie(
-    CrossSection,
-    {
-      neck: d.tip - 0.35,
-      tip: d.tip - 0.15,
-      yFace: Math.max(0.7, d.yCore - 0.55),
-      yCore: Math.max(0.4, d.yCore - 0.9),
-      z0: d.tailZ0,
-      len: d.tailLen,
-    },
-    temps
-  );
-  caseSolid = keep(temps, caseSolid.add(male));
 
   const pocketProfile = keep(
     temps,
@@ -585,28 +349,55 @@ export function buildShells(wasm, raw, temps, quality = "preview") {
   const socket = keep(temps, Manifold.union([cup, neck]));
   sign = keep(temps, sign.add(socket));
 
-  const joined = joinLooseStroke(Manifold, sign, back, front, d, temps);
-  sign = joined.sign;
-  back = joined.back;
-  front = joined.front;
-  const otherTop = joinOtherTopHalf(Manifold, sign, back, front, d, temps);
-  sign = otherTop.sign;
-  back = otherTop.back;
-  front = otherTop.front;
-  const latched = latchShells(Manifold, front, back, sign, d, joined.cutZ, temps);
-  sign = latched.sign;
-  back = latched.back;
+  // One plane cut, the way Meshy and Tripo cap a split. The case stays with the
+  // two snap shells. The lower S and the broom screw stay one solid. A straight
+  // cube key on each side of the card joins them. No dovetail.
+  const splitZ = d.caseBottom;
+  const span = d.loopW + 80;
+  const low = keep(temps, Manifold.cube([span, d.caseY + 40, splitZ + 20], false).translate([-span / 2, -(d.caseY + 40) / 2, -20]));
+  const high = keep(temps, Manifold.cube([span, d.caseY + 40, d.strokeTop + 80], false).translate([-span / 2, -(d.caseY + 40) / 2, splitZ]));
+  const caseBox = keep(temps, Manifold.cube([d.caseX, d.caseY, d.caseZ], true).translate([0, 0, d.caseCenterZ]));
+  let bottom = keep(temps, sign.intersect(low).subtract(caseBox));
+  const upper = keep(temps, sign.intersect(high));
+  const keys = [-1, 1].map((side) => cubeKey(Manifold, d, side, 0, temps));
+  const sockets = [-1, 1].map((side) => cubeKey(Manifold, d, side, 0.35, temps));
+  bottom = keep(temps, Manifold.union([bottom, ...keys]));
+  const right = keep(temps, upper.intersect(frontSpace).subtract(pocket));
+  const left = keep(temps, upper.intersect(backSpace).subtract(pocket));
+  front = keep(temps, front.add(right).subtract(sockets[1]));
+  back = keep(temps, back.add(left).subtract(sockets[0]));
+  const latched = latchShells(Manifold, front, back, d, temps);
   front = latched.front;
-  const lowered = splitLowerHook(wasm, sign, d, temps);
-  sign = lowered.sign;
-  const hook = lowered.hook;
+  back = latched.back;
 
   assertOk(front, "case front");
   assertOk(back, "case back");
-  assertOk(sign, "dollar sign");
+  assertOk(bottom, "bottom staff");
   assertOk(cup, "socket test");
-  if (hook) assertOk(hook, "lower hook");
-  return { front, back, sign, hook, socket: cup, d };
+  return { front, back, sign: bottom, socket: cup, d };
+}
+
+/** Cube connector on one side of the card slot. grow opens the matching socket. */
+function cubeKey(Manifold, d, side, grow, temps) {
+  const half = d.barW / 2;
+  const pocketHalf = d.pocketX / 2;
+  const available = half - pocketHalf;
+  let wall = 3.2;
+  if (available - 2 * wall < 3.4) wall = Math.max(2.6, (available - 3.4) / 2);
+  const inner = pocketHalf + wall - grow;
+  const outer = half - wall + grow;
+  const x0 = side * inner;
+  const x1 = side * outer;
+  const xMin = Math.min(x0, x1);
+  const xMax = Math.max(x0, x1);
+  const z0 = d.caseBottom - 10 - grow;
+  const z1 = d.caseBottom + 18 + grow;
+  return boxAt(
+    Manifold,
+    [xMax - xMin, 18 + 2 * grow, z1 - z0],
+    [(xMin + xMax) / 2, 0, (z0 + z1) / 2],
+    temps
+  );
 }
 
 /** The broom socket only: 3/4"-5 ACME female thread, no neck and no dollar sign. */
@@ -677,11 +468,29 @@ export function cardSolid(wasm, raw, temps) {
   return standAcross(ex, d.cardCenterX - CARD.t / 2, temps);
 }
 
+/** Drop zero-area triangles. A shared face from a boolean can leave a collapsed one. */
 export function copyMesh(mesh) {
+  const stride = mesh.numProp || 3;
+  const src = mesh.vertProperties;
+  const tris = mesh.triVerts;
+  const kept = [];
+  for (let t = 0; t < tris.length; t += 3) {
+    const ia = tris[t] * stride;
+    const ib = tris[t + 1] * stride;
+    const ic = tris[t + 2] * stride;
+    const ax = src[ib] - src[ia];
+    const ay = src[ib + 1] - src[ia + 1];
+    const az = src[ib + 2] - src[ia + 2];
+    const bx = src[ic] - src[ia];
+    const by = src[ic + 1] - src[ia + 1];
+    const bz = src[ic + 2] - src[ia + 2];
+    const area = Math.hypot(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx) * 0.5;
+    if (area > 1e-6) kept.push(tris[t], tris[t + 1], tris[t + 2]);
+  }
   return {
-    numProp: mesh.numProp || 3,
-    vertProperties: new Float32Array(mesh.vertProperties),
-    triVerts: new Uint32Array(mesh.triVerts),
+    numProp: stride,
+    vertProperties: new Float32Array(src),
+    triVerts: new Uint32Array(kept),
   };
 }
 
@@ -704,28 +513,28 @@ export async function buildDollar(raw, { quality = "preview" } = {}) {
   const wasm = await loadManifold();
   const temps = [];
   try {
-    const { front, back, sign, hook, socket, d } = buildShells(wasm, raw, temps, quality);
+    const { front, back, sign, socket, d } = buildShells(wasm, raw, temps, quality);
+    const frontMesh = copyMesh(front.getMesh());
+    const backMesh = copyMesh(back.getMesh());
+    const signMesh = copyMesh(sign.getMesh());
+    const socketMesh = copyMesh(socket.getMesh());
     return {
       d,
-      frontMesh: copyMesh(front.getMesh()),
-      backMesh: copyMesh(back.getMesh()),
-      signMesh: copyMesh(sign.getMesh()),
-      hookMesh: hook ? copyMesh(hook.getMesh()) : null,
-      socketMesh: copyMesh(socket.getMesh()),
-      frontPositions: meshPositions(front.getMesh()),
-      backPositions: meshPositions(back.getMesh()),
-      signPositions: meshPositions(sign.getMesh()),
-      hookPositions: hook ? meshPositions(hook.getMesh()) : null,
+      frontMesh,
+      backMesh,
+      signMesh,
+      socketMesh,
+      frontPositions: meshPositions(frontMesh),
+      backPositions: meshPositions(backMesh),
+      signPositions: meshPositions(signMesh),
       frontVolume: front.volume(),
       backVolume: back.volume(),
       signVolume: sign.volume(),
-      hookVolume: hook ? hook.volume() : 0,
       socketVolume: socket.volume(),
-      frontTris: front.getMesh().triVerts.length / 3,
-      backTris: back.getMesh().triVerts.length / 3,
-      signTris: sign.getMesh().triVerts.length / 3,
-      hookTris: hook ? hook.getMesh().triVerts.length / 3 : 0,
-      socketTris: socket.getMesh().triVerts.length / 3,
+      frontTris: frontMesh.triVerts.length / 3,
+      backTris: backMesh.triVerts.length / 3,
+      signTris: signMesh.triVerts.length / 3,
+      socketTris: socketMesh.triVerts.length / 3,
     };
   } finally {
     deleteAll(temps);
@@ -771,16 +580,15 @@ const FRONT_COLOR = "#3CB371FF";
 const BACK_COLOR = "#1F8A4CFF";
 const SIGN_COLOR = "#0E4D32FF";
 
-const HOOK_COLOR = "#16724AFF";
-
-export function assembly3mf(frontMesh, backMesh, signMesh, hookMesh) {
-  const parts = [
-    { name: "Case front", mesh: frontMesh, color: FRONT_COLOR },
-    { name: "Case back", mesh: backMesh, color: BACK_COLOR },
-    { name: "Dollar sign", mesh: signMesh, color: SIGN_COLOR },
-  ];
-  if (hookMesh) parts.push({ name: "Lower hook", mesh: hookMesh, color: HOOK_COLOR });
-  return meshesTo3mf(parts, "Dollar staff");
+export function assembly3mf(frontMesh, backMesh, signMesh) {
+  return meshesTo3mf(
+    [
+      { name: "Case front", mesh: frontMesh, color: FRONT_COLOR },
+      { name: "Case back", mesh: backMesh, color: BACK_COLOR },
+      { name: "Bottom staff", mesh: signMesh, color: SIGN_COLOR },
+    ],
+    "Dollar staff"
+  );
 }
 
 /** Export-quality STL of the broom socket alone. Does not build the dollar sign. */
@@ -809,10 +617,9 @@ export async function buildExports(raw) {
     ...built,
     frontStl: meshToStl(built.frontMesh, "dollar-staff-case-front"),
     backStl: meshToStl(built.backMesh, "dollar-staff-case-back"),
-    signStl: meshToStl(built.signMesh, "dollar-staff-sign"),
-    hookStl: built.hookMesh ? meshToStl(built.hookMesh, "dollar-staff-lower-hook") : null,
+    signStl: meshToStl(built.signMesh, "dollar-staff-bottom"),
     socketStl: meshToStl(built.socketMesh, "dollar-staff-socket-test"),
-    threemf: assembly3mf(built.frontMesh, built.backMesh, built.signMesh, built.hookMesh),
+    threemf: assembly3mf(built.frontMesh, built.backMesh, built.signMesh),
   };
 }
 
