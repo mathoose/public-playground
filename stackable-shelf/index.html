@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v1 -->
+<!-- build: stackable-shelf-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/stackable-shelf-f2df/3d-printing/index.html">← 3D printing library</a>
         <h1>Stackable shelf</h1>
       </div>
-      <p id="header-version">v1 · Nov 17, 2026</p>
+      <p id="header-version">v2 · Nov 17, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -53,7 +53,7 @@
       <details class="settings-group" open>
         <summary>Pattern</summary>
         <div class="group-body">
-          <p class="group-note">Hexagon or square openings, and the same shape for the legs and the corner sockets. The count is how many fit along the length. The width takes as many whole rows as fit.</p>
+          <p class="group-note">Openings can be hexagons or squares. The legs and the sockets stay hexagonal either way. Wall thickness is the material between the holes. The count is how many fit along the length, and the width takes as many whole rows as fit.</p>
           <div class="seg">
             <button class="chip active" type="button" data-pattern="hex" aria-pressed="true">Hexagon</button>
             <button class="chip" type="button" data-pattern="square" aria-pressed="false">Square</button>
@@ -62,6 +62,11 @@
             <label for="count" id="count-label">Number of hexagons</label>
             <output id="count-out">4</output>
             <input id="count" type="range" min="1" max="16" step="1" value="4" />
+          </div>
+          <div class="row">
+            <label for="wall">Wall thickness</label>
+            <output id="wall-out">4.0 mm</output>
+            <input id="wall" type="range" min="1.2" max="20" step="0.1" value="4" data-unit="mm" />
           </div>
         </div>
       </details>
@@ -99,14 +104,14 @@
           <p class="notes">
             The flat piece and the legs are separate. The flat piece prints on its face.
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
-            The hole-offset test is one corner and one socket, at the offset you set. Print that first and try a leg in the hole.
+            The legs stay hexagonal when the openings are square. The hole-offset test is one corner and one hexagonal socket, at the offset you set. Print that first and try a leg in the hole.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
             Press each leg into a top socket, then set the next shelf’s bottom sockets on the leg tops.
             PETG holds a load better than PLA. 0.2 mm layers, 4 walls, 20% infill.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v1 · Nov 17, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v2 · Nov 17, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

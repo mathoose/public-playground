@@ -88,6 +88,8 @@ function layOnFace(solid, temps) {
   return laid;
 }
 
+const LEG_PATTERN = "hex";
+
 function buildFlat(wasm, d, temps) {
   const { CrossSection: CS } = wasm;
   const plate2d = roundedRect(CS, d.p.shelfLength, d.p.shelfWidth, d.cornerR, 16, temps);
@@ -98,12 +100,12 @@ function buildFlat(wasm, d, temps) {
   }
   for (const socket of d.sockets) {
     cutters.push(
-      prism(CS, d.p.pattern, d.holeFlat, d.socketDepth + 0.4, socket.x, socket.y, -0.2, temps)
+      prism(CS, LEG_PATTERN, d.holeFlat, d.socketDepth + 0.4, socket.x, socket.y, -0.2, temps)
     );
     cutters.push(
       prism(
         CS,
-        d.p.pattern,
+        LEG_PATTERN,
         d.holeFlat,
         d.socketDepth + 0.4,
         socket.x,
@@ -119,7 +121,7 @@ function buildFlat(wasm, d, temps) {
 
 function buildLeg(wasm, d, temps) {
   const { CrossSection: CS } = wasm;
-  return prism(CS, d.p.pattern, d.legFlat, d.printedLeg, 0, 0, 0, temps);
+  return prism(CS, LEG_PATTERN, d.legFlat, d.printedLeg, 0, 0, 0, temps);
 }
 
 function buildLegsFlat(wasm, d, temps) {
@@ -147,7 +149,7 @@ function buildTest(wasm, d, temps) {
   let plate = keep(temps, plate2d.extrude(d.p.thickness));
   const cutter = prism(
     CS,
-    d.p.pattern,
+    LEG_PATTERN,
     d.holeFlat,
     d.socketDepth + 0.4,
     d.coupon.holeX,

@@ -22,7 +22,7 @@ Browser apps for parts you can customize and download as STL.
 | [`../poop-bag-holder/`](../poop-bag-holder/) | Poop bag holder: screw-cap tube, S-slot rim, keyring tab |
 | [`../bone-side-bag/`](../bone-side-bag/) | Bone side bag: skeleton cup or phone cage, snap-together bone chain, separate STLs or one joint 3MF |
 | [`../pumpkin-lantern/`](../pumpkin-lantern/) | Pumpkin lantern: drop in the With Hole file, resize the bottom opening to a flat LED, and cut a round cord hole |
-| [`../stackable-shelf/`](../stackable-shelf/) | Stackable shelf: hexagon or square openings, separate legs that print flat, and a one-hole corner fit test |
+| [`../stackable-shelf/`](../stackable-shelf/) | Stackable shelf: hexagon or square openings, hexagonal legs, wall thickness between the holes, and a one-hole corner fit test |
 | [`lamp.html`](lamp.html) | Shade list for BambooSegD / Bambu LED Lamp Kit-001 |
 | [`../private/`](../private/) | PIN-locked personal-use models (encrypted vault; see its README) |
 

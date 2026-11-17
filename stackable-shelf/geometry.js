@@ -3,15 +3,15 @@
  *
  * The uploaded reference is a 200 mm plate, 6 mm thick, with a grid of openings
  * and four 10 mm round legs. Each leg nests about 0.4 mm per side into a socket
- * on the next shelf (10 mm leg, 10.8 mm hole). Here the legs and sockets are
- * hexagons or squares, and the legs are a separate piece so they print on a face.
+ * on the next shelf (10 mm leg, 10.8 mm hole). Openings can be hexagons or
+ * squares. The legs and the sockets stay hexagonal, and the legs print on a face.
  *
  * Leg length is the clear height between the top of one shelf and the bottom of
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "1 · Nov 17, 2026";
-export const APP_VERSION_TAG = "v1";
+export const APP_VERSION = "2 · Nov 17, 2026";
+export const APP_VERSION_TAG = "v2";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -28,6 +28,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   shelfWidth: 200,
   pattern: "hex",
   count: 4,
+  wall: 4,
   thickness: 6,
   holeOffset: 0.4,
 });
@@ -37,14 +38,14 @@ export const SLIDERS = [
   { key: "shelfLength", label: "Shelf length", min: 60, max: 450, step: 1, unit: "mm", group: "size" },
   { key: "shelfWidth", label: "Shelf width", min: 60, max: 450, step: 1, unit: "mm", group: "size" },
   { key: "count", label: "Along the length", min: 1, max: 16, step: 1, unit: "", group: "pattern" },
+  { key: "wall", label: "Wall thickness", min: 1.2, max: 20, step: 0.1, unit: "mm", group: "pattern" },
   { key: "thickness", label: "Flat-piece thickness", min: 2.4, max: 16, step: 0.1, unit: "mm", group: "stock" },
   { key: "holeOffset", label: "Hole offset", min: 0, max: 2, step: 0.05, unit: "mm", group: "stock" },
 ];
 
 const LEG_FLAT = 10;
+const LEG_PATTERN = "hex";
 const RIM = 3.2;
-const WALL_PREFER = 4;
-const WALL_MIN = 2.4;
 const OPEN_MIN = 8;
 const WEB = 1.2;
 const PATTERN_GAP = 2.4;
@@ -134,47 +135,39 @@ function cornerRadiusFor(inset, circum) {
   return Math.round(Math.min(5, limit) * 100) / 100;
 }
 
-function layoutSquares(availableL, availableW, count) {
+function layoutSquares(availableL, availableW, count, wall) {
   for (let n = count; n >= 1; n--) {
-    for (const wall of [WALL_PREFER, WALL_MIN]) {
-      let open = (availableL - (n + 1) * wall) / n;
-      const openMax = availableW - 2 * wall;
-      if (open > openMax) open = openMax;
-      if (open < OPEN_MIN - 0.05) continue;
-      let rows = Math.max(1, Math.floor((availableW - wall) / (open + wall) + 1e-6));
-      while (rows > 1 && rows * open + (rows + 1) * wall > availableW + 0.05) rows -= 1;
-      const gridW = rows * open + (rows + 1) * wall;
-      if (gridW > availableW + 0.05) continue;
-      return { countUsed: n, rows, cellFlat: open, wall };
-    }
+    let open = (availableL - (n + 1) * wall) / n;
+    const openMax = availableW - 2 * wall;
+    if (open > openMax) open = openMax;
+    if (open < OPEN_MIN - 0.05) continue;
+    let rows = Math.max(1, Math.floor((availableW - wall) / (open + wall) + 1e-6));
+    while (rows > 1 && rows * open + (rows + 1) * wall > availableW + 0.05) rows -= 1;
+    const gridW = rows * open + (rows + 1) * wall;
+    if (gridW > availableW + 0.05) continue;
+    return { countUsed: n, rows, cellFlat: open, wall };
   }
-  const wall = WALL_MIN;
-  const cellFlat = Math.max(6, Math.min(availableL, availableW) - 2 * wall);
-  return { countUsed: 1, rows: 1, cellFlat, wall };
+  return { countUsed: 0, rows: 0, cellFlat: 0, wall };
 }
 
-function layoutHex(availableL, availableW, count) {
+function layoutHex(availableL, availableW, count, wall) {
   for (let n = count; n >= 1; n--) {
-    for (const wall of [WALL_PREFER, WALL_MIN]) {
-      let cellFlat = (availableL - (n - 1) * wall) / n;
-      const flatMax = (availableW * Math.sqrt(3)) / 2 - 0.2;
-      if (cellFlat > flatMax) cellFlat = flatMax;
-      if (cellFlat < OPEN_MIN - 0.05) continue;
-      const height = (2 * cellFlat) / Math.sqrt(3);
-      const pitch = cellFlat + wall;
-      const rowPitch = (pitch * Math.sqrt(3)) / 2;
-      if (height > availableW + 0.05) continue;
-      let rows = 1 + Math.floor((availableW - height) / rowPitch + 1e-6);
-      rows = Math.max(1, rows);
-      const totalY = (rows - 1) * rowPitch + height;
-      if (totalY > availableW + 0.05) rows -= 1;
-      if (rows < 1) continue;
-      return { countUsed: n, rows, cellFlat, wall };
-    }
+    let cellFlat = (availableL - (n - 1) * wall) / n;
+    const flatMax = (availableW * Math.sqrt(3)) / 2 - 0.2;
+    if (cellFlat > flatMax) cellFlat = flatMax;
+    if (cellFlat < OPEN_MIN - 0.05) continue;
+    const height = (2 * cellFlat) / Math.sqrt(3);
+    const pitch = cellFlat + wall;
+    const rowPitch = (pitch * Math.sqrt(3)) / 2;
+    if (height > availableW + 0.05) continue;
+    let rows = 1 + Math.floor((availableW - height) / rowPitch + 1e-6);
+    rows = Math.max(1, rows);
+    const totalY = (rows - 1) * rowPitch + height;
+    if (totalY > availableW + 0.05) rows -= 1;
+    if (rows < 1) continue;
+    return { countUsed: n, rows, cellFlat, wall };
   }
-  const wall = WALL_MIN;
-  const cellFlat = Math.max(6, Math.min(availableL, (availableW * Math.sqrt(3)) / 2));
-  return { countUsed: 1, rows: 1, cellFlat, wall };
+  return { countUsed: 0, rows: 0, cellFlat: 0, wall };
 }
 
 function squareCells(length, width, layout) {
@@ -227,7 +220,7 @@ export function derive(raw) {
   const p = clampParams(raw);
   const legFlat = LEG_FLAT;
   const holeFlat = legFlat + 2 * p.holeOffset;
-  const circum = circumRadius(p.pattern, holeFlat);
+  const circum = circumRadius(LEG_PATTERN, holeFlat);
   const inset = circum + RIM;
   const cornerR = cornerRadiusFor(inset, circum);
   const socketDepth = socketDepthFor(p.thickness);
@@ -251,8 +244,8 @@ export function derive(raw) {
 
   const layout =
     p.pattern === "square"
-      ? layoutSquares(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count)
-      : layoutHex(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count);
+      ? layoutSquares(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count, p.wall)
+      : layoutHex(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count, p.wall);
 
   let cells =
     p.pattern === "square" ? squareCells(p.shelfLength, p.shelfWidth, layout) : hexCells(layout);
@@ -273,8 +266,10 @@ export function derive(raw) {
   if (socketDepth < 2) {
     notes.push("The sockets are shallow. A thicker flat piece gives the legs more to sit in.");
   }
-  if (layout.cellFlat < 12) {
-    notes.push("The openings are small. Fewer along the length leaves a stronger shelf.");
+  if (layout.countUsed === 0) {
+    notes.push("That wall is too thick for an opening. Lower the wall thickness or the count.");
+  } else if (layout.cellFlat < 12) {
+    notes.push("The openings are small. A thinner wall, or fewer along the length, leaves more room.");
   }
   if (p.shelfLength > 350 || p.shelfWidth > 350) {
     notes.push("A side over 350 mm may not fit the bed in one piece.");

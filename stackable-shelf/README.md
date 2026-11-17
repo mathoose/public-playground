@@ -1,6 +1,6 @@
 # Stackable shelf
 
-A shelf plate with hexagon or square openings, and matching legs and corner sockets. The flat piece and the legs are separate downloads, so the legs print on a face.
+A shelf plate with hexagon or square openings. The legs and the corner sockets stay hexagonal either way. Wall thickness is the material between the holes. The flat piece and the legs are separate downloads, so the legs print on a face.
 
 Defaults follow the uploaded 200 × 200 × 6 mm shelf: 10 mm legs, 0.40 mm of room on each side of the socket, and 100 mm of clear height between shelves.
 

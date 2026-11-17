@@ -67,10 +67,19 @@ const wide = await buildShelf({ holeOffset: 1.2 });
 assert.ok(wide.d.holeFlat > built.d.holeFlat, "offset widens the socket");
 assert.equal(wide.test.genus, 0);
 
+const thick = derive({ wall: 8 });
+assert.equal(thick.wall, 8);
+assert.ok(thick.cellFlat < hex.cellFlat, "a thicker wall leaves a smaller opening");
+
 const squared = await buildShelf({ pattern: "square" });
 const squareLegs = sizeOf(boundsOf(meshToPositions(squared.legs)));
-close(squareLegs[2], 10, 0.15, "square legs lie on a face");
-close(squared.legs.volume, 4 * profileArea("square", 10) * squared.d.printedLeg, 1, "square leg volume");
+close(squareLegs[2], 10, 0.15, "legs still lie on a face");
+close(squared.legs.volume, 4 * profileArea("hex", 10) * squared.d.printedLeg, 1, "legs stay hexagonal");
+const squarePocket = profileArea("hex", squared.d.holeFlat) * squared.d.socketDepth;
+const squareFillet = squared.d.coupon.size ** 2 - squared.d.cornerR ** 2 * (4 - Math.PI);
+close(squareFillet * squared.d.p.thickness - squared.test.volume, squarePocket, 20, "square openings, hexagonal test hole");
+assert.equal(squared.test.genus, 0);
+assert.ok(squared.flat.genus > 0, "square openings still go through");
 
 const bytes = new Uint8Array(built.threemf);
 assert.equal(bytes[0], 0x50);

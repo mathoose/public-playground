@@ -30,8 +30,10 @@ function skipLibrary() {
 }
 
 function startingParams() {
-  if (skipLibrary() || !wantsRestore()) return mergeParams(DEFAULT_PARAMS);
-  return mergeParams(lastSettings(APP_ID) || DEFAULT_PARAMS);
+  const base = skipLibrary() || !wantsRestore() ? DEFAULT_PARAMS : lastSettings(APP_ID) || DEFAULT_PARAMS;
+  const pattern = pageSearch.get("pattern");
+  if (skipLibrary() && (pattern === "square" || pattern === "hex")) return mergeParams({ ...base, pattern });
+  return mergeParams(base);
 }
 
 function noteDownload(filename) {
@@ -84,8 +86,8 @@ function renderReadout(result) {
   const shape = patternNoun(d.p.pattern);
   $("readout").innerHTML = `
     Shelf <b>${fmt(d.p.shelfLength, 0)} × ${fmt(d.p.shelfWidth, 0)} × ${fmt(d.p.thickness)} mm</b><br />
-    ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across<br />
-    Legs <b>${fmt(d.legFlat, 0)} mm</b> across · clear height ${fmt(d.p.legLength, 0)} mm · printed ${fmt(d.printedLeg)} mm<br />
+    ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across · walls ${fmt(d.wall)} mm<br />
+    Hexagonal legs <b>${fmt(d.legFlat, 0)} mm</b> across · clear height ${fmt(d.p.legLength, 0)} mm · printed ${fmt(d.printedLeg)} mm<br />
     Sockets <b>${fmt(d.holeFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm offset each side) · ${fmt(d.socketDepth)} mm deep<br />
     Hole test <b>${fmt(d.coupon.size)} mm</b> corner, one socket<br />
     PETG ~<b>${grams(result?.flat.volume)} g</b> flat + <b>${grams(result?.legs.volume)} g</b> legs
