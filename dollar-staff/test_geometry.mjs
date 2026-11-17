@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Card is edge-on to the S, both shells are real solids, broom thread ID is a 3/4"-5 ACME minor.
+// Card is edge-on to the S, both shells are real solids, broom socket is the tapered thread.
 import assert from "node:assert/strict";
 import { CARD, DEFAULT_PARAMS, THREAD_ID, derive } from "./geometry.js";
 import { assembly3mf, buildShells, cardSolid, copyMesh, loadManifold } from "./cad.js";
@@ -35,9 +35,10 @@ function check(label, raw) {
     assert.ok(solid.getMesh().triVerts.length / 3 > 80, `${label} ${name} triangles`);
   }
 
-  assert.ok(d.threadID > 13.2 && d.threadID < 16.5, `${label} thread ID ${d.threadID} outside 3/4"-5 ACME minor`);
+  assert.ok(d.threadID > 19 && d.threadID < 22, `${label} mouth crest ${d.threadID} is not the tapered broom thread`);
   assert.ok(Math.abs(d.threadID - THREAD_ID) < 1e-9, `${label} thread ID drifted`);
-  assert.ok(d.pitch > 5.07 && d.pitch < 5.09, `${label} pitch ${d.pitch}`);
+  assert.ok(Math.abs(d.pitch - 4.4) < 1e-9, `${label} pitch ${d.pitch}`);
+  assert.ok(d.threadRoot > d.threadID + 2, `${label} groove is not wider than the crest`);
 
   assert.ok(d.pocketX >= CARD.t + d.p.clearance - 1e-6, `${label} pocket is not thick enough for the edge`);
   assert.ok(d.pocketY >= CARD.w + 2 * d.p.clearance - 1e-6, `${label} pocket does not stick out the short side`);
@@ -206,23 +207,13 @@ function check(label, raw) {
   assert.ok(Math.abs(signBb.min[2]) < 0.2, `${label} socket mouth not on z=0 (${signBb.min[2]})`);
   assert.ok(caseBb.min[2] > d.socketTop - 2, `${label} snap case includes the socket (z ${caseBb.min[2]})`);
 
-  const probeR = d.threadID / 2 - 0.35;
-  const probe = Manifold.cylinder(d.p.engage * 0.45, probeR, probeR, 32, false).translate([
-    0,
-    d.yCenter,
-    d.threadStart + d.p.engage * 0.3,
-  ]);
-  const biteR = d.threadID / 2 + 1.15;
-  const bite = Manifold.cylinder(d.p.engage * 0.4, biteR, biteR, 32, false).translate([
-    0,
-    d.yCenter,
-    d.threadStart + d.leadIn + 2,
-  ]);
+  const probe = Manifold.cylinder(d.threadLen, 8.3, 8.3, 32, false).translate([0, d.yCenter, d.threadStart]);
+  const bite = Manifold.cylinder(10, 9.7, 9.7, 32, false).translate([0, d.yCenter, d.threadStart + 6]);
   const clearHit = sign.intersect(probe);
   const crestHit = sign.intersect(bite);
   temps.push(probe, bite, clearHit, crestHit);
-  assert.ok(clearHit.volume() < 8, `${label} bore narrower than thread ID (${clearHit.volume().toFixed(2)})`);
-  assert.ok(crestHit.volume() > 40, `${label} thread crests do not reach the minor ID (${crestHit.volume().toFixed(1)})`);
+  assert.ok(clearHit.volume() < 8, `${label} the bore is closed (${clearHit.volume().toFixed(2)})`);
+  assert.ok(crestHit.volume() > 15, `${label} the taper does not close down onto a straight plug (${crestHit.volume().toFixed(1)})`);
 
   assert.equal(socket.status(), "NoError", `${label} socket test status`);
   const socketParts = socket.decompose();
@@ -238,7 +229,7 @@ function check(label, raw) {
   const socketCrest = socket.intersect(bite);
   temps.push(socketClear, socketCrest);
   assert.ok(socketClear.volume() < 8, `${label} socket test bore is blocked (${socketClear.volume().toFixed(2)})`);
-  assert.ok(socketCrest.volume() > 40, `${label} socket test has no thread (${socketCrest.volume().toFixed(1)})`);
+  assert.ok(socketCrest.volume() > 15, `${label} socket test has no thread (${socketCrest.volume().toFixed(1)})`);
   const above = Manifold.cube([80, 80, 40], true).translate([0, 0, d.socketTop + 30]);
   const aboveHit = socket.intersect(above);
   temps.push(above, aboveHit);

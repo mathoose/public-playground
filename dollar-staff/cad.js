@@ -170,48 +170,6 @@ function polygonArea(pts) {
   return area / 2;
 }
 
-/**
- * ACME ridge cross-section at z = 0. Axial width maps to angle so a twisted
- * extrusion becomes a helix. rTip is the crest (minor), rRoot is buried in the wall.
- */
-function threadSection(CrossSection, { rRoot, rFlank, rTip, widthAt, pitch, flankStep }) {
-  const ang = (w) => (w / pitch) * Math.PI;
-  const pts = [];
-  const arc = (r, a0, a1, n) => {
-    for (let i = 0; i <= n; i++) {
-      const a = a0 + ((a1 - a0) * i) / n;
-      pts.push([r * Math.cos(a), r * Math.sin(a)]);
-    }
-  };
-  const aRoot = ang(widthAt(rFlank));
-  const flankN = Math.max(4, Math.ceil(Math.abs(aRoot - ang(widthAt(rTip))) / flankStep));
-  arc(rRoot, -aRoot, aRoot, Math.max(6, Math.ceil(aRoot / 0.14)));
-  for (let i = 0; i <= flankN; i++) {
-    const r = rFlank + ((rTip - rFlank) * i) / flankN;
-    pts.push([r * Math.cos(ang(widthAt(r))), r * Math.sin(ang(widthAt(r)))]);
-  }
-  const aTip = ang(widthAt(rTip));
-  arc(rTip, aTip, -aTip, Math.max(2, Math.ceil((2 * aTip) / 0.1)));
-  for (let i = flankN; i >= 0; i--) {
-    const r = rFlank + ((rTip - rFlank) * i) / flankN;
-    pts.push([r * Math.cos(-ang(widthAt(r))), r * Math.sin(-ang(widthAt(r)))]);
-  }
-  if (polygonArea(pts) < 0) pts.reverse();
-  return new CrossSection([pts]);
-}
-
-function helix(cs, z0, length, pitch, twistStep, temps) {
-  const twist = (length / pitch) * 360;
-  const div = Math.max(8, Math.ceil(Math.abs(twist) / twistStep));
-  const ex = keep(temps, cs.extrude(length, div, twist));
-  return keep(temps, ex.translate([0, 0, z0]));
-}
-
-function revolveProfile(CrossSection, pts, segs, temps) {
-  const cs = keep(temps, new CrossSection([pts]));
-  return keep(temps, cs.revolve(segs));
-}
-
 /** Profile in XY (x = width, y = height), extruded, then stood up: thickness along Y, height along Z. */
 function standUp(solid, yBack, temps) {
   const stood = keep(
@@ -400,60 +358,51 @@ function cubeKey(Manifold, d, side, grow, temps) {
   );
 }
 
-/** The broom socket only: 3/4"-5 ACME female thread, no neck and no dollar sign. */
+/**
+ * Female socket for the tapered broom thread. The hole is the male tooth,
+ * grown by the fit clearance, large at the mouth and smaller inside.
+ * Subtracting that solid (instead of adding a skinny ridge to a straight bore)
+ * is what leaves flanks a screw can climb.
+ */
 function threadedSocket(wasm, d, q, temps) {
   const { CrossSection, Manifold } = wasm;
-  const { minorR, majorR, pitch } = d;
-  const tan = Math.tan((14.5 * Math.PI) / 180);
-  const wTip = 0.3707 * pitch;
-  const wRoot = wTip + (majorR - minorR) * 2 * tan;
-  const widthAt = (r) => {
-    const t = clamp01((r - minorR) / Math.max(0.2, majorR - minorR));
-    return wTip + (wRoot - wTip) * t;
-  };
-  const section = keep(
-    temps,
-    threadSection(CrossSection, {
-      rRoot: majorR + 0.45,
-      rFlank: majorR,
-      rTip: minorR,
-      widthAt,
-      pitch,
-      flankStep: q.flankStep,
-    })
-  );
-  const threadLen = d.p.engage + pitch;
-  const threadZ = d.threadStart - pitch * 0.35;
-  let ridge = helix(section, threadZ, threadLen, pitch, q.twistStep, temps);
-  const clip = revolveProfile(
-    CrossSection,
-    [
-      [0, d.threadStart - 0.2],
-      [minorR - 0.3, d.threadStart - 0.2],
-      [majorR + 0.55, d.threadStart + d.leadIn],
-      [majorR + 0.55, d.threadStart + d.p.engage - d.leadIn],
-      [minorR - 0.3, d.threadStart + d.p.engage + 0.2],
-      [0, d.threadStart + d.p.engage + 0.2],
-    ],
-    q.segs,
-    temps
-  );
-  ridge = keep(temps, ridge.intersect(clip));
-  ridge = keep(temps, ridge.translate([0, d.yCenter, 0]));
+  const pitch = d.pitch;
+  const taperLen = Math.min(d.threadLen, Math.max(pitch * 2, d.p.engage));
+  const male = taperedMale(wasm, d, q, taperLen, temps);
+  const placed = keep(temps, male.translate([0, d.yCenter, d.threadStart]));
 
   const outer = cylZ(Manifold, d.socketTop, d.socketR, q.segs, [0, d.yCenter, 0], temps);
-  const bore = cylZ(Manifold, d.boreEnd + 0.4, majorR, q.segs, [0, d.yCenter, -0.2], temps);
-  const mouth = keep(
+  const leadTop = d.mouthGroove;
+  const lead = keep(
     temps,
-    Manifold.cylinder(2.2, majorR + 1.4, majorR, q.segs, false).translate([0, d.yCenter, -0.2])
+    Manifold.cylinder(d.threadStart + 0.4, leadTop + 0.8, leadTop, q.segs, false).translate([0, d.yCenter, -0.15])
   );
-  let socket = keep(temps, outer.subtract(bore).subtract(mouth));
-  socket = keep(temps, socket.add(ridge));
+  const reliefR = d.smallGroove;
+  const reliefZ = d.threadStart + taperLen - 0.3;
+  const relief = cylZ(Manifold, Math.max(1, d.boreEnd - reliefZ + 0.4), reliefR, q.segs, [0, d.yCenter, reliefZ], temps);
+  let socket = keep(temps, outer.subtract(lead).subtract(placed).subtract(relief));
   return socket;
 }
 
-function clamp01(t) {
-  return Math.min(1, Math.max(0, t));
+/** Solid male of the measured tooth, from the large end at z=0 toward the small end. */
+function taperedMale(wasm, d, q, taperLen, temps) {
+  const { CrossSection } = wasm;
+  const n = d.maleSmall.length;
+  const grow = d.threadClear;
+  const mouthLift = d.threadTaper * d.threadLen;
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const r = d.maleSmall[i] + mouthLift + grow;
+    const a = (i / n) * Math.PI * 2;
+    pts.push([r * Math.cos(a), r * Math.sin(a)]);
+  }
+  if (polygonArea(pts) < 0) pts.reverse();
+  const section = keep(temps, new CrossSection([pts]));
+  const twist = (taperLen / d.pitch) * 360;
+  const div = Math.max(12, Math.ceil(Math.abs(twist) / q.twistStep));
+  const mouthCrest = Math.max(...d.maleSmall) + mouthLift + grow;
+  const scaleTop = Math.max(0.4, (mouthCrest - d.threadTaper * taperLen) / mouthCrest);
+  return keep(temps, section.extrude(taperLen, div, twist, [scaleTop, scaleTop]));
 }
 
 /** Real ID-1 card, centered in the pocket. For fit checks — not part of the print. */

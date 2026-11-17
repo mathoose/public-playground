@@ -1,7 +1,7 @@
 /** Dollar-sign staff top. A solid $ screws onto a broom. Two snap shells hold the card and seat on cube keys. */
 
-export const APP_VERSION = "16 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v16";
+export const APP_VERSION = "17 · Nov 16, 2026";
+export const APP_VERSION_TAG = "v17";
 export const APP_NAME = "Dollar staff";
 
 /** ISO/IEC 7810 ID-1. Long side is h, short side is w, thickness is t. */
@@ -12,15 +12,28 @@ export const CARD = Object.freeze({
   corner: 3.18,
 });
 
-/** 3/4"-5 general-purpose ACME (ASME B1.5). Female socket, right-hand. */
-export const ACME_TPI = 5;
-export const ACME_PITCH = 25.4 / ACME_TPI;
-export const ACME_BASIC_MAJOR = 0.75 * 25.4;
-export const ACME_BASIC_MINOR = ACME_BASIC_MAJOR - ACME_PITCH;
-/** Printed crest-to-crest hole. A little over the basic minor so a wood thread starts. */
-export const THREAD_ID = ACME_BASIC_MINOR + 0.5;
-/** Internal major (groove). Clear of the 19.05 mm male crest. */
-export const THREAD_ROOT = ACME_BASIC_MAJOR + 0.7;
+/**
+ * Tapered broom thread measured from the adapter that actually screws on
+ * (MakerWorld 2888295, the deep end). Pitch 4.40 mm. Radius grows 0.0699 mm
+ * per mm of length, from a small tip to a large base, over 16 mm.
+ * Radii below are the male tooth at the small end. The socket is the female
+ * of that tooth, 0.22 mm larger, large end at the mouth.
+ */
+export const THREAD_PITCH = 4.4;
+export const THREAD_TAPER = 0.0699;
+export const THREAD_LEN = 16;
+export const THREAD_CLEAR = 0.22;
+/** Male radii at the small end, one pitch, crest then down into the root and back. */
+export const THREAD_MALE_SMALL = Object.freeze([
+  10.2, 10.18, 10.15, 10.12, 10.07, 10.0, 9.93, 9.83, 9.7, 9.55, 9.37, 9.23, 9.12, 9.03, 8.97, 8.91, 8.87, 8.84, 8.82,
+  8.83, 8.88, 8.91, 8.97, 9.06, 9.16, 9.3, 9.51, 9.7, 9.84, 9.95, 10.03, 10.09, 10.14, 10.17, 10.19, 10.2,
+]);
+const threadSmallRoot = Math.min(...THREAD_MALE_SMALL);
+const threadSmallCrest = Math.max(...THREAD_MALE_SMALL);
+/** Smallest hole at the mouth: the female crest, which clears the male root. */
+export const THREAD_ID = 2 * (threadSmallRoot + THREAD_TAPER * THREAD_LEN + THREAD_CLEAR);
+/** Widest groove at the mouth: clears the male crest. */
+export const THREAD_ROOT = 2 * (threadSmallCrest + THREAD_TAPER * THREAD_LEN + THREAD_CLEAR);
 
 export const DEFAULT_PARAMS = Object.freeze({
   dollarW: 128,
@@ -65,7 +78,7 @@ export function fileName(part) {
 
 /**
  * Layout in millimeters. Z up, socket mouth on z = 0. This replaces a screw-off broom
- * head: the 3/4"-5 socket is at the bottom, and the dollar sign and card sit up on a
+ * head: the tapered broom socket is at the bottom, and the dollar sign and card sit up on a
  * neck, clear of the handle. The sign is one S with a single vertical stroke through
  * it. That stroke ends at the top of the S, even with the top of the card. The snap
  * case is only as thick as the stroke. The stroke is deepened perpendicular to the
@@ -74,11 +87,13 @@ export function fileName(part) {
  */
 export function derive(raw) {
   const p = mergeParams(raw);
-  const pitch = ACME_PITCH;
+  const pitch = THREAD_PITCH;
   const threadID = THREAD_ID;
   const threadRoot = THREAD_ROOT;
   const minorR = threadID / 2;
   const majorR = threadRoot / 2;
+  const mouthGroove = majorR;
+  const smallGroove = Math.max(...THREAD_MALE_SMALL) + THREAD_CLEAR;
 
   // Pocket after a 90° yaw: thin along X, short side along Y, long side along Z.
   const pocketX = CARD.t + p.clearance;
@@ -170,6 +185,12 @@ export function derive(raw) {
     threadRoot,
     minorR,
     majorR,
+    threadLen: THREAD_LEN,
+    threadTaper: THREAD_TAPER,
+    threadClear: THREAD_CLEAR,
+    maleSmall: THREAD_MALE_SMALL,
+    mouthGroove,
+    smallGroove,
     pocketX,
     pocketY,
     pocketZ,

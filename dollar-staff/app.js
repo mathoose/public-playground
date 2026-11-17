@@ -95,7 +95,7 @@ function renderReadout(result) {
     Card pocket <b>${d.pocketZ.toFixed(2)} × ${d.pocketY.toFixed(2)} × ${d.pocketX.toFixed(2)} mm</b>
     — edge-on, S four times as thick along the card, flush with the stroke, square bottom corners, top even with the stroke, ISO card + ${d.p.clearance.toFixed(2)} mm each side<br />
     Cube keys seat the case on the bottom staff · each shell carries its half of the top S<br />
-    Socket <b>3/4″-5 ACME</b> · minor ID <b>${d.threadID.toFixed(2)} mm</b> · pitch <b>${d.pitch.toFixed(2)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />
+    Tapered broom thread · pitch <b>${d.pitch.toFixed(2)} mm</b> · mouth <b>${d.threadID.toFixed(1)} mm</b> · <b>${d.p.engage.toFixed(0)} mm</b> engagement<br />
     Case front + case back + bottom staff · PLA ~<b>${grams} g</b>
   `;
 }
