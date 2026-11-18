@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v4 -->
+<!-- build: stackable-shelf-v5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,10 +11,10 @@
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/stackable-shelf-f2df/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/shelf-twist-lock-40ec/3d-printing/index.html">← 3D printing library</a>
         <h1>Stackable shelf</h1>
       </div>
-      <p id="header-version">v4 · Nov 17, 2026</p>
+      <p id="header-version">v5 · Nov 17, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -74,7 +74,11 @@
       <details class="settings-group" open>
         <summary>Fit</summary>
         <div class="group-body">
-          <p class="group-note">Flat-piece thickness is the shelf plate. Hole offset is extra room on each side of the leg at the bottom of the socket. Negative is a press fit. The mouth is wider so the leg starts, then the walls tighten as you press it in. Print the corner test before the full shelf.</p>
+          <div class="seg">
+            <button class="chip active" type="button" data-fit="twist" aria-pressed="true">Twist lock</button>
+            <button class="chip" type="button" data-fit="press" aria-pressed="false">Press fit</button>
+          </div>
+          <p class="group-note">Twist lock is a short clockwise turn. The hook stops under the catch with clear air between them. Press fit is the tapered hex socket. Hole offset is extra room on each side of the plain hex seat. Print the corner test before the full shelf.</p>
           <div class="row">
             <label for="thickness">Flat-piece thickness</label>
             <output id="thickness-out">8.0 mm</output>
@@ -96,7 +100,7 @@
             <button type="button" class="wide" data-download="3mf">Download joint 3MF</button>
             <button type="button" class="secondary" data-download="flat">Flat piece STL</button>
             <button type="button" class="secondary" data-download="legs">Legs STL</button>
-            <button type="button" class="secondary" data-download="test">Hole-offset test STL</button>
+            <button type="button" class="secondary" data-download="test">Socket test STL</button>
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
           <div id="readout" class="readout"></div>
@@ -104,14 +108,16 @@
           <p class="notes">
             The flat piece and the legs are separate. The flat piece prints on its face.
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
-            The legs stay hexagonal when the openings are square. The hole-offset test is one corner and one hexagonal socket, tapered, at the offset you set. Print that first and press a leg in.
+            The legs stay hexagonal when the openings are square.
+            Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The other end of each leg is a plain hex seat.
+            Press fit: the socket is wider at the mouth and tightens toward the floor. Hole offset changes that seat.
+            The socket test is one corner and one socket. Print that first.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
-            Press each leg into a top socket until it seats, then set the next shelf’s bottom sockets on the leg tops.
             PETG holds a load better than PLA. 0.2 mm layers, 4 walls, 20% infill.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v4 · Nov 17, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v5 · Nov 17, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

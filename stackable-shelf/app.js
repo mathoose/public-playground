@@ -32,14 +32,18 @@ function skipLibrary() {
 function startingParams() {
   const base = skipLibrary() || !wantsRestore() ? DEFAULT_PARAMS : lastSettings(APP_ID) || DEFAULT_PARAMS;
   const pattern = pageSearch.get("pattern");
-  if (skipLibrary() && (pattern === "square" || pattern === "hex")) {
-    const extra = { pattern };
+  const fit = pageSearch.get("fit");
+  if (skipLibrary() && (pattern === "square" || pattern === "hex" || fit === "press" || fit === "twist")) {
+    const extra = {};
+    if (pattern === "square" || pattern === "hex") extra.pattern = pattern;
+    if (fit === "press" || fit === "twist") extra.fit = fit;
     for (const spec of SLIDERS) {
       const raw = pageSearch.get(spec.key);
       if (raw != null && raw !== "") extra[spec.key] = Number(raw);
     }
     return mergeParams({ ...base, ...extra });
   }
+  if (fit === "press" || fit === "twist") return mergeParams({ ...base, fit });
   return mergeParams(base);
 }
 
@@ -74,6 +78,11 @@ function writeParams(next) {
     btn.classList.toggle("active", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
   });
+  document.querySelectorAll("[data-fit]").forEach((btn) => {
+    const on = btn.getAttribute("data-fit") === params.fit;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
   const noun = patternNoun(params.pattern);
   const countLabel = $("count-label");
   if (countLabel) countLabel.textContent = `Number of ${noun}`;
@@ -91,12 +100,15 @@ function renderReadout(result) {
   $("warnings").innerHTML = d.warnings.map((note) => `<p class="warn">${note}</p>`).join("");
   const grams = (volume) => (result ? ((volume / 1000) * 1.27).toFixed(1) : "—");
   const shape = patternNoun(d.p.pattern);
+  const seat = d.twist
+    ? `Twist lock · <b>${fmt(d.twist.gap, 2)} mm</b> clear between the hook and the catch · socket ${fmt(d.socketDepth)} mm deep · plain seat ${fmt(d.mouthFlat)} mm`
+    : `Press fit · mouth <b>${fmt(d.mouthFlat)} mm</b>, floor <b>${fmt(d.floorFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep`;
   $("readout").innerHTML = `
     Shelf <b>${fmt(d.p.shelfLength, 0)} × ${fmt(d.p.shelfWidth, 0)} × ${fmt(d.p.thickness)} mm</b><br />
     ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across · walls ${fmt(d.wall)} mm<br />
     Hexagonal legs <b>${fmt(d.legFlat, 0)} mm</b> across · clear height ${fmt(d.p.legLength, 0)} mm · printed ${fmt(d.printedLeg)} mm<br />
-    Sockets <b>${fmt(d.mouthFlat)} mm</b> at the mouth, <b>${fmt(d.floorFlat)} mm</b> at the floor (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep<br />
-    Hole test <b>${fmt(d.coupon.size)} mm</b> corner, one socket<br />
+    ${seat}<br />
+    Socket test <b>${fmt(d.coupon.size)} mm</b> corner, one socket<br />
     PETG ~<b>${grams(result?.flat.volume)} g</b> flat + <b>${grams(result?.legs.volume)} g</b> legs
   `;
 }
@@ -149,7 +161,7 @@ async function downloadKind(kind) {
 }
 
 function sameParams(a, b) {
-  return SLIDERS.every((spec) => a[spec.key] === b[spec.key]) && a.pattern === b.pattern;
+  return SLIDERS.every((spec) => a[spec.key] === b[spec.key]) && a.pattern === b.pattern && a.fit === b.fit;
 }
 
 function bind() {
@@ -168,6 +180,15 @@ function bind() {
       const pattern = btn.getAttribute("data-pattern");
       if (params.pattern === pattern) return;
       params = mergeParams({ ...params, pattern });
+      writeParams(params);
+      scheduleRebuild();
+    });
+  });
+  document.querySelectorAll("[data-fit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fit = btn.getAttribute("data-fit");
+      if (params.fit === fit) return;
+      params = mergeParams({ ...params, fit });
       writeParams(params);
       scheduleRebuild();
     });

@@ -11,8 +11,8 @@
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "4 · Nov 17, 2026";
-export const APP_VERSION_TAG = "v4";
+export const APP_VERSION = "5 · Nov 17, 2026";
+export const APP_VERSION_TAG = "v5";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -32,6 +32,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   wall: 4,
   thickness: 8,
   holeOffset: -0.1,
+  fit: "twist",
 });
 
 export const SLIDERS = [
@@ -71,7 +72,8 @@ export function clampParams(raw) {
     return snap(n, s.step);
   };
   const pattern = raw?.pattern === "square" ? "square" : "hex";
-  const out = { pattern };
+  const fit = raw?.fit === "press" ? "press" : "twist";
+  const out = { pattern, fit };
   for (const s of SLIDERS) out[s.key] = num(s.key);
   out.count = Math.round(out.count);
   return out;
@@ -219,17 +221,108 @@ function keepClear(cells, sockets, cellRadius, holeRadius) {
   );
 }
 
+/**
+ * Twist-lock numbers. The gap is empty air between the top of the flat hook
+ * and the underside of the catch. It is not a press, and nothing is shaded across it.
+ * Hooks sit on the flats at 60° and 240°, so a plain flat can lie on the bed.
+ */
+export function twistLayout(thickness) {
+  const hookRadial = 1.55;
+  const hookHalfWidth = 1.05;
+  const hookHeight = 1.8;
+  const gap = 0.55;
+  const sideClear = 0.4;
+  const tipClear = 0.4;
+  const turnClear = 0.28;
+  const tip = 1.15;
+  const floorGap = 0.28;
+  const hookAngle = 60;
+  const twist = 40;
+  const apothem = LEG_FLAT / 2;
+  const vertex = circumRadius(LEG_PATTERN, LEG_FLAT);
+  const hookTipR = apothem + hookRadial;
+  const holeR = vertex + turnClear;
+  const pocketOuter = hookTipR + tipClear;
+  const innerHalf = (Math.atan(hookHalfWidth / apothem) * 180) / Math.PI;
+  const slotHalf = (Math.atan((hookHalfWidth + sideClear) / (apothem + 0.4)) * 180) / Math.PI;
+  const locked = hookAngle - twist;
+  const lead = locked - innerHalf;
+  const trail = locked + innerHalf;
+  const stop = lead - 2.6;
+  const slotNear = hookAngle - slotHalf;
+  const landEnd = trail + 1.4;
+  const slope = Math.min(landEnd + 11, slotNear);
+  let land = 1.15;
+  let depth = land + gap + hookHeight + tip;
+  const webMin = 0.8;
+  let bottom = Math.min(2.6, Math.max(0, thickness - depth - webMin));
+  if (bottom < 1.6 && thickness >= depth + 1.6 + webMin) bottom = 1.6;
+  let fits = thickness >= depth + bottom + webMin - 0.05 && bottom >= 1.5;
+  if (!fits && thickness >= 6.4) {
+    land = 0.9;
+    depth = land + gap + hookHeight + tip;
+    bottom = Math.max(1.5, thickness - depth - webMin);
+    fits = thickness >= depth + bottom + 0.7;
+  }
+  const web = thickness - depth - bottom;
+  return {
+    fits,
+    hookRadial,
+    hookHalfWidth,
+    hookHeight,
+    gap,
+    sideClear,
+    tipClear,
+    turnClear,
+    tip,
+    floorGap,
+    hookAngle,
+    twist,
+    apothem,
+    vertex,
+    hookTipR,
+    holeR,
+    pocketOuter,
+    innerHalf,
+    slotHalf,
+    locked,
+    lead,
+    trail,
+    stop,
+    slotNear,
+    landEnd,
+    slope,
+    land,
+    depth,
+    bottom,
+    web,
+  };
+}
+
 export function derive(raw) {
   const p = clampParams(raw);
   const legFlat = LEG_FLAT;
   const floorFlat = legFlat + 2 * p.holeOffset;
   const mouthFlat = floorFlat + 2 * MOUTH_RELIEF;
   const holeFlat = floorFlat;
-  const circum = circumRadius(LEG_PATTERN, mouthFlat);
-  const inset = circum + RIM;
+  const twistTry = p.fit === "twist" ? twistLayout(p.thickness) : null;
+  const twist = twistTry?.fits ? twistTry : null;
+  const bore = twist ? twist.pocketOuter : circumRadius(LEG_PATTERN, mouthFlat);
+  const circum = bore;
+  let inset = circum + RIM;
+  if (twist) {
+    for (let i = 0; i < 4; i++) {
+      const radius = cornerRadiusFor(inset, circum);
+      const need = radius + (circum + radius + 0.9) / Math.SQRT2;
+      if (need <= inset) break;
+      inset = need;
+    }
+  }
   const cornerR = cornerRadiusFor(inset, circum);
-  const socketDepth = socketDepthFor(p.thickness);
-  const printedLeg = p.legLength + 2 * socketDepth;
+  const pressDepth = socketDepthFor(p.thickness);
+  const socketDepth = twist ? twist.depth : pressDepth;
+  const bottomDepth = twist ? twist.bottom : pressDepth;
+  const printedLeg = p.legLength + socketDepth + bottomDepth;
 
   const sockets = [
     { x: p.shelfLength / 2 - inset, y: p.shelfWidth / 2 - inset },
@@ -238,7 +331,7 @@ export function derive(raw) {
     { x: -(p.shelfLength / 2 - inset), y: -(p.shelfWidth / 2 - inset) },
   ];
 
-  let margin = inset + circum + PATTERN_GAP;
+  let margin = inset + circum + PATTERN_GAP + (twist ? cornerR : 0);
   let availableL = p.shelfLength - 2 * margin;
   let availableW = p.shelfWidth - 2 * margin;
   if (availableL < 28 || availableW < 28) {
@@ -263,12 +356,19 @@ export function derive(raw) {
       `Only ${layout.countUsed} ${patternNoun(p.pattern)} fit along this shelf, so the count came down from ${p.count}.`
     );
   }
-  if (p.holeOffset < -0.2) {
+  if (p.fit === "twist" && !twist) {
+    notes.push("This plate is too thin for the twist lock. It is at least 8 mm on the default shelf. Press fit is still available.");
+  }
+  if (twist) {
+    notes.push(
+      `Twist lock leaves ${twist.gap.toFixed(2)} mm of clear air between the hook and the catch. The other end of the leg is a plain hex seat.`
+    );
+  } else if (p.holeOffset < -0.2) {
     notes.push("That offset is a hard press. Print the corner test before the full shelf.");
   } else if (p.holeOffset > 0.15) {
     notes.push("A positive offset is a slip fit. The leg can move in the socket. The corner test shows the gap.");
   }
-  if (socketDepth < 2) {
+  if (!twist && socketDepth < 2) {
     notes.push("The sockets are shallow. A thicker flat piece gives the legs more to sit in.");
   }
   if (layout.countUsed === 0) {
@@ -290,7 +390,9 @@ export function derive(raw) {
     inset,
     cornerR,
     socketDepth,
+    bottomDepth,
     printedLeg,
+    twist,
     margin,
     sockets,
     cells,
