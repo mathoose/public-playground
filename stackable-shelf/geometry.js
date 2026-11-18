@@ -11,8 +11,8 @@
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "5 · Nov 17, 2026";
-export const APP_VERSION_TAG = "v5";
+export const APP_VERSION = "6 · Nov 17, 2026";
+export const APP_VERSION_TAG = "v6";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -224,11 +224,14 @@ function keepClear(cells, sockets, cellRadius, holeRadius) {
 /**
  * Twist-lock numbers. The gap is empty air between the top of the flat hook
  * and the underside of the catch. It is not a press, and nothing is shaded across it.
- * Hooks sit on the flats at 60° and 240°, so a plain flat can lie on the bed.
+ * Hooks sit on the flats at 60° and 240°. The ear is twice as long and twice as
+ * wide as the first lock, and the twist is long enough for that wider ear to
+ * leave the lead-in and sit under the catch. Corners that would hang past the
+ * bed flats are clipped when the leg is built, so a flat still lies on the bed.
  */
 export function twistLayout(thickness) {
-  const hookRadial = 1.55;
-  const hookHalfWidth = 1.05;
+  const hookRadial = 3.1;
+  const hookHalfWidth = 2.1;
   const hookHeight = 1.8;
   const gap = 0.55;
   const sideClear = 0.4;
@@ -237,21 +240,23 @@ export function twistLayout(thickness) {
   const tip = 1.15;
   const floorGap = 0.28;
   const hookAngle = 60;
-  const twist = 40;
   const apothem = LEG_FLAT / 2;
   const vertex = circumRadius(LEG_PATTERN, LEG_FLAT);
   const hookTipR = apothem + hookRadial;
   const holeR = vertex + turnClear;
   const pocketOuter = hookTipR + tipClear;
-  const innerHalf = (Math.atan(hookHalfWidth / apothem) * 180) / Math.PI;
+  const root = Math.max(0.8, apothem - 0.16);
+  const innerHalf = (Math.atan(hookHalfWidth / root) * 180) / Math.PI;
   const slotHalf = (Math.atan((hookHalfWidth + sideClear) / (apothem + 0.4)) * 180) / Math.PI;
+  const slopeSpan = 11;
+  const twist = innerHalf + slotHalf + slopeSpan + 2;
   const locked = hookAngle - twist;
   const lead = locked - innerHalf;
   const trail = locked + innerHalf;
   const stop = lead - 2.6;
   const slotNear = hookAngle - slotHalf;
-  const landEnd = trail + 1.4;
-  const slope = Math.min(landEnd + 11, slotNear);
+  const landEnd = trail + 1.2;
+  const slope = Math.min(landEnd + slopeSpan, slotNear);
   let land = 1.15;
   let depth = land + gap + hookHeight + tip;
   const webMin = 0.8;

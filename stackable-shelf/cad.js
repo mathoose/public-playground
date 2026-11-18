@@ -183,6 +183,33 @@ function twistSocket(CS, d, x, y, temps) {
   return { cuts, bumps };
 }
 
+function clipStrip(poly, limit) {
+  const clip = (pts, keepSide, at) => {
+    if (!pts.length) return [];
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const ka = keepSide(a);
+      const kb = keepSide(b);
+      if (ka && kb) out.push(b);
+      else if (ka && !kb) out.push(at(a, b));
+      else if (!ka && kb) {
+        out.push(at(a, b));
+        out.push(b);
+      }
+    }
+    return out;
+  };
+  const cross = (a, b, x) => {
+    const t = (x - a[0]) / (b[0] - a[0] || 1e-9);
+    return [x, a[1] + (b[1] - a[1]) * t];
+  };
+  let pts = clip(poly, (p) => p[0] <= limit, (a, b) => cross(a, b, limit));
+  pts = clip(pts, (p) => p[0] >= -limit, (a, b) => cross(a, b, -limit));
+  return pts;
+}
+
 function hookSection(t, angle) {
   const a = (angle * Math.PI) / 180;
   const ca = Math.cos(a);
@@ -190,12 +217,15 @@ function hookSection(t, angle) {
   const x0 = t.apothem - 0.16;
   const x1 = t.apothem + t.hookRadial;
   const w = t.hookHalfWidth;
-  return [
+  const raw = [
     [x0, -w],
     [x1, -w],
     [x1, w],
     [x0, w],
   ].map(([px, py]) => [px * ca - py * sa, px * sa + py * ca]);
+  // The bed flats are the ±X faces. Clip the ear flush with them so the
+  // doubled ear still prints on a face.
+  return clipStrip(raw, t.apothem);
 }
 
 function buildFlat(wasm, d, temps) {
@@ -253,6 +283,16 @@ function buildLegsStanding(wasm, d, temps) {
   const z = d.p.thickness - d.socketDepth;
   const copies = d.sockets.map((socket) => keep(temps, one.translate([socket.x, socket.y, z])));
   return copies;
+}
+
+function buildSocketLeg(wasm, d, temps) {
+  const { CrossSection: CS } = wasm;
+  let leg = buildLeg(wasm, d, temps);
+  const stub = d.socketDepth + 9;
+  const box = keep(temps, CS.square([48, 48], true).extrude(stub));
+  leg = keep(temps, leg.intersect(box));
+  const z = d.p.thickness - d.socketDepth;
+  return keep(temps, leg.translate([d.coupon.holeX, d.coupon.holeY, z]));
 }
 
 function buildTest(wasm, d, temps) {
@@ -355,11 +395,13 @@ export async function buildShelf(raw) {
     const standing = buildLegsStanding(wasm, d, temps);
     const standingSolid = unionAll(standing, temps);
     const testSolid = buildTest(wasm, d, temps);
+    const socketLegSolid = buildSocketLeg(wasm, d, temps);
 
     const flat = capture(flatSolid);
     const legs = capture(legsSolid);
     const legsStanding = capture(standingSolid);
     const test = capture(testSolid);
+    const socketLeg = capture(socketLegSolid);
     const legMeshes = standing.map((solid, index) => ({
       name: `Leg ${index + 1}`,
       color: "#C4A574FF",
@@ -380,6 +422,7 @@ export async function buildShelf(raw) {
       legs,
       legsStanding,
       test,
+      socketLeg,
       threemf,
       stl: {
         flat: meshToStl(flat, "flat"),

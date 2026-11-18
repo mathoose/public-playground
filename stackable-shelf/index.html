@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v5 -->
+<!-- build: stackable-shelf-v6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
         <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/shelf-twist-lock-40ec/3d-printing/index.html">← 3D printing library</a>
         <h1>Stackable shelf</h1>
       </div>
-      <p id="header-version">v5 · Nov 17, 2026</p>
+      <p id="header-version">v6 · Nov 17, 2026</p>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -23,6 +23,7 @@
         <button type="button" class="chip active" data-view="stack">Stack</button>
         <button type="button" class="chip" data-view="shelf">Shelf</button>
         <button type="button" class="chip" data-view="legs">Legs</button>
+        <button type="button" class="chip" data-view="socket">Socket</button>
         <button type="button" class="chip" data-view="test">Hole test</button>
       </div>
       <button type="button" class="view-btn" id="resetView">Reset view</button>
@@ -109,7 +110,7 @@
             The flat piece and the legs are separate. The flat piece prints on its face.
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
             The legs stay hexagonal when the openings are square.
-            Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The other end of each leg is a plain hex seat.
+            Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The Socket view is one socket with the leg in it, so you can see that gap as you change the fit. The other end of each leg is a plain hex seat.
             Press fit: the socket is wider at the mouth and tightens toward the floor. Hole offset changes that seat.
             The socket test is one corner and one socket. Print that first.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
@@ -117,7 +118,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v5 · Nov 17, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v6 · Nov 17, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

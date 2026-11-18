@@ -101,7 +101,7 @@ function renderReadout(result) {
   const grams = (volume) => (result ? ((volume / 1000) * 1.27).toFixed(1) : "—");
   const shape = patternNoun(d.p.pattern);
   const seat = d.twist
-    ? `Twist lock · <b>${fmt(d.twist.gap, 2)} mm</b> clear between the hook and the catch · socket ${fmt(d.socketDepth)} mm deep · plain seat ${fmt(d.mouthFlat)} mm`
+    ? `Twist lock · ears <b>${fmt(d.twist.hookRadial)} mm</b> out · <b>${fmt(d.twist.gap, 2)} mm</b> clear under the catch · socket ${fmt(d.socketDepth)} mm deep`
     : `Press fit · mouth <b>${fmt(d.mouthFlat)} mm</b>, floor <b>${fmt(d.floorFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep`;
   $("readout").innerHTML = `
     Shelf <b>${fmt(d.p.shelfLength, 0)} × ${fmt(d.p.shelfWidth, 0)} × ${fmt(d.p.thickness)} mm</b><br />

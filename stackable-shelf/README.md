@@ -2,7 +2,7 @@
 
 A shelf plate with hexagon or square openings. The legs and the corner sockets stay hexagonal either way. Wall thickness is the material between the holes. The flat piece and the legs are separate downloads, so the legs print on a face.
 
-Defaults are a 200 × 200 × 8 mm shelf, 10 mm hexagonal legs, and 100 mm of clear height. The socket is a twist lock: two flat hooks on opposite faces, a short clockwise turn, and 0.55 mm of clear air between the hook and the catch. Press fit is the other choice. On that seat, hole offset is 0.30 mm of room per side at the mouth and 0.10 mm of interference per side at the floor.
+Defaults are a 200 × 200 × 8 mm shelf, 10 mm hexagonal legs, and 100 mm of clear height. The socket is a twist lock: two flat hooks on opposite faces, each sticking out 3.1 mm and 4.2 mm wide, a clockwise turn, and 0.55 mm of clear air between the hook and the catch. The Socket view shows one socket with the leg in it. Press fit is the other choice. On that seat, hole offset is 0.30 mm of room per side at the mouth and 0.10 mm of interference per side at the floor.
 
 [Open the designer](https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/shelf-twist-lock-40ec/stackable-shelf/index.html) after this branch is on GitHub. The library card is on the 3D printing page.
 
