@@ -21,6 +21,7 @@ import {
   rememberVisit,
   wantsRestore,
 } from "../shared/library-activity.js";
+import { wireHeaderSaves } from "../shared/wire-designer.js";
 
 const pageSearch = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
@@ -50,10 +51,14 @@ function startingParams() {
 function noteDownload(filename) {
   rememberSettings(APP_ID, params);
   rememberExport(APP_ID, { filename, params });
+  savesUi?.noteDownload({ name: filename, params });
 }
+
+const SAVE_KEYS = [...SLIDERS.map((spec) => spec.key), "pattern", "fit"];
 
 let params = mergeParams(DEFAULT_PARAMS);
 let preview;
+let savesUi;
 let latest = null;
 let rebuildTimer = 0;
 let rebuildGen = 0;
@@ -86,6 +91,7 @@ function writeParams(next) {
   const noun = patternNoun(params.pattern);
   const countLabel = $("count-label");
   if (countLabel) countLabel.textContent = `Number of ${noun}`;
+  savesUi?.renderList();
 }
 
 function setStatus(text, kind = "") {
@@ -218,6 +224,16 @@ const headerVersion = $("header-version");
 if (headerVersion) headerVersion.textContent = `v${APP_VERSION}`;
 
 preview = new ShelfPreview({ canvas: $("view") });
+savesUi = wireHeaderSaves({
+  appId: APP_ID,
+  mergeParams,
+  sliderKeys: SAVE_KEYS,
+  getParams: () => params,
+  setParams: (next) => {
+    writeParams(next);
+    scheduleRebuild();
+  },
+});
 bind();
 pairSlidersWithNumbers(document.querySelector(".panel"));
 installUndo({

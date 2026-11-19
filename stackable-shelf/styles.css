@@ -41,7 +41,7 @@ header {
   top: 0;
   z-index: 2;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: calc(10px + var(--safe-top)) 16px 10px;
@@ -59,6 +59,15 @@ header .lib {
 }
 header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; }
 header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+header .header-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+header .version { margin: 0; color: var(--muted); font-size: 0.85rem; }
 
 .stage {
   position: relative;

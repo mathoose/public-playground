@@ -11,8 +11,8 @@
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "6 · Nov 17, 2026";
-export const APP_VERSION_TAG = "v6";
+export const APP_VERSION = "7 · Nov 18, 2026";
+export const APP_VERSION_TAG = "v7";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
