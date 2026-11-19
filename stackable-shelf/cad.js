@@ -366,7 +366,14 @@ function engraveLines(wasm, solid, d, lines, temps) {
     for (const ch of line) {
       if (ch !== " ") {
         for (const box of glyphBoxes(ch, u, v, scale)) {
-          const piece = keep(temps, Manifold.cube(box.size, true).translate([box.at[0], -size / 2 + box.at[1], box.at[2]]));
+          const piece = keep(
+            temps,
+            Manifold.cube([box.size[0], box.size[1] + 0.08, box.size[2]], true).translate([
+              box.at[0],
+              -size / 2 + box.at[1] - 0.04,
+              box.at[2],
+            ])
+          );
           cut = cut ? keep(temps, cut.add(piece)) : piece;
         }
       }

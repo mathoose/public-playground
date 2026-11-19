@@ -2,17 +2,17 @@
  * Stackable shelf.
  *
  * The uploaded reference is a 200 mm plate with a grid of openings and four
- * 10 mm round legs. These legs are hexagonal. The socket is a light press:
- * wider at the mouth so the leg starts, tighter than the leg at the bottom so
- * it stays put once pressed in. Openings can be hexagons or squares. The legs
+ * 10 mm round legs. These legs are hexagonal. The press-fit socket is a straight
+ * hex the whole way down. Hole offset makes that hole larger or smaller than
+ * the leg. Openings can be hexagons or squares. The legs
  * and the sockets stay hexagonal, and the legs print on a face.
  *
  * Leg length is the clear height between the top of one shelf and the bottom of
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "10 · Nov 19, 2026";
-export const APP_VERSION_TAG = "v10";
+export const APP_VERSION = "11 · Nov 19, 2026";
+export const APP_VERSION_TAG = "v11";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -35,7 +35,6 @@ export const DEFAULT_PARAMS = Object.freeze({
   holeDepth: 3.5,
   finThickness: 1.8,
   outerWall: 4,
-  chamfer: true,
   fit: "twist",
 });
 
@@ -57,8 +56,6 @@ const LEG_PATTERN = "hex";
 const RIM = 3.2;
 const OPEN_MIN = 8;
 const WEB = 1;
-/** Extra room per side at the socket mouth, above the floor offset. */
-const MOUTH_RELIEF = 0.4;
 
 export function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
@@ -79,8 +76,7 @@ export function clampParams(raw) {
   };
   const pattern = raw?.pattern === "square" ? "square" : "hex";
   const fit = raw?.fit === "press" ? "press" : "twist";
-  const chamfer = raw?.chamfer === false || raw?.chamfer === "off" || raw?.chamfer === 0 ? false : true;
-  const out = { pattern, fit, chamfer };
+  const out = { pattern, fit };
   for (const s of SLIDERS) out[s.key] = num(s.key);
   out.count = Math.round(out.count);
   return out;
@@ -338,7 +334,7 @@ export function derive(raw) {
   const p = clampParams(raw);
   const legFlat = LEG_FLAT;
   const floorFlat = legFlat + 2 * p.holeOffset;
-  const mouthFlat = floorFlat + (p.chamfer ? 2 * MOUTH_RELIEF : 0);
+  const mouthFlat = floorFlat;
   const holeFlat = floorFlat;
   const twistTry = p.fit === "twist" ? twistLayout(p.thickness, p.finThickness) : null;
   const twist = twistTry?.fits ? twistTry : null;

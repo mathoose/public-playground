@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v10 -->
+<!-- build: stackable-shelf-v11 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       </div>
       <div class="header-meta">
         <div class="header-saves"></div>
-        <p class="version" id="header-version">v10 · Nov 19, 2026</p>
+        <p class="version" id="header-version">v11 · Nov 19, 2026</p>
       </div>
     </header>
     <div class="stage">
@@ -104,12 +104,7 @@
             <output id="holeDepth-out">3.5 mm</output>
             <input id="holeDepth" type="range" min="1" max="7" step="0.1" value="3.5" data-unit="mm" />
           </div>
-          <p class="group-note">Hole depth is how far the press-fit hole goes into the plate.</p>
-          <div class="seg">
-            <button class="chip active" type="button" data-chamfer="on" aria-pressed="true">Chamfer on</button>
-            <button class="chip" type="button" data-chamfer="off" aria-pressed="false">Chamfer off</button>
-          </div>
-          <p class="group-note">The chamfer widens the mouth of the press-fit hole so the leg starts easily, then the hole tightens toward the floor. Off leaves a straight hole.</p>
+          <p class="group-note">Hole depth is how far the straight press-fit hole goes into the plate. The hole is the same size from the mouth to the floor.</p>
           <div class="row">
             <label for="holeOffset">Hole offset</label>
             <output id="holeOffset-out">-0.10 mm</output>
@@ -138,14 +133,14 @@
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
             The legs stay hexagonal when the openings are square.
             Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The Socket view is one socket with the leg in it, so you can see that gap as you change the fit. The other end of each leg is a plain hex seat.
-            Press fit: hole depth sets how far the socket goes in. With the chamfer on, the mouth is wider and the hole tightens toward the floor. With it off, the hole is straight. Hole offset is how much larger or smaller that hole is than the leg.
+            Press fit: the hole is straight, the same size from the mouth to the floor. Hole depth sets how far it goes in. Hole offset is how much larger or smaller that hole is than the leg.
             The socket test is one corner and one socket. It asks for the settings, engraves those numbers on the piece, and keeps the export in the list below so it can be loaded again. Print that first.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
             PETG holds a load better than PLA. 0.2 mm layers, 4 walls, 20% infill.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v10 · Nov 19, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v11 · Nov 19, 2026</p>
     </aside>
   </div>
   <dialog id="testPrompt">
@@ -160,12 +155,6 @@
       </label>
       <label>Fin thickness
         <input name="finThickness" type="number" min="1.2" max="2.2" step="0.05" inputmode="decimal" />
-      </label>
-      <label>Chamfer
-        <select name="chamfer">
-          <option value="on">On</option>
-          <option value="off">Off</option>
-        </select>
       </label>
       <div class="actions">
         <button type="submit" class="chip" value="cancel">Cancel</button>
