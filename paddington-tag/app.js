@@ -11,6 +11,8 @@ import {
 } from "./geometry.js";
 import { TagPreview } from "./preview.js";
 import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildTagTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -202,6 +204,24 @@ function bind() {
     });
   });
   bindShow();
+  mountTestExport({
+    appId: APP_ID,
+    actions: document.querySelector("[data-download]")?.parentElement,
+    buttonLabel: "Hole test",
+    title: "Hole test settings",
+    fields: [
+      { key: "hole", label: "Hole", min: 2.5, max: 12, step: 0.1, unit: "mm" },
+      { key: "letterH", label: "Letter height", min: 0.2, max: 2.2, step: 0.05, unit: "mm" },
+      { key: "thickness", label: "Thickness", min: 1.2, max: 5, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildTagTest(next, label),
+    fileStem: "paddington-hole",
+  });
 }
 
 const versionEl = $("app-version");

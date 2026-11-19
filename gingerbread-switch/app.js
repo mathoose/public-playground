@@ -12,6 +12,8 @@ import {
 } from "./geometry.js";
 import { HousePreview } from "./preview.js";
 import { buildTag, buildTagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildOpeningTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -209,6 +211,24 @@ function bind() {
     });
   });
   bindShow();
+  mountTestExport({
+    appId: APP_ID,
+    actions: document.querySelector("[data-download]")?.parentElement,
+    buttonLabel: "Opening test",
+    title: "Opening test settings",
+    fields: [
+      { key: "openingW", label: "Opening width", min: 11, max: 40, step: 0.5, unit: "mm" },
+      { key: "openingH", label: "Opening height", min: 24, max: 74, step: 0.5, unit: "mm" },
+      { key: "plateT", label: "Plate thickness", min: 2.6, max: 4.5, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildOpeningTest(next, label),
+    fileStem: "gingerbread-opening",
+  });
 }
 
 const versionEl = $("app-version");

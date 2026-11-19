@@ -1,6 +1,6 @@
 /** Dog poop bag holder — screw-cap tube with an S-slot that splits the rim so the top flexes. */
 
-export const APP_VERSION = "1 · Oct 6, 2026";
+export const APP_VERSION = "2 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Poop bag holder";
 

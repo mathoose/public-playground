@@ -11,6 +11,8 @@ import {
 } from "./geometry.js";
 import { LockPreview } from "./preview.js";
 import { buildLock, buildLockStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildLockTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
@@ -244,6 +246,26 @@ function bind() {
     });
   });
   $("download")?.addEventListener("click", () => downloadStl());
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("download")?.parentElement,
+    buttonLabel: "Lock test",
+    title: "Lock test settings",
+    fields: [
+      { key: "slotLength", label: "Slot length", min: 18, max: 70, step: 0.1, unit: "mm" },
+      { key: "slotWidth", label: "Slot width", min: 8, max: 24, step: 0.1, unit: "mm" },
+      { key: "clipThickness", label: "Clip thickness", min: 2.8, max: 7, step: 0.1, unit: "mm" },
+      { key: "engagement", label: "Engagement", min: 3, max: 14, step: 0.1, unit: "mm" },
+      { key: "squareEnd", label: "Square end", min: 12, max: 40, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildLockTest(next, label),
+    fileStem: "costco-lock",
+  });
   bindFaceMeasureUI({
     preview,
     panel: document.querySelector(".panel"),

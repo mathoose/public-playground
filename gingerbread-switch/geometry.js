@@ -4,7 +4,7 @@
  * Screws stay on the real switch spacing. The toggle comes out the door.
  */
 
-export const APP_VERSION = "1 · Oct 27, 2026";
+export const APP_VERSION = "2 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Gingerbread switch";
 

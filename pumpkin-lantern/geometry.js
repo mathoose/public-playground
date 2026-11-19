@@ -1,7 +1,7 @@
 /** Seat measurement and cut plan for a pumpkin lantern's bottom opening. */
 
 export const APP_NAME = "Pumpkin lantern";
-export const APP_VERSION = "v1 · Nov 4, 2026";
+export const APP_VERSION = "v2 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v1";
 
 export const DEFAULT_PARAMS = Object.freeze({

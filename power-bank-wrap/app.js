@@ -14,6 +14,8 @@ import {
 } from "./geometry.js";
 import { CasePreview } from "./preview.js";
 import { buildCase, buildCaseStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildSleeveTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -190,6 +192,25 @@ function bind() {
     btn.addEventListener("click", () => preview.setNamedView(btn.getAttribute("data-view")));
   });
   $("download")?.addEventListener("click", () => downloadStl());
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("download")?.parentElement,
+    buttonLabel: "Sleeve test",
+    title: "Sleeve test settings",
+    fields: [
+      { key: "bankW", label: "Bank width", min: 48, max: 90, step: 0.1, unit: "mm" },
+      { key: "bankH", label: "Bank height", min: 12, max: 28, step: 0.1, unit: "mm" },
+      { key: "wall", label: "Wall", min: 1.6, max: 3.6, step: 0.1, unit: "mm" },
+      { key: "clearXY", label: "Side clearance", min: 0.1, max: 1.2, step: 0.05, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildSleeveTest(next, label),
+    fileStem: "power-bank-sleeve",
+  });
 }
 
 const versionEl = $("app-version");

@@ -12,6 +12,8 @@ import {
 } from "./geometry.js";
 import { LanternPreview } from "./preview.js";
 import { applyCut, downloadArrayBuffer, parseMeshFile, stlFromIndexed } from "./cut.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildSeatTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
@@ -212,6 +214,24 @@ function bindUi() {
     if (file) useFile(file);
   });
   $("download").addEventListener("click", downloadStl);
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("download")?.parentElement,
+    buttonLabel: "Seat test",
+    title: "Seat test settings",
+    fields: [
+      { key: "ledDiameter", label: "LED diameter", min: 20, max: 80, step: 0.1, unit: "mm" },
+      { key: "clearance", label: "Clearance", min: 0, max: 2, step: 0.1, unit: "mm" },
+      { key: "cordDiameter", label: "Cord diameter", min: 0, max: 18, step: 0.5, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildSeatTest(next, label),
+    fileStem: "pumpkin-seat",
+  });
 
   const dropTarget = document.querySelector(".app");
   dropTarget.addEventListener("dragover", (event) => {

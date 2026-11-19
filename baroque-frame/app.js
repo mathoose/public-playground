@@ -15,6 +15,8 @@ import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
 import { mountDesignerSaves, makeSameParams } from "../shared/designer-saves.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildMouldingTest } from "../shared/test-pieces.js";
 import { attachFaceMeasure, bindFaceMeasureUI, highlightMeasureParams } from "../shared/face-measure.js";
 import { measurePair } from "./pick-map.js";
 import * as THREE from "three";
@@ -181,6 +183,25 @@ function bind() {
     downloadBlob(threemfName, meshTo3mf(mapped, mesh.idx), "model/3mf");
     noteDownload(threemfName);
     setStatus("3MF ready");
+  });
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("download-stl")?.parentElement,
+    buttonLabel: "Moulding test",
+    title: "Moulding test settings",
+    fields: [
+      { key: "width", label: "Width", min: 56, max: 400, step: 0.5, unit: "mm" },
+      { key: "height", label: "Height", min: 54, max: 500, step: 0.5, unit: "mm" },
+      { key: "thickness", label: "Thickness", min: 60, max: 160, step: 1, unit: "%" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      shade = true;
+      scheduleRebuild();
+    },
+    build: (next, label) => buildMouldingTest(next, label),
+    fileStem: "baroque-moulding",
   });
 }
 

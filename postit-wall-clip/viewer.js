@@ -5,6 +5,8 @@ import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
 import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildPinchTest } from "../shared/test-pieces.js";
 import { installModelPick } from "../shared/model-pick.js";
 import { inspectClip, measureClip } from "./pick-map.js";
 import { mergeParams } from "./clip.js";
@@ -204,6 +206,25 @@ document.getElementById("preset-original").addEventListener("click", () => setPr
 document.getElementById("preset-wide").addEventListener("click", () => setPreset({ width: 76 }));
 document.getElementById("reset").addEventListener("click", () => setPreset({}));
 document.getElementById("download").addEventListener("click", downloadStl);
+mountTestExport({
+  appId: APP_ID,
+  actions: document.getElementById("download")?.parentElement,
+  buttonLabel: "Pinch test",
+  buttonClass: "",
+  title: "Pinch test settings",
+  fields: [
+    { key: "width", label: "Width", min: 8, max: 80, step: 1, unit: "mm" },
+    { key: "thickness", label: "Thickness", min: 1.2, max: 5, step: 0.1, unit: "mm" },
+    { key: "pinch_gap", label: "Pinch gap", min: 0.15, max: 4, step: 0.05, unit: "mm" },
+  ],
+  getParams: readParams,
+  setParams: (next) => {
+    writeParams(next);
+    rebuild();
+  },
+  build: (next, label) => buildPinchTest(next, label),
+  fileStem: "postit-pinch",
+});
 pick = installModelPick({
   THREE,
   panel: document.querySelector(".panel"),

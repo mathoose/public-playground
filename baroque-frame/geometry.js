@@ -7,7 +7,7 @@
  * Mesh axes, before we lay it on the bed: X width, Z height, Y depth.
  */
 
-export const APP_VERSION = "1 · Oct 27, 2026";
+export const APP_VERSION = "2 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Baroque frame";
 

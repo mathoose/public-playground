@@ -39,6 +39,8 @@ import {
   wantsRestore,
 } from "../shared/library-activity.js";
 import { wirePanelSaves } from "../shared/wire-designer.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildBubbleStandTest } from "../shared/test-pieces.js";
 import { applyFrameStylePreset, captionLayout } from "../shared/frame-caption.js";
 
 const APP_ID = "bubble-frame";
@@ -384,6 +386,25 @@ function bind() {
   $("dlCaptionPlate")?.addEventListener("click", () => exportStls("captionPlate"));
   $("dlCaptionFront")?.addEventListener("click", () => exportStls("captionFront"));
   $("dlCaption3mf")?.addEventListener("click", () => exportStls("caption3mf"));
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("dlFrame")?.parentElement,
+    buttonLabel: "Stand test",
+    buttonClass: "btn ghost",
+    title: "Stand test settings",
+    fields: [{ key: "standHole", label: "Lean", min: 0, max: 2, step: 1, unit: "row" }],
+    getParams: () => params,
+    setParams: (next) => {
+      params = mergeParams(next);
+      refresh();
+    },
+    build: (next, label) => buildBubbleStandTest(next, label),
+    fileStem: "bubble-stand",
+    labelFor: (next) => {
+      const row = standRows(next)[Math.round(Number(next.standHole)) || 0];
+      return `${Math.round(Number(next.standHole)) || 0} ${Math.round(row?.angleDeg || 0)}`;
+    },
+  });
 
   $("captionEnabled")?.addEventListener("change", () => {
     params.captionEnabled = $("captionEnabled").checked;

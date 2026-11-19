@@ -11,6 +11,8 @@ import {
 } from "./geometry.js";
 import { CoasterPreview } from "./preview.js";
 import { buildCoaster, buildCoasterStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildCoasterTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
@@ -147,6 +149,23 @@ function bindUi() {
   }
 
   $("download")?.addEventListener("click", downloadStl);
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("download")?.parentElement,
+    buttonLabel: "Arm test",
+    title: "Arm test settings",
+    fields: [
+      { key: "armHeight", label: "Arm height", min: 8, max: 45, step: 0.5, unit: "mm" },
+      { key: "armWidth", label: "Arm width", min: 4, max: 18, step: 0.5, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildCoasterTest(next, label),
+    fileStem: "coaster-arm",
+  });
 
   const panel = document.querySelector(".panel");
   pairSlidersWithNumbers(panel);
@@ -160,7 +179,7 @@ function bindUi() {
   });
 
   const foot = $("app-version");
-  if (foot) foot.textContent = `${APP_NAME} ${APP_VERSION}`;
+  if (foot) foot.textContent = `${APP_NAME} v${APP_VERSION}`;
 
   scheduleRebuild();
 }

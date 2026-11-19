@@ -9,6 +9,8 @@ import { unlockIndex, openBytes, vaultBase, WrongPinError } from "./vault.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { wireHeaderSaves } from "../shared/wire-designer.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildHolderTest } from "../shared/test-pieces.js";
 import { installModelPick } from "../shared/model-pick.js";
 import * as THREE from "three";
 import { inspectHolder, measureHolder } from "./pick-map.js";
@@ -299,6 +301,27 @@ function bindHolder() {
     applyStretch();
   });
   $("download").addEventListener("click", downloadHolder);
+  mountTestExport({
+    appId: "private",
+    actions: $("download")?.parentElement,
+    buttonLabel: "Pocket test",
+    title: "Pocket test settings",
+    fields: [
+      { key: "depth", label: "Depth", min: 17.2, max: 45, step: 0.1, unit: "mm" },
+      { key: "width", label: "Width", min: 85, max: 105, step: 0.5, unit: "mm" },
+      { key: "phoneT", label: "Phone thickness", min: 7, max: 16, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      const baseChanged = mergeParams(next).base !== params.base;
+      writeParams(next);
+      if (baseChanged) showHolder();
+      else applyStretch();
+      savesUi?.renderList();
+    },
+    build: (next, label) => buildHolderTest(next, label),
+    fileStem: "private-pocket",
+  });
   document.querySelectorAll("[data-item]").forEach((b) =>
     b.addEventListener("click", () => downloadItem(b.dataset.item === "holder-default" ? BASES[params.base].defaultItem : b.dataset.item, b))
   );

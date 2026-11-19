@@ -36,6 +36,8 @@ import {
   wantsRestore,
 } from "../shared/library-activity.js";
 import { wirePanelSaves } from "../shared/wire-designer.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildStripedStandTest } from "../shared/test-pieces.js";
 import { installModelPick } from "../shared/model-pick.js";
 import { inspectStriped, measureStriped } from "./pick-map.js";
 import * as THREE from "three";
@@ -455,6 +457,25 @@ function bind() {
   $("dlPlate").addEventListener("click", () => exportStls("plate"));
   $("dlStand").addEventListener("click", () => exportStls("stand"));
   $("dlBoth").addEventListener("click", () => exportStls("all"));
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("dlFrame")?.parentElement,
+    buttonLabel: "Stand test",
+    buttonClass: "btn ghost",
+    title: "Stand test settings",
+    fields: [{ key: "standHole", label: "Lean", min: 0, max: 2, step: 1, unit: "row" }],
+    getParams: () => params,
+    setParams: (next) => {
+      params = mergeParams(next);
+      refresh();
+    },
+    build: (next, label) => buildStripedStandTest(next, label),
+    fileStem: "striped-stand",
+    labelFor: (next) => {
+      const row = standRows(next)[Math.round(Number(next.standHole)) || 0];
+      return `${Math.round(Number(next.standHole)) || 0} ${Math.round(row?.angleDeg || 0)}`;
+    },
+  });
 }
 
 function rememberExport(kind, filename, buffer) {
