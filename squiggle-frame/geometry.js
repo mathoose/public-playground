@@ -4,13 +4,14 @@
  * The centerline is a star-shaped blob: an ellipse around the photo plus a few
  * big smooth lobes, like a thick marker squiggle. It cannot cross itself. A round tube with a
  * flat back is swept along that loop. Snap clips are spaced around the back,
- * on the outside of the opening, and pinch the photo border. Stand mode adds
- * two holes in that flat back for pegs.
+ * on the outside of the opening, and pinch the photo border. The flat back
+ * has a rectangular slot. A separate carrot-shaped leg slides into that slot
+ * and widens so it stays. Stand mode still adds two peg holes.
  */
 
 export const APP_NAME = "Squiggle frame";
-export const APP_VERSION = "2 · Nov 16, 2026";
-export const APP_VERSION_TAG = "v2";
+export const APP_VERSION = "3 · Nov 19, 2026";
+export const APP_VERSION_TAG = "v3";
 
 export const DEFAULT_PARAMS = {
   units: "in",
@@ -19,6 +20,8 @@ export const DEFAULT_PARAMS = {
   tube: 14,
   mode: "wall",
   seed: 7,
+  standAngle: 20,
+  standWidth: 22,
 };
 
 const MM_PER_IN = 25.4;
@@ -59,7 +62,95 @@ export function mergeParams(raw = {}) {
     tube: clamp(8, 20, Number(raw.tube) || DEFAULT_PARAMS.tube),
     mode,
     seed: seed % 1000000000,
+    standAngle: clamp(12, 40, Math.round(Number(raw.standAngle) || DEFAULT_PARAMS.standAngle)),
+    standWidth: clamp(14, 36, Math.round(Number(raw.standWidth) || DEFAULT_PARAMS.standWidth)),
   };
+}
+
+/**
+ * Rectangular slot on the flat back, and the carrot leg that slides into it.
+ * The tight dimension is the slot height. The tip is narrow, the bulb is a
+ * little wider than the slot so it stays, and the neck is the cut that sits
+ * in the slot. The leg is wider than the slot and kicks out at standAngle.
+ */
+export function standMetrics(raw = {}) {
+  const p = mergeParams(raw);
+  const slotH = 4.4;
+  const padT = 4.8;
+  const lipT = 1.65;
+  const neckV1 = lipT - 0.08;
+  const bulbV = lipT + 0.9;
+  const tipV = padT - 1.05;
+  return {
+    width: p.standWidth,
+    angle: p.standAngle,
+    slotH,
+    slotW: p.standWidth + 0.55,
+    padT,
+    lipT,
+    padIn: 11,
+    padOut: 3.2,
+    padSide: 7,
+    tip: 2.15,
+    bulb: slotH + 0.42,
+    neck: slotH - 0.7,
+    legH: slotH - 0.7,
+    legWide: p.standWidth + 3.2,
+    legLen: 58,
+    neckV0: 0.15,
+    neckV1,
+    bulbV,
+    tipV,
+    pocketEnd: padT - 0.72,
+  };
+}
+
+/** Carrot tongue in the (inward, depth) plane. Depth 0 is the back face. */
+export function carrotTongue(spec) {
+  const neck = spec.neck / 2;
+  const bulb = spec.bulb / 2;
+  const tip = spec.tip / 2;
+  return [
+    [neck, -0.55],
+    [neck, spec.neckV1],
+    [bulb, spec.bulbV],
+    [tip, spec.tipV],
+    [-tip, spec.tipV],
+    [-bulb, spec.bulbV],
+    [-neck, spec.neckV1],
+    [-neck, -0.55],
+  ];
+}
+
+/** Narrow stub behind the slot so the wide leg has something to join. */
+export function carrotBridge(spec) {
+  const n = spec.neck / 2;
+  return [
+    [-n, -4.4],
+    [n, -4.4],
+    [n, -0.35],
+    [-n, -0.35],
+  ];
+}
+
+/** Wide leg outside the slot, kicked out from the back by standAngle degrees. */
+export function carrotLeg(spec, legLen = spec.legLen) {
+  const a = (spec.angle * Math.PI) / 180;
+  const du = -Math.cos(a);
+  const dv = -Math.sin(a);
+  const pu = -dv;
+  const pv = du;
+  const ht = spec.legH / 2;
+  const u0 = -0.3;
+  const v0 = -2.2;
+  const u1 = u0 + du * legLen;
+  const v1 = v0 + dv * legLen;
+  return [
+    [u0 - pu * ht, v0 - pv * ht],
+    [u1 - pu * ht, v1 - pv * ht],
+    [u1 + pu * ht, v1 + pv * ht],
+    [u0 + pu * ht, v0 + pv * ht],
+  ];
 }
 
 /** Distance from the origin to the photo edge along a ray. */
@@ -287,7 +378,7 @@ function pickHoles(points, R) {
   return [walk(-1), walk(1)];
 }
 
-function placeClips(points, holes, R, seed) {
+function placeClips(points, holes, R, seed, slotW = 0) {
   const { total } = pathLength(points);
   const n = points.length;
   // Clips sit in the bays, where the tube is just outside the photo. A valley
@@ -309,7 +400,10 @@ function placeClips(points, holes, R, seed) {
   const minSep = Math.max(22, R * 3.4);
   const tooClose = (pt, sep) =>
     chosen.some((c) => Math.hypot(c.x - pt.x, c.y - pt.y) < sep) ||
-    holes.some((h) => Math.hypot(h.x - pt.x, h.y - pt.y) < R * 2.4);
+    holes.some((h, index) => {
+      const reach = index === holes.length - 1 && slotW ? slotW * 0.65 + 6 : R * 2.4;
+      return Math.hypot(h.x - pt.x, h.y - pt.y) < reach;
+    });
   for (const pt of valleys) {
     if (tooClose(pt, minSep)) continue;
     chosen.push(pt);
@@ -400,8 +494,14 @@ export function derive(raw, quality = "preview") {
   loop.points.halfW = halfW;
   loop.points.halfH = halfH;
   const section = tubeSection(R);
+  const stand = standMetrics(p);
+  let iBot = 0;
+  for (let i = 1; i < loop.points.length; i++) {
+    if (loop.points[i].y < loop.points[iBot].y) iBot = i;
+  }
+  const slotAt = loop.points[iBot];
   const holes = p.mode === "stand" ? pickHoles(loop.points, R) : [];
-  const { clips, perimeter } = placeClips(loop.points, holes, R, p.seed);
+  const { clips, perimeter } = placeClips(loop.points, [...holes, slotAt], R, p.seed, stand.slotW);
   const profile = profilePoints(R, profileSteps);
   const tube = sweepMesh(loop.points, profile);
   const peg = pegMetrics(R, Math.min(photoW, photoH));
@@ -434,6 +534,8 @@ export function derive(raw, quality = "preview") {
     tube,
     section,
     peg,
+    stand,
+    slotAt,
     minCenterGap: minCenter,
     bounds: { minX, maxX, minY, maxY },
   };

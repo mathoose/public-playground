@@ -11,6 +11,7 @@ function geomFrom(positions) {
 
 const LILAC = 0xc4b5fd;
 const PEG = 0xddd6fe;
+const STAND = 0xf9a8d4;
 const PHOTO = 0xe7e5e4;
 
 export class FramePreview {
@@ -56,6 +57,7 @@ export class FramePreview {
 
     this.frameMat = new THREE.MeshStandardMaterial({ color: LILAC, roughness: 0.55, metalness: 0.02 });
     this.pegMat = new THREE.MeshStandardMaterial({ color: PEG, roughness: 0.5, metalness: 0.03 });
+    this.standMat = new THREE.MeshStandardMaterial({ color: STAND, roughness: 0.48, metalness: 0.02 });
     this.photoMat = new THREE.MeshStandardMaterial({
       color: PHOTO,
       roughness: 0.85,
@@ -66,9 +68,10 @@ export class FramePreview {
     });
 
     this.frame = new THREE.Mesh(new THREE.BufferGeometry(), this.frameMat);
+    this.stand = new THREE.Mesh(new THREE.BufferGeometry(), this.standMat);
     this.pegs = new THREE.Mesh(new THREE.BufferGeometry(), this.pegMat);
     this.photo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.photoMat);
-    for (const mesh of [this.frame, this.pegs, this.photo]) {
+    for (const mesh of [this.frame, this.stand, this.pegs, this.photo]) {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
@@ -87,7 +90,14 @@ export class FramePreview {
   update(result) {
     const framePos = manifoldMeshToPositions(result.parts.frame.mesh);
     this._set(this.frame, framePos);
-    const { d, pegInstalled } = result;
+    const { d, pegInstalled, standInstalled } = result;
+    if (standInstalled) {
+      this._set(this.stand, manifoldMeshToPositions(standInstalled));
+      this.stand.visible = true;
+    } else {
+      this._set(this.stand, new Float32Array());
+      this.stand.visible = false;
+    }
     if (pegInstalled && d.holes.length) {
       const one = manifoldMeshToPositions(pegInstalled);
       const both = new Float32Array(one.length * d.holes.length);
@@ -118,7 +128,7 @@ export class FramePreview {
   bounds() {
     const box = new THREE.Box3();
     let any = false;
-    for (const mesh of [this.frame, this.pegs]) {
+    for (const mesh of [this.frame, this.stand, this.pegs]) {
       if (!mesh.visible || !mesh.geometry.getAttribute("position")) continue;
       mesh.geometry.computeBoundingBox();
       if (!mesh.geometry.boundingBox || mesh.geometry.boundingBox.isEmpty()) continue;

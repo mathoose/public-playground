@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: squiggle-frame-v2 -->
+<!-- build: squiggle-frame-v3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       </div>
       <div class="header-meta">
         <div class="header-saves"></div>
-        <p class="version" id="header-version">v2 · Nov 16, 2026</p>
+        <p class="version" id="header-version">v3 · Nov 19, 2026</p>
       </div>
     </header>
     <div class="stage">
@@ -82,10 +82,20 @@
       <details class="settings-group" open>
         <summary>Hold</summary>
         <div class="group-body">
-          <p class="group-note">Snap clips sit on the back, spaced around the outside of the opening, and pinch the photo border. Wall hang is a flat rear with no stand. Stand adds two holes for pegs that prop the frame up.</p>
+          <p class="group-note">Snap clips sit on the back and pinch the photo border. The back also has a slot. A separate carrot leg slides in, then widens so it stays. Angle kicks the leg out. Width is how wide that leg is. Stand mode still adds two peg holes.</p>
           <div class="seg">
             <button type="button" class="chip active" data-mode="wall" aria-pressed="true">Wall hang</button>
             <button type="button" class="chip" data-mode="stand" aria-pressed="false">Stand</button>
+          </div>
+          <div class="row">
+            <label for="standAngle">Stand angle</label>
+            <output id="standAngle-out">20°</output>
+            <input id="standAngle" type="range" min="12" max="40" step="1" value="20" data-unit="°" />
+          </div>
+          <div class="row">
+            <label for="standWidth">Stand width</label>
+            <output id="standWidth-out">22 mm</output>
+            <input id="standWidth" type="range" min="14" max="36" step="1" value="22" data-unit="mm" />
           </div>
         </div>
       </details>
@@ -97,22 +107,43 @@
           <div class="readout" id="readout"></div>
           <div class="actions">
             <button type="button" class="wide" id="dlFrame">Download frame STL</button>
+            <button type="button" class="wide" id="dlStand">Download stand STL</button>
             <button type="button" class="wide" id="dlPegs" hidden>Download pegs STL</button>
             <button type="button" id="dl3mf">Download 3MF</button>
+            <button type="button" id="dlStandTest">Stand test</button>
           </div>
+          <ul class="test-log" id="testLog" hidden></ul>
           <p class="status" id="status"></p>
           <p class="notes">
             Print the flat back on the bed, 0.2 mm layers, no supports.
             Slide the photo in from the back until the clips snap over the border.
+            Press the carrot leg into the slot on the back until the wide part pops through and stays.
             <b>Wall:</b> the flat rear sits against the wall.
-            <b>Stand:</b> press a peg into each hole and lean the frame back onto the legs.
-            The 3MF is one assembly, so the frame and pegs stay side by side. STL units are millimeters.
+            <b>Stand:</b> press a peg into each hole as well, and lean the frame back onto the legs.
+            Stand test prints one small joint with the angle and width engraved on it.
+            The 3MF is one assembly. STL units are millimeters.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Squiggle frame v2 · Nov 16, 2026</p>
+      <p class="foot" id="app-version">Squiggle frame v3 · Nov 19, 2026</p>
     </aside>
   </div>
+  <dialog id="testPrompt">
+    <form method="dialog">
+      <h2>Stand test settings</h2>
+      <p>These numbers are engraved on the test piece and saved so you can load this export again.</p>
+      <label>Stand angle
+        <input name="angle" type="number" min="12" max="40" step="1" inputmode="numeric" />
+      </label>
+      <label>Stand width
+        <input name="width" type="number" min="14" max="36" step="1" inputmode="numeric" />
+      </label>
+      <div class="actions">
+        <button type="submit" class="chip" value="cancel">Cancel</button>
+        <button type="submit" value="ok">Export test</button>
+      </div>
+    </form>
+  </dialog>
   <script src="./app.bundle.js"></script>
   <script>
     if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {

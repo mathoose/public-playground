@@ -1,4 +1,4 @@
-import { derive } from "./geometry.js";
+import { carrotBridge, carrotLeg, carrotTongue, derive } from "./geometry.js";
 import { meshesTo3mf } from "../shared/threemf.js";
 
 const MANIFOLD_JS = "https://cdn.jsdelivr.net/npm/manifold-3d@3.2.1/manifold.js";
@@ -135,10 +135,177 @@ function printPegMesh(wasm, peg, d, temps) {
   return captureMesh(both.getMesh());
 }
 
+const JOINT_XFORM = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];
+
 function occupies(wasm, solid, center, size, temps) {
   const probe = keep(temps, wasm.Manifold.cube(size, true).translate(center));
   const hit = keep(temps, solid.intersect(probe));
   return hit.volume() > size[0] * size[1] * size[2] * 0.2;
+}
+
+function slotAnchor(d) {
+  const bot = d.slotAt;
+  const halfChord = Math.sqrt(Math.max(0, d.R * d.R - (0.72 * d.R) ** 2));
+  const inset = Math.min(Math.max(halfChord * 0.35, 2.2), 5);
+  return {
+    x: bot.x + bot.ox * (halfChord - inset),
+    y: bot.y + bot.oy * (halfChord - inset),
+    tx: bot.tx,
+    ty: bot.ty,
+  };
+}
+
+function placeAnchor(solid, anchor, temps) {
+  const yaw = (Math.atan2(anchor.ty, anchor.tx) * 180) / Math.PI;
+  const turned = keep(temps, solid.rotate([0, 0, yaw]));
+  return keep(temps, turned.translate([anchor.x, anchor.y, 0]));
+}
+
+function orientJoint(solid, anchor, temps) {
+  const mapped = keep(temps, solid.transform(JOINT_XFORM));
+  const yaw = (Math.atan2(anchor.ty, anchor.tx) * 180) / Math.PI;
+  const turned = keep(temps, mapped.rotate([0, 0, yaw]));
+  return keep(temps, turned.translate([anchor.x, anchor.y, 0]));
+}
+
+function extrudeProfile(CS, polygon, width, temps) {
+  const section = keep(temps, CS.ofPolygons([polygon]));
+  const solid = keep(temps, section.extrude(Math.max(0.2, width)));
+  return keep(temps, solid.translate([0, 0, -width / 2]));
+}
+
+function buildPadSolid(wasm, spec, temps) {
+  const { Manifold } = wasm;
+  const width = spec.slotW + spec.padSide * 2;
+  const height = spec.padIn + spec.padOut;
+  const pad = keep(
+    temps,
+    Manifold.cube([width, height, spec.padT], true).translate([0, (spec.padIn - spec.padOut) / 2, spec.padT / 2])
+  );
+  return pad;
+}
+
+function buildSlotCutter(wasm, spec, temps) {
+  const { Manifold } = wasm;
+  const lip = spec.lipT;
+  const mouth = keep(
+    temps,
+    Manifold.cube([spec.slotW, spec.slotH, lip + 0.5], true).translate([0, 0, (lip + 0.5) / 2 - 0.3])
+  );
+  const pocketH = spec.bulb + 0.5;
+  const pocketBottom = lip - 0.12;
+  const pocketTop = spec.pocketEnd;
+  const pocketD = Math.max(0.4, pocketTop - pocketBottom);
+  const pocket = keep(
+    temps,
+    Manifold.cube([spec.slotW + 0.35, pocketH, pocketD], true).translate([
+      0,
+      0,
+      pocketBottom + pocketD / 2,
+    ])
+  );
+  return keep(temps, mouth.add(pocket));
+}
+
+function buildCarrotSolid(wasm, spec, temps, legLen = spec.legLen) {
+  const { CrossSection: CS } = wasm;
+  const tongueW = Math.max(8, spec.width - 0.45);
+  const tongue = extrudeProfile(CS, carrotTongue(spec), tongueW, temps);
+  const bridge = extrudeProfile(CS, carrotBridge(spec), tongueW, temps);
+  const leg = extrudeProfile(CS, carrotLeg(spec, legLen), spec.legWide, temps);
+  let solid = keep(temps, tongue.add(bridge));
+  solid = keep(temps, solid.add(leg));
+  return assertOk(solid, "Carrot stand");
+}
+
+const DIGIT_SEGS = {
+  0: "abcedf",
+  1: "bc",
+  2: "abged",
+  3: "abgcd",
+  4: "fgbc",
+  5: "afgcd",
+  6: "afgedc",
+  7: "abc",
+  8: "abcdefg",
+  9: "abfgcd",
+};
+
+function digitBoxes(ch, x0, y0, zTop) {
+  const w = 2.5;
+  const h = 4.1;
+  const t = 0.52;
+  const depth = 0.55;
+  const z = zTop - depth / 2;
+  const seg = {
+    a: [w / 2, h - t / 2, w, t],
+    b: [w - t / 2, h * 0.75, t, h / 2],
+    c: [w - t / 2, h * 0.25, t, h / 2],
+    d: [w / 2, t / 2, w, t],
+    e: [t / 2, h * 0.25, t, h / 2],
+    f: [t / 2, h * 0.75, t, h / 2],
+    g: [w / 2, h / 2, w - t, t],
+  };
+  const on = DIGIT_SEGS[ch] || "";
+  return [...on].map((name) => {
+    const [cx, cy, sx, sy] = seg[name];
+    return { size: [sx, sy, depth], at: [x0 + cx, y0 + cy, z] };
+  });
+}
+
+function engraveNumbers(wasm, solid, spec, angle, width, temps) {
+  const { Manifold } = wasm;
+  const label = `${Math.round(angle)} ${Math.round(width)}`;
+  let cursor = -spec.slotW / 2;
+  const y0 = spec.padIn - 5.4;
+  let cut = null;
+  for (const ch of label) {
+    if (ch === " ") {
+      cursor += 1.3;
+      continue;
+    }
+    for (const box of digitBoxes(ch, cursor, y0, spec.padT)) {
+      const piece = keep(temps, Manifold.cube(box.size, true).translate(box.at));
+      cut = cut ? keep(temps, cut.add(piece)) : piece;
+    }
+    cursor += 3.15;
+  }
+  if (!cut) return solid;
+  return assertOk(keep(temps, solid.subtract(cut)), "Test marking");
+}
+
+function layOnBed(solid, temps) {
+  let laid = keep(temps, solid.rotate([0, 90, 0]));
+  const box = laid.boundingBox();
+  laid = keep(temps, laid.translate([-box.min[0], -box.min[1], -box.min[2]]));
+  return laid;
+}
+
+function printStand(d, carrotLocal, temps) {
+  const laid = layOnBed(carrotLocal, temps);
+  const box = laid.boundingBox();
+  const gap = 8;
+  return keep(temps, laid.translate([d.bounds.maxX + gap - box.min[0], d.bounds.minY - gap - box.max[1], 0]));
+}
+
+function standChecks(wasm, frame, d, anchor, temps) {
+  const yaw = Math.atan2(anchor.ty, anchor.tx);
+  const ix = -Math.sin(yaw);
+  const iy = Math.cos(yaw);
+  const tx = Math.cos(yaw);
+  const ty = Math.sin(yaw);
+  const mouth = [anchor.x, anchor.y, d.stand.lipT * 0.45];
+  const skin = [anchor.x, anchor.y, (d.stand.pocketEnd + d.stand.padT) / 2];
+  const pad = [
+    anchor.x + ix * (d.stand.padIn * 0.45) + tx * (d.stand.slotW * 0.5 + 2.2),
+    anchor.y + iy * (d.stand.padIn * 0.45) + ty * (d.stand.slotW * 0.5 + 2.2),
+    d.stand.padT * 0.45,
+  ];
+  return {
+    standMouthEmpty: !occupies(wasm, frame, mouth, [1.1, 1.1, 0.35], temps),
+    standSkinSolid: occupies(wasm, frame, skin, [1.1, 1.1, 0.3], temps),
+    standPadSolid: occupies(wasm, frame, pad, [1.2, 1.2, 0.7], temps),
+  };
 }
 
 export async function buildFrame(raw, { quality = "preview" } = {}) {
@@ -211,32 +378,47 @@ export async function buildFrame(raw, { quality = "preview" } = {}) {
       }
     }
 
+    const anchor = slotAnchor(d);
+    const pad = placeAnchor(buildPadSolid(wasm, d.stand, temps), anchor, temps);
+    frame = assertOk(keep(temps, frame.add(pad)), "Stand pad");
+    const slotCut = placeAnchor(buildSlotCutter(wasm, d.stand, temps), anchor, temps);
+    frame = assertOk(keep(temps, frame.subtract(slotCut)), "Stand slot");
+    const carrotLocal = buildCarrotSolid(wasm, d.stand, temps);
+    const carrotInstalled = orientJoint(carrotLocal, anchor, temps);
+
     const frameMesh = captureMesh(frame.getMesh());
     const pegInstalled = d.p.mode === "stand" ? installedPegMesh(wasm, d.peg, temps) : null;
     const pegPrint = d.p.mode === "stand" ? printPegMesh(wasm, d.peg, d, temps) : null;
+    const standInstalled = captureMesh(carrotInstalled.getMesh());
+    const standPrint = captureMesh(printStand(d, carrotLocal, temps).getMesh());
     const frameVolume = frame.volume();
     const genus = frame.genus();
     const bbox = frame.boundingBox();
 
     const parts = {
       frame: { mesh: frameMesh, volume: frameVolume },
+      stand: { mesh: standPrint, volume: carrotInstalled.volume() },
     };
     if (pegPrint) {
       const probe = keep(temps, new Manifold(pegPrint));
       parts.pegs = { mesh: pegPrint, volume: probe.volume() };
     }
 
-    const named = [{ name: "Squiggle frame", color: "#C4B5FDFF", mesh: frameMesh }];
+    const named = [
+      { name: "Squiggle frame", color: "#C4B5FDFF", mesh: frameMesh },
+      { name: "Carrot stand", color: "#F9A8D4FF", mesh: standPrint },
+    ];
     if (pegPrint) named.push({ name: "Pegs", color: "#DDD6FEFF", mesh: pegPrint });
-    const volume = parts.frame.volume + (parts.pegs ? parts.pegs.volume : 0);
+    const volume = parts.frame.volume + parts.stand.volume + (parts.pegs ? parts.pegs.volume : 0);
     const tris = named.reduce((sum, part) => sum + part.mesh.triVerts.length / 3, 0);
     const threemf = meshesTo3mf(named, "Squiggle frame");
-    const checks = sampleChecks(wasm, frame, d, temps);
+    const checks = { ...sampleChecks(wasm, frame, d, temps), ...standChecks(wasm, frame, d, anchor, temps) };
 
     return {
       d,
       parts,
       pegInstalled,
+      standInstalled,
       volume,
       tris,
       threemf,
@@ -283,7 +465,49 @@ export async function buildExport(raw) {
     frame: meshToStl(built.parts.frame.mesh, "squiggle-frame"),
   };
   if (built.parts.pegs) stls.pegs = meshToStl(built.parts.pegs.mesh, "squiggle-pegs");
+  if (built.parts.stand) stls.stand = meshToStl(built.parts.stand.mesh, "squiggle-stand");
   return { ...built, stls };
+}
+
+export async function buildStandTest(raw) {
+  const d = derive(raw, "export");
+  const spec = d.stand;
+  const wasm = await loadManifold();
+  const { Manifold } = wasm;
+  const temps = [];
+  try {
+    const anchor = { x: 0, y: 0, tx: 1, ty: 0 };
+    let pad = buildPadSolid(wasm, spec, temps);
+    const cut = buildSlotCutter(wasm, spec, temps);
+    pad = assertOk(keep(temps, pad.subtract(cut)), "Test slot");
+    pad = engraveNumbers(wasm, pad, spec, spec.angle, spec.width, temps);
+    const carrot = orientJoint(buildCarrotSolid(wasm, spec, temps, spec.padT + 22), anchor, temps);
+    const tongueHalf = Math.max(8, spec.width - 0.45) / 2;
+    const slotHalf = spec.slotW / 2;
+    const x0 = tongueHalf - 0.85;
+    const x1 = slotHalf + 1.5;
+    const sprue = keep(
+      temps,
+      Manifold.cube([x1 - x0, 1.25, 0.85], true).translate([(x0 + x1) / 2, 0, spec.lipT * 0.45])
+    );
+    let solid = assertOk(keep(temps, pad.add(carrot).add(sprue)), "Stand test");
+    solid = layOnBed(solid, temps);
+    const mesh = captureMesh(solid.getMesh());
+    const named = [{ name: "Stand test", color: "#F9A8D4FF", mesh }];
+    return {
+      d,
+      mesh,
+      volume: solid.volume(),
+      genus: solid.genus(),
+      bbox: solid.boundingBox(),
+      stl: meshToStl(mesh, "squiggle-stand-test"),
+      threemf: meshesTo3mf(named, "Squiggle stand test"),
+      angle: spec.angle,
+      width: spec.width,
+    };
+  } finally {
+    deleteAll(temps);
+  }
 }
 
 export function meshToStl(mesh, name = "mesh") {

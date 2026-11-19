@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { derive, lobeSwing, mergeParams, outsidePhoto, warnings } from "./geometry.js";
-import { buildFrame } from "./stl.js";
+import { carrotTongue, derive, lobeSwing, mergeParams, outsidePhoto, standMetrics, warnings } from "./geometry.js";
+import { buildFrame, buildStandTest } from "./stl.js";
 
 function meshBounds(mesh) {
   const vp = mesh.vertProperties;
@@ -67,10 +67,17 @@ assert.equal(builtWall.checks.openingEmpty, true);
 assert.equal(builtWall.checks.slotEmpty, true);
 assert.equal(builtWall.checks.shelfSolid, true);
 assert.equal(builtWall.checks.ridgeSolid, true);
+assert.equal(builtWall.checks.standMouthEmpty, true);
+assert.equal(builtWall.checks.standPadSolid, true);
+assert.equal(builtWall.checks.standSkinSolid, true);
 assert.equal(builtWall.parts.pegs, undefined);
+assert.ok(builtWall.parts.stand.volume > 1000, "wall frame still ships the carrot stand");
 const wallXml = Buffer.from(builtWall.threemf).toString("latin1");
 assert.equal((wallXml.match(/<item /g) || []).length, 1);
+assert.equal((wallXml.match(/<component /g) || []).length, 2, "frame and carrot stand");
 assert.match(wallXml, /unit="millimeter"/);
+const wallStandBox = meshBounds(builtWall.parts.stand.mesh);
+assert.equal(overlaps(wallStandBox, meshBounds(builtWall.parts.frame.mesh)), false, "stand prints beside the frame");
 
 const built = await buildFrame(
   { seed: 42, mode: "stand", tube: 12, photoW: 5, photoH: 7, units: "in" },
@@ -87,8 +94,33 @@ const frameBox = meshBounds(built.parts.frame.mesh);
 assert.equal(overlaps(pegBox, frameBox), false, "pegs sit beside the frame, not inside it");
 const xml = Buffer.from(built.threemf).toString("latin1");
 assert.equal((xml.match(/<item /g) || []).length, 1, "one build item");
-assert.equal((xml.match(/<component /g) || []).length, 2, "frame and pegs in one assembly");
+assert.equal((xml.match(/<component /g) || []).length, 3, "frame, carrot stand, and pegs");
 assert.match(xml, /transform="1 0 0 0 1 0 0 0 1 0 0 0"/);
+const standBox = meshBounds(built.parts.stand.mesh);
+assert.equal(overlaps(standBox, frameBox), false, "stand sits beside the frame");
+assert.equal(overlaps(standBox, pegBox), false, "stand does not land on the pegs");
+
+const narrow = await buildFrame({ seed: 7, mode: "wall", tube: 11, standWidth: 14, photoW: 4, photoH: 6, units: "in" });
+assert.ok(builtWall.parts.stand.volume > narrow.parts.stand.volume, "a wider stand is more plastic");
+
+const joint = standMetrics({ standAngle: 20, standWidth: 22 });
+assert.ok(joint.neck < joint.slotH, "the cut is narrower than the slot");
+assert.ok(joint.bulb > joint.slotH, "the carrot is wider than the slot");
+assert.ok(joint.tip < joint.slotH, "the tip starts narrower than the slot");
+const tongue = carrotTongue(joint);
+const tipHalf = Math.max(...tongue.filter((p) => p[1] > joint.tipV - 0.01).map((p) => Math.abs(p[0])));
+assert.ok(tipHalf * 2 < joint.slotH);
+
+const clamped = mergeParams({ standAngle: 90, standWidth: 2 });
+assert.equal(clamped.standAngle, 40);
+assert.equal(clamped.standWidth, 14);
+
+const coupon = await buildStandTest({ standAngle: 27, standWidth: 18, seed: 3 });
+assert.equal(coupon.genus, 0, "the stand test is one piece");
+assert.equal(coupon.angle, 27);
+assert.equal(coupon.width, 18);
+assert.ok(coupon.bbox.min[2] >= -0.05 && coupon.bbox.min[2] <= 0.05, "test piece sits on the bed");
+assert.ok(coupon.volume > 500);
 
 const merged = mergeParams({ units: "mm", photoW: 100, photoH: 150, tube: 3, mode: "nope", seed: -4 });
 assert.equal(merged.tube, 8);
