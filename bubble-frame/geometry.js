@@ -3,7 +3,7 @@
 import { frameClipLayout } from "../shared/frame-clip.js";
 import { CAPTION_DEFAULTS, mergeCaptionParams } from "../shared/frame-caption.js";
 
-export const APP_VERSION = "6 · Oct 30, 2026";
+export const APP_VERSION = "7 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v6";
 
 export const IN = 25.4;

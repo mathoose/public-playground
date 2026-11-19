@@ -69,3 +69,24 @@ rememberExport("your-app", { filename: "your-app.stl", params });
 ```
 
 `rememberVisit` runs on load. `rememberSettings` and `rememberExport` run when a download succeeds. `wantsRestore()` is true for `?restore=1` and `#restore`, which is how Last you worked on reopens a designer. The saved value is the slider JSON, not the STL.
+
+## `test-export.js` — settings on a test piece
+
+A test export asks for the numbers, engraves them on a small piece, and stores that export in the same library object (`settings["<app-id>-tests"]`) so Load puts the sliders back. Named saves stay on `designer-saves.js` where the page already has that control.
+
+```js
+import { mountTestExport } from "../shared/test-export.js";
+import { buildCoasterTest } from "../shared/test-pieces.js";
+
+mountTestExport({
+  appId: "coaster-base",
+  actions: document.getElementById("download").parentElement,
+  buttonLabel: "Arm test",
+  title: "Arm test settings",
+  fields: [{ key: "armHeight", label: "Arm height", min: 8, max: 45, step: 0.5, unit: "mm" }],
+  getParams: () => params,
+  setParams: (next) => { writeParams(next); scheduleRebuild(); },
+  build: (next, label) => buildCoasterTest(next, label),
+  fileStem: "coaster-arm",
+});
+```

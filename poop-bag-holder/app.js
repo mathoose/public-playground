@@ -1,6 +1,8 @@
 import { APP_NAME, APP_VERSION, APP_VERSION_TAG, DEFAULT_PARAMS, SLIDERS, derive, mergeParams, warnings } from "./geometry.js";
 import { HolderPreview } from "./preview.js";
 import { buildHolder, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildRollTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 
@@ -176,6 +178,24 @@ function bind() {
   $("resetView").addEventListener("click", () => preview.fit());
   $("dlBody").addEventListener("click", () => downloadPart("body"));
   $("dlCap").addEventListener("click", () => downloadPart("cap"));
+  mountTestExport({
+    appId: "poop-bag-holder",
+    actions: $("dlBody")?.parentElement,
+    buttonLabel: "Roll test",
+    title: "Roll test settings",
+    fields: [
+      { key: "rollD", label: "Roll diameter", min: 15, max: 60, step: 0.5, unit: "mm" },
+      { key: "rollClear", label: "Roll clearance", min: 0.2, max: 4, step: 0.1, unit: "mm" },
+      { key: "slotW", label: "Slot width", min: 1, max: 6, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildRollTest(next, label),
+    fileStem: "poop-roll",
+  });
   $("sectionBtn").addEventListener("click", () => setSection(!section));
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.addEventListener("click", () => setPartView(btn.getAttribute("data-part")));

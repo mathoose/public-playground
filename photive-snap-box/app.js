@@ -14,6 +14,8 @@ import {
 } from "./geometry.js";
 import { BoxPreview } from "./preview.js";
 import { buildBox, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildLipTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -254,6 +256,24 @@ function bind() {
   $("dlBase")?.addEventListener("click", () => downloadPart("base"));
   $("dlLid")?.addEventListener("click", () => downloadPart("lid"));
   $("dlSpacer")?.addEventListener("click", () => downloadPart("spacer"));
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("dlBase")?.parentElement,
+    buttonLabel: "Lip test",
+    title: "Lip test settings",
+    fields: [
+      { key: "lipClear", label: "Lip clearance", min: 0.15, max: 0.6, step: 0.01, unit: "mm" },
+      { key: "usbHoleW", label: "USB width", min: 3, max: 10, step: 0.1, unit: "mm" },
+      { key: "usbHoleH", label: "USB height", min: 4, max: 14, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildLipTest(next, label),
+    fileStem: "photive-lip",
+  });
   $("sectionBtn")?.addEventListener("click", () => setSection(!section));
   document.querySelectorAll("[data-part]").forEach((btn) => {
     btn.addEventListener("click", () => setPartView(btn.getAttribute("data-part")));

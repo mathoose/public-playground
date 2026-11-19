@@ -11,6 +11,8 @@ import {
 } from "./geometry.js";
 import { BagPreview } from "./preview.js";
 import { buildBag, buildBagStls, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildLinkTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -231,6 +233,21 @@ function bind() {
     });
   });
   bindShow();
+  mountTestExport({
+    appId: APP_ID,
+    actions: document.querySelector("[data-download]")?.parentElement,
+    buttonLabel: "Link test",
+    buttonClass: "secondary",
+    title: "Link test settings",
+    fields: [{ key: "linkLength", label: "Link length", min: 40, max: 56, step: 1, unit: "mm" }],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildLinkTest(next, label),
+    fileStem: "bone-link",
+  });
 }
 
 const versionEl = $("app-version");

@@ -11,6 +11,8 @@ import {
 } from "./geometry.js";
 import { ToolPreview } from "./preview.js";
 import { buildAll, buildPartStl, downloadArrayBuffer, stlTriangleCount } from "./stl.js";
+import { mountTestExport } from "../shared/test-export.js";
+import { buildPocketTest } from "../shared/test-pieces.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import { lastSettings, rememberExport, rememberSettings, rememberVisit, wantsRestore } from "../shared/library-activity.js";
@@ -160,6 +162,24 @@ function bind() {
   $("resetView")?.addEventListener("click", () => preview.fit());
   $("dlCradle")?.addEventListener("click", () => downloadPart("cradle"));
   $("dlGrip")?.addEventListener("click", () => downloadPart("grip"));
+  mountTestExport({
+    appId: APP_ID,
+    actions: $("dlCradle")?.parentElement,
+    buttonLabel: "Pocket test",
+    title: "Pocket test settings",
+    fields: [
+      { key: "clearance", label: "Clearance", min: 0.05, max: 0.8, step: 0.05, unit: "mm" },
+      { key: "headWidth", label: "Head width", min: 20, max: 28, step: 0.1, unit: "mm" },
+      { key: "headLength", label: "Head length", min: 38, max: 50, step: 0.1, unit: "mm" },
+    ],
+    getParams: () => params,
+    setParams: (next) => {
+      writeParams(next);
+      scheduleRebuild();
+    },
+    build: (next, label) => buildPocketTest(next, label),
+    fileStem: "henson-pocket",
+  });
 }
 
 const versionEl = $("app-version");

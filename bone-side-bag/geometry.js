@@ -7,7 +7,7 @@
  * of separate snap links lying flat beside it.
  */
 
-export const APP_VERSION = "1 · Oct 29, 2026";
+export const APP_VERSION = "2 · Nov 19, 2026";
 export const APP_VERSION_TAG = "v1";
 export const APP_NAME = "Bone side bag";
 
