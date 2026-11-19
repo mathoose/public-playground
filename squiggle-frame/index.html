@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<!-- build: squiggle-frame-v3 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Squiggle frame</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/squiggle-frame-4335/3d-printing/index.html">← 3D printing library</a>
+        <h1>Squiggle frame</h1>
+      </div>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version" id="header-version">v3 · Nov 19, 2026</p>
+      </div>
+    </header>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="hint">Drag to orbit · pinch or scroll to zoom</div>
+      <div class="view-bar">
+        <button type="button" class="chip active" data-view="angle">Angle</button>
+        <button type="button" class="chip" data-view="front">Front</button>
+        <button type="button" class="chip" data-view="back">Back</button>
+      </div>
+      <button type="button" class="view-btn" id="resetView">Reset view</button>
+    </div>
+    <aside class="panel">
+      <details class="settings-group" open>
+        <summary>Squiggle</summary>
+        <div class="group-body">
+          <p class="group-note">Randomize draws a new thick closed squiggle. The outline stays larger than the photo. Undo brings a pattern back.</p>
+          <div class="actions">
+            <button type="button" class="wide" id="newSquiggle">Randomize</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Photo size</summary>
+        <div class="group-body">
+          <div class="seg">
+            <button type="button" class="chip" data-preset="4x6">4×6</button>
+            <button type="button" class="chip" data-preset="5x7">5×7</button>
+            <button type="button" class="chip" data-preset="8x10">8×10</button>
+            <button type="button" class="chip" data-preset="wallet">Wallet</button>
+            <button type="button" class="chip" id="rotate">Rotate 90°</button>
+          </div>
+          <div class="sizes">
+            <label>Units
+              <select id="units">
+                <option value="in">inches</option>
+                <option value="mm">mm</option>
+              </select>
+            </label>
+            <label>Width <span id="unitW">in</span>
+              <input id="photoW" type="number" min="0.8" max="16" step="0.01" inputmode="decimal" />
+            </label>
+            <label>Height <span id="unitH">in</span>
+              <input id="photoH" type="number" min="0.8" max="16" step="0.01" inputmode="decimal" />
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Tube</summary>
+        <div class="group-body">
+          <p class="group-note">Thickness of the wavy tube. The flat back stays on the bed, and the round front prints without supports.</p>
+          <div class="row">
+            <label for="tube">Tube thickness</label>
+            <output id="tube-out">14.0 mm</output>
+            <input id="tube" type="range" min="8" max="20" step="0.5" value="14" data-unit="mm" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Hold</summary>
+        <div class="group-body">
+          <p class="group-note">Snap clips sit on the back and pinch the photo border. The back also has a slot. A separate carrot leg slides in, then widens so it stays. Angle kicks the leg out. Width is how wide that leg is. Stand mode still adds two peg holes.</p>
+          <div class="seg">
+            <button type="button" class="chip active" data-mode="wall" aria-pressed="true">Wall hang</button>
+            <button type="button" class="chip" data-mode="stand" aria-pressed="false">Stand</button>
+          </div>
+          <div class="row">
+            <label for="standAngle">Stand angle</label>
+            <output id="standAngle-out">20°</output>
+            <input id="standAngle" type="range" min="12" max="40" step="1" value="20" data-unit="°" />
+          </div>
+          <div class="row">
+            <label for="standWidth">Stand width</label>
+            <output id="standWidth-out">22 mm</output>
+            <input id="standWidth" type="range" min="14" max="36" step="1" value="22" data-unit="mm" />
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-group" open>
+        <summary>Download</summary>
+        <div class="group-body">
+          <div id="warnings"></div>
+          <div class="readout" id="readout"></div>
+          <div class="actions">
+            <button type="button" class="wide" id="dlFrame">Download frame STL</button>
+            <button type="button" class="wide" id="dlStand">Download stand STL</button>
+            <button type="button" class="wide" id="dlPegs" hidden>Download pegs STL</button>
+            <button type="button" id="dl3mf">Download 3MF</button>
+            <button type="button" id="dlStandTest">Stand test</button>
+          </div>
+          <ul class="test-log" id="testLog" hidden></ul>
+          <p class="status" id="status"></p>
+          <p class="notes">
+            Print the flat back on the bed, 0.2 mm layers, no supports.
+            Slide the photo in from the back until the clips snap over the border.
+            Press the carrot leg into the slot on the back until the wide part pops through and stays.
+            <b>Wall:</b> the flat rear sits against the wall.
+            <b>Stand:</b> press a peg into each hole as well, and lean the frame back onto the legs.
+            Stand test prints one small joint with the angle and width engraved on it.
+            The 3MF is one assembly. STL units are millimeters.
+          </p>
+        </div>
+      </details>
+      <p class="foot" id="app-version">Squiggle frame v3 · Nov 19, 2026</p>
+    </aside>
+  </div>
+  <dialog id="testPrompt">
+    <form method="dialog">
+      <h2>Stand test settings</h2>
+      <p>These numbers are engraved on the test piece and saved so you can load this export again.</p>
+      <label>Stand angle
+        <input name="angle" type="number" min="12" max="40" step="1" inputmode="numeric" />
+      </label>
+      <label>Stand width
+        <input name="width" type="number" min="14" max="36" step="1" inputmode="numeric" />
+      </label>
+      <div class="actions">
+        <button type="submit" class="chip" value="cancel">Cancel</button>
+        <button type="submit" value="ok">Export test</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="./app.bundle.js"></script>
+  <script>
+    if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {
+      var a = document.querySelector("a.lib");
+      if (a && a.getAttribute("data-htmlpreview")) a.href = a.getAttribute("data-htmlpreview");
+    }
+  </script>
+</body>
+</html>
