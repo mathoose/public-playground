@@ -156,13 +156,15 @@ function cleanEntry(raw, mergeParams) {
   if (!name) return null;
   const savedAt = Number(raw.savedAt);
   if (!Number.isFinite(savedAt)) return null;
-  return {
+  const entry = {
     id: String(raw.id || savedAt),
     name,
     note: clipText(raw.note, NOTE_LIMIT),
     params: mergeParams(raw.params),
     savedAt,
   };
+  if (raw.kind === "download") entry.kind = "download";
+  return entry;
 }
 
 export function readSaves(appId, getItem, mergeParams) {
@@ -184,7 +186,7 @@ export function rememberSave(saves, { name, note, params, mergeParams, now = Dat
   if (!cleanName) {
     return { ok: false, error: "Type a name for this save.", saves: sortNewest(saves) };
   }
-  const existing = saves.find((s) => s.name === cleanName);
+  const existing = saves.find((s) => s.kind !== "download" && s.name === cleanName);
   const entry = {
     id: existing ? existing.id : `s${now}`,
     name: cleanName,
@@ -192,8 +194,29 @@ export function rememberSave(saves, { name, note, params, mergeParams, now = Dat
     params: mergeParams(params),
     savedAt: now,
   };
-  const next = sortNewest([entry, ...saves.filter((s) => s.name !== cleanName)]).slice(0, SAVE_LIMIT);
+  const next = sortNewest([
+    entry,
+    ...saves.filter((s) => s.kind === "download" || s.name !== cleanName),
+  ]).slice(0, SAVE_LIMIT);
   return { ok: true, saves: next, entry, replaced: Boolean(existing) };
+}
+
+/** One row per download. The same file name stays in the log instead of replacing an older download. */
+export function rememberDownload(saves, { name, params, mergeParams, now = Date.now() }) {
+  const cleanName = clipText(name, NAME_LIMIT);
+  if (!cleanName) {
+    return { ok: false, error: "Type a name for this save.", saves: sortNewest(saves) };
+  }
+  const entry = {
+    id: `d${now}-${saves.length}`,
+    name: cleanName,
+    note: "Downloaded",
+    params: mergeParams(params),
+    savedAt: now,
+    kind: "download",
+  };
+  const next = sortNewest([entry, ...saves]).slice(0, SAVE_LIMIT);
+  return { ok: true, saves: next, entry };
 }
 
 function ensureStyle() {
@@ -256,8 +279,6 @@ export function mountDesignerSaves({
   const hintEl = wrap.querySelector(".designer-saves-hint");
   const panelEl = wrap.querySelector(".designer-saves-panel");
   const toggleBtn = wrap.querySelector(".designer-saves-toggle");
-  const tbody = wrap.querySelector("tbody");
-
   let saves = [];
 
   function setHint(text, kind = "") {
@@ -273,29 +294,34 @@ export function mountDesignerSaves({
   }
 
   function renderList() {
-    tbody.replaceChildren();
     const params = getParams();
     if (!saves.length) {
-      panelEl.innerHTML = `<p class="designer-saves-empty">No saves in this browser yet.</p>`;
+      panelEl.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "designer-saves-empty";
+      empty.textContent = "No saves in this browser yet.";
+      panelEl.append(empty);
       return;
     }
-    if (!panelEl.querySelector("table")) {
-      panelEl.innerHTML = `
-        <table class="designer-saves-table">
-          <thead><tr><th>Name</th><th>Date</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      `;
+    let table = panelEl.querySelector("table");
+    if (!table) {
+      panelEl.replaceChildren();
+      table = document.createElement("table");
+      table.className = "designer-saves-table";
+      table.innerHTML = `<thead><tr><th>Name</th><th>Date</th></tr></thead><tbody></tbody>`;
+      panelEl.append(table);
     }
-    const body = panelEl.querySelector("tbody");
-    saves.forEach((save, index) => {
+    const body = table.querySelector("tbody");
+    body.replaceChildren();
+    const latestNamed = saves.find((save) => save.kind !== "download");
+    saves.forEach((save) => {
       const tr = document.createElement("tr");
       if (sameParams(save.params, params)) tr.classList.add("active");
       const nameCell = document.createElement("td");
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "load";
-      btn.textContent = index === 0 ? `${save.name} · Latest` : save.name;
+      btn.textContent = save === latestNamed ? `${save.name} · Latest` : save.name;
       if (save.note) btn.title = save.note;
       btn.addEventListener("click", () => loadSave(save.id));
       nameCell.append(btn);
@@ -372,10 +398,34 @@ export function mountDesignerSaves({
     if (open) renderList();
   });
 
+  function noteDownload({ name, params, now = Date.now() }) {
+    const result = rememberDownload(saves, {
+      name,
+      params: params ?? getParams(),
+      mergeParams,
+      now,
+    });
+    if (!result.ok) {
+      setHint(result.error, "err");
+      return result;
+    }
+    saves = result.saves;
+    try {
+      writeSaves(appId, (key, value) => localStorage.setItem(key, value), saves);
+    } catch {
+      setHint("This browser blocked saving. Nothing was uploaded.", "err");
+      return result;
+    }
+    setHint(`Logged ${result.entry.name}.`);
+    renderList();
+    return result;
+  }
+
   renderList();
 
   return {
     renderList,
+    noteDownload,
     get saves() {
       return saves;
     },

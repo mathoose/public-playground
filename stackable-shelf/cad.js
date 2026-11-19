@@ -76,10 +76,9 @@ function taperedHex(CS, startFlat, endFlat, height, x, y, z, temps) {
   return keep(temps, solid.translate([x, y, z]));
 }
 
-function socketCutters(CS, d, x, y, temps, side) {
+function socketCutters(CS, d, x, y, temps, side, depth = d.socketDepth) {
   const mouth = d.mouthFlat;
   const floor = d.floorFlat;
-  const depth = d.socketDepth;
   const thick = d.p.thickness;
   if (side === "bottom") {
     return [
@@ -114,6 +113,121 @@ function layOnFace(solid, temps) {
 
 const LEG_PATTERN = "hex";
 
+function annulus(r0, r1, a0, a1, steps) {
+  const n = Math.max(2, steps);
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    pts.push([r1 * Math.cos(a), r1 * Math.sin(a)]);
+  }
+  for (let i = n; i >= 0; i--) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    pts.push([r0 * Math.cos(a), r0 * Math.sin(a)]);
+  }
+  return pts;
+}
+
+function place(poly, x, y) {
+  return poly.map(([px, py]) => [px + x, py + y]);
+}
+
+function extrudeAt(CS, poly, z0, z1, temps) {
+  const h = z1 - z0;
+  if (h <= 0.04) return null;
+  const section = keep(temps, CS.ofPolygons([poly]));
+  return keep(temps, section.extrude(h).translate([0, 0, z0]));
+}
+
+function twistLevels(d) {
+  const t = d.twist;
+  const thick = d.p.thickness;
+  const ceiling = thick - t.land;
+  const hookTop = ceiling - t.gap;
+  const hookBottom = hookTop - t.hookHeight;
+  const pocketFloor = hookBottom - t.floorGap;
+  const socketFloor = thick - t.depth;
+  return { ceiling, hookTop, hookBottom, pocketFloor, socketFloor };
+}
+
+function twistSocket(CS, d, x, y, temps) {
+  const t = d.twist;
+  const thick = d.p.thickness;
+  const { ceiling, pocketFloor, socketFloor } = twistLevels(d);
+  const cuts = [];
+  const bumps = [];
+  const bore = keep(temps, CS.circle(t.holeR, 64).translate([x, y]));
+  cuts.push(keep(temps, bore.extrude(thick - socketFloor + 0.3).translate([0, 0, socketFloor - 0.04])));
+  const add = (list, solid) => {
+    if (solid) list.push(solid);
+  };
+  for (const base of [t.hookAngle, t.hookAngle + 180]) {
+    const shift = base - t.hookAngle;
+    const slot = place(annulus(t.holeR - 0.3, t.pocketOuter, base - t.slotHalf, base + t.slotHalf, 6), x, y);
+    add(cuts, extrudeAt(CS, slot, pocketFloor, thick + 0.35, temps));
+    const land = place(annulus(t.holeR - 0.2, t.pocketOuter, t.stop + shift, t.landEnd + shift, 8), x, y);
+    add(cuts, extrudeAt(CS, land, pocketFloor, ceiling, temps));
+    const slices = 6;
+    const overlap = 0.55;
+    for (let i = 0; i < slices; i++) {
+      const a0 = t.landEnd + shift + ((t.slotNear - t.landEnd) * i) / slices - overlap;
+      const a1 = t.landEnd + shift + ((t.slotNear - t.landEnd) * (i + 1)) / slices + overlap;
+      let top = ceiling + (t.land * (i + 1)) / slices;
+      if (top >= thick - 0.08) top = thick + 0.3;
+      const poly = place(annulus(t.holeR - 0.2, t.pocketOuter, a0, a1, 3), x, y);
+      add(cuts, extrudeAt(CS, poly, pocketFloor, top, temps));
+    }
+    const bumpA = t.trail + shift + 3.5;
+    const bump = place(annulus(t.holeR + 0.05, t.hookTipR - 0.08, bumpA, bumpA + 4.5, 3), x, y);
+    add(bumps, extrudeAt(CS, bump, pocketFloor - 0.04, pocketFloor + t.floorGap + 0.18, temps));
+  }
+  return { cuts, bumps };
+}
+
+function clipStrip(poly, limit) {
+  const clip = (pts, keepSide, at) => {
+    if (!pts.length) return [];
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const ka = keepSide(a);
+      const kb = keepSide(b);
+      if (ka && kb) out.push(b);
+      else if (ka && !kb) out.push(at(a, b));
+      else if (!ka && kb) {
+        out.push(at(a, b));
+        out.push(b);
+      }
+    }
+    return out;
+  };
+  const cross = (a, b, x) => {
+    const t = (x - a[0]) / (b[0] - a[0] || 1e-9);
+    return [x, a[1] + (b[1] - a[1]) * t];
+  };
+  let pts = clip(poly, (p) => p[0] <= limit, (a, b) => cross(a, b, limit));
+  pts = clip(pts, (p) => p[0] >= -limit, (a, b) => cross(a, b, -limit));
+  return pts;
+}
+
+function hookSection(t, angle) {
+  const a = (angle * Math.PI) / 180;
+  const ca = Math.cos(a);
+  const sa = Math.sin(a);
+  const x0 = t.apothem - 0.16;
+  const x1 = t.apothem + t.hookRadial;
+  const w = t.hookHalfWidth;
+  const raw = [
+    [x0, -w],
+    [x1, -w],
+    [x1, w],
+    [x0, w],
+  ].map(([px, py]) => [px * ca - py * sa, px * sa + py * ca]);
+  // The bed flats are the ±X faces. Clip the ear flush with them so the
+  // doubled ear still prints on a face.
+  return clipStrip(raw, t.apothem);
+}
+
 function buildFlat(wasm, d, temps) {
   const { CrossSection: CS } = wasm;
   const plate2d = roundedRect(CS, d.p.shelfLength, d.p.shelfWidth, d.cornerR, 16, temps);
@@ -122,17 +236,34 @@ function buildFlat(wasm, d, temps) {
   for (const cell of d.cells) {
     cutters.push(prism(CS, d.p.pattern, d.cellFlat, d.p.thickness + 1, cell.x, cell.y, -0.5, temps));
   }
+  const bumps = [];
   for (const socket of d.sockets) {
-    cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "bottom"));
-    cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "top"));
+    if (d.twist) {
+      const twist = twistSocket(CS, d, socket.x, socket.y, temps);
+      cutters.push(...twist.cuts);
+      bumps.push(...twist.bumps);
+      cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "bottom", d.bottomDepth));
+    } else {
+      cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "bottom"));
+      cutters.push(...socketCutters(CS, d, socket.x, socket.y, temps, "top"));
+    }
   }
   if (cutters.length) plate = keep(temps, plate.subtract(unionAll(cutters, temps)));
+  if (bumps.length) plate = keep(temps, plate.add(unionAll(bumps, temps)));
   return plate;
 }
 
 function buildLeg(wasm, d, temps) {
   const { CrossSection: CS } = wasm;
-  return prism(CS, LEG_PATTERN, d.legFlat, d.printedLeg, 0, 0, 0, temps);
+  let leg = prism(CS, LEG_PATTERN, d.legFlat, d.printedLeg, 0, 0, 0, temps);
+  if (!d.twist) return leg;
+  const t = d.twist;
+  const hooks = [t.hookAngle, t.hookAngle + 180].map((angle) => {
+    const section = keep(temps, CS.ofPolygons([hookSection(t, angle)]));
+    return keep(temps, section.extrude(t.hookHeight).translate([0, 0, t.tip]));
+  });
+  leg = keep(temps, leg.add(unionAll(hooks, temps)));
+  return leg;
 }
 
 function buildLegsFlat(wasm, d, temps) {
@@ -147,20 +278,143 @@ function buildLegsFlat(wasm, d, temps) {
 }
 
 function buildLegsStanding(wasm, d, temps) {
-  const one = buildLeg(wasm, d, temps);
+  let one = buildLeg(wasm, d, temps);
+  if (d.twist) one = keep(temps, one.rotate([0, 0, -d.twist.twist]));
   const z = d.p.thickness - d.socketDepth;
   const copies = d.sockets.map((socket) => keep(temps, one.translate([socket.x, socket.y, z])));
   return copies;
 }
 
-function buildTest(wasm, d, temps) {
+function buildSocketLeg(wasm, d, temps) {
+  const { CrossSection: CS } = wasm;
+  let leg = buildLeg(wasm, d, temps);
+  const stub = d.socketDepth + 9;
+  const box = keep(temps, CS.square([48, 48], true).extrude(stub));
+  leg = keep(temps, leg.intersect(box));
+  const z = d.p.thickness - d.socketDepth;
+  return keep(temps, leg.translate([d.coupon.holeX, d.coupon.holeY, z]));
+}
+
+const DIGIT_SEGS = {
+  0: "abcedf",
+  1: "bc",
+  2: "abged",
+  3: "abgcd",
+  4: "fgbc",
+  5: "afgcd",
+  6: "afgedc",
+  7: "abc",
+  8: "abcdefg",
+  9: "abfgcd",
+};
+
+function glyphBoxes(ch, u0, v0, scale) {
+  const w = 2.2 * scale;
+  const h = 3.2 * scale;
+  const t = Math.max(0.28, 0.46 * scale);
+  const depth = 0.4;
+  const seg = {
+    a: [w / 2, h - t / 2, w, t],
+    b: [w - t / 2, h * 0.75, t, h / 2],
+    c: [w - t / 2, h * 0.25, t, h / 2],
+    d: [w / 2, t / 2, w, t],
+    e: [t / 2, h * 0.25, t, h / 2],
+    f: [t / 2, h * 0.75, t, h / 2],
+    g: [w / 2, h / 2, w - t, t],
+  };
+  const boxes = [];
+  const push = (cu, cv, su, sv) => {
+    boxes.push({ size: [su, depth, sv], at: [u0 + cu, depth / 2, v0 + cv] });
+  };
+  if (ch === "-") {
+    push(w / 2, h / 2, w * 0.7, t);
+    return boxes;
+  }
+  if (ch === ".") {
+    push(w / 2, t / 2, t, t);
+    return boxes;
+  }
+  const on = DIGIT_SEGS[ch] || "";
+  for (const name of on) {
+    const [cu, cv, su, sv] = seg[name];
+    push(cu, cv, su, sv);
+  }
+  return boxes;
+}
+
+export function socketMarkLines(d) {
+  const offset = d.p.holeOffset.toFixed(2);
+  if (d.twist) return [offset, d.p.finThickness.toFixed(2)];
+  return [offset, d.socketDepth.toFixed(1)];
+}
+
+function engraveLines(wasm, solid, d, lines, temps) {
+  const { Manifold } = wasm;
+  const size = d.coupon.size;
+  const flat = Math.max(3, size - 2 * d.cornerR - 0.8);
+  const tall = Math.max(1.6, d.p.thickness - 0.8);
+  const longest = Math.max(...lines.map((line) => line.length), 1);
+  const scale = Math.min(0.72, flat / (longest * 2.7), tall / (lines.length * 3.5 + 0.3));
+  const advance = 2.7 * scale;
+  const glyphH = 3.2 * scale;
+  const gap = 0.35 * scale;
+  const blockH = lines.length * glyphH + (lines.length - 1) * gap;
+  let v = (d.p.thickness - blockH) / 2;
+  let cut = null;
+  for (const line of lines) {
+    let u = -(line.length * advance) / 2;
+    for (const ch of line) {
+      if (ch !== " ") {
+        for (const box of glyphBoxes(ch, u, v, scale)) {
+          const piece = keep(
+            temps,
+            Manifold.cube([box.size[0], box.size[1] + 0.08, box.size[2]], true).translate([
+              box.at[0],
+              -size / 2 + box.at[1] - 0.04,
+              box.at[2],
+            ])
+          );
+          cut = cut ? keep(temps, cut.add(piece)) : piece;
+        }
+      }
+      u += advance;
+    }
+    v += glyphH + gap;
+  }
+  if (!cut) return solid;
+  return assertOk(keep(temps, solid.subtract(cut)), "Test marking");
+}
+
+function buildTest(wasm, d, temps, lines = null) {
   const { CrossSection: CS } = wasm;
   const size = d.coupon.size;
   const plate2d = roundedRect(CS, size, size, d.cornerR, 16, temps);
   let plate = keep(temps, plate2d.extrude(d.p.thickness));
-  const cutter = unionAll(socketCutters(CS, d, d.coupon.holeX, d.coupon.holeY, temps, "top"), temps);
-  plate = keep(temps, plate.subtract(cutter));
+  if (d.twist) {
+    const twist = twistSocket(CS, d, d.coupon.holeX, d.coupon.holeY, temps);
+    let cutter = unionAll(twist.cuts, temps);
+    plate = keep(temps, plate.subtract(cutter));
+    if (twist.bumps.length) plate = keep(temps, plate.add(unionAll(twist.bumps, temps)));
+  } else {
+    const cutter = unionAll(socketCutters(CS, d, d.coupon.holeX, d.coupon.holeY, temps, "top"), temps);
+    plate = keep(temps, plate.subtract(cutter));
+  }
+  if (lines?.length) plate = engraveLines(wasm, plate, d, lines, temps);
   return plate;
+}
+
+export async function buildSocketTest(raw) {
+  const d = derive(raw);
+  const lines = socketMarkLines(d);
+  const wasm = await loadManifold();
+  const temps = [];
+  try {
+    const solid = buildTest(wasm, d, temps, lines);
+    const mesh = capture(solid);
+    return { d, lines, ...mesh, stl: meshToStl(mesh, "hole-test") };
+  } finally {
+    deleteAll(temps);
+  }
 }
 
 export function meshToStl(mesh, name = "mesh") {
@@ -246,11 +500,13 @@ export async function buildShelf(raw) {
     const standing = buildLegsStanding(wasm, d, temps);
     const standingSolid = unionAll(standing, temps);
     const testSolid = buildTest(wasm, d, temps);
+    const socketLegSolid = buildSocketLeg(wasm, d, temps);
 
     const flat = capture(flatSolid);
     const legs = capture(legsSolid);
     const legsStanding = capture(standingSolid);
     const test = capture(testSolid);
+    const socketLeg = capture(socketLegSolid);
     const legMeshes = standing.map((solid, index) => ({
       name: `Leg ${index + 1}`,
       color: "#C4A574FF",
@@ -271,6 +527,7 @@ export async function buildShelf(raw) {
       legs,
       legsStanding,
       test,
+      socketLeg,
       threemf,
       stl: {
         flat: meshToStl(flat, "flat"),
@@ -278,6 +535,41 @@ export async function buildShelf(raw) {
         test: meshToStl(test, "hole-test"),
       },
     };
+  } finally {
+    deleteAll(temps);
+  }
+}
+
+export async function measureTwist(raw) {
+  const d = derive({ ...raw, fit: "twist" });
+  if (!d.twist) return null;
+  const wasm = await loadManifold();
+  const { CrossSection: CS } = wasm;
+  const temps = [];
+  try {
+    const plate = buildTest(wasm, d, temps);
+    const leg = buildLeg(wasm, d, temps);
+    const z = d.p.thickness - d.socketDepth;
+    const at = (solid) => keep(temps, solid.translate([d.coupon.holeX, d.coupon.holeY, z]));
+    const dropped = at(leg);
+    const locked = at(keep(temps, leg.rotate([0, 0, -d.twist.twist])));
+    const dropHit = keep(temps, plate.intersect(dropped)).volume();
+    const lockHit = keep(temps, plate.intersect(locked)).volume();
+    const t = d.twist;
+    const ceiling = d.p.thickness - t.land;
+    const ang = (t.locked * Math.PI) / 180;
+    const radius = (t.holeR + t.hookTipR) / 2;
+    const px = d.coupon.holeX + radius * Math.cos(ang);
+    const py = d.coupon.holeY + radius * Math.sin(ang);
+    const probe = (z0, h) => {
+      const box = keep(temps, CS.square([0.35, 0.35], true).translate([px, py]));
+      return keep(temps, box.extrude(h).translate([0, 0, z0]));
+    };
+    const gapProbe = probe(ceiling - t.gap + 0.12, Math.max(0.2, t.gap - 0.22));
+    const catchProbe = probe(ceiling + 0.2, 0.35);
+    const gapHit = keep(temps, plate.intersect(gapProbe)).volume();
+    const catchHit = keep(temps, plate.intersect(catchProbe)).volume();
+    return { d, dropHit, lockHit, gapHit, catchHit, gap: t.gap };
   } finally {
     deleteAll(temps);
   }

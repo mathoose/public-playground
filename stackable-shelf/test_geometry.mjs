@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { derive, FILES, profileArea } from "./geometry.js";
-import { boundsOf, buildShelf, meshToPositions } from "./cad.js";
+import { boundsOf, buildShelf, buildSocketTest, measureTwist, meshToPositions } from "./cad.js";
 
 function sizeOf(bounds) {
   return bounds.max.map((v, i) => v - bounds.min[i]);
@@ -27,7 +27,7 @@ function frustumVolume(mouthFlat, floorFlat, depth) {
   return (depth / 3) * (mouth + floor + Math.sqrt(mouth * floor));
 }
 
-const hex = derive();
+const hex = derive({ fit: "press" });
 assert.equal(hex.p.pattern, "hex");
 assert.equal(hex.p.shelfLength, 200);
 assert.equal(hex.p.shelfWidth, 200);
@@ -35,9 +35,8 @@ assert.equal(hex.p.thickness, 8);
 assert.equal(hex.legFlat, 10);
 assert.equal(hex.p.holeOffset, -0.1);
 close(hex.floorFlat, 9.8, 1e-9, "press-fit floor");
-close(hex.mouthFlat, 10.6, 1e-9, "mouth is wider than the leg");
-assert.ok(hex.mouthFlat > hex.legFlat, "the leg starts in the mouth");
-assert.ok(hex.floorFlat < hex.legFlat, "the floor is tighter than the leg");
+close(hex.mouthFlat, hex.floorFlat, 1e-9, "the press-fit hole is straight");
+assert.ok(hex.floorFlat < hex.legFlat, "the hole is smaller than the leg");
 assert.ok(hex.socketDepth >= 3.4, "sockets capture more of the leg");
 assert.equal(hex.sockets.length, 4);
 assert.equal(hex.countUsed, 4);
@@ -45,16 +44,50 @@ assert.ok(hex.cells.length >= 4, "hex cells");
 assert.ok(hex.coupon.size < 40, "coupon stays a corner");
 assert.equal(hex.warnings.length, 0);
 
-const square = derive({ pattern: "square", count: 3 });
+const square = derive({ pattern: "square", count: 3, fit: "press" });
 assert.equal(square.p.pattern, "square");
 assert.equal(square.countUsed, 3);
-assert.equal(square.cells.length, square.countUsed * square.rows);
+assert.ok(square.cells.length > 0 && square.cells.length <= square.countUsed * square.rows);
 
-const loose = derive({ holeOffset: 1 });
+function nearestOpening(d) {
+  const reach = d.p.pattern === "square" ? d.cellFlat / 2 : d.cellFlat / 2;
+  let gap = Infinity;
+  for (const cell of d.cells) {
+    gap = Math.min(gap, d.p.shelfLength / 2 - (Math.abs(cell.x) + reach));
+    gap = Math.min(gap, d.p.shelfWidth / 2 - (Math.abs(cell.y) + (d.p.pattern === "square" ? reach : d.cellFlat / Math.sqrt(3))));
+  }
+  return gap;
+}
+
+const filled = derive({ pattern: "square", fit: "twist", outerWall: 4 });
+close(nearestOpening(filled), filled.p.outerWall, 0.2, "squares reach the outside wall");
+assert.ok(filled.cells.length >= 8, "the old empty border is filled");
+const coupon = filled.coupon.size;
+for (const cell of filled.cells) {
+  const reach = filled.cellFlat / 2;
+  const hx = filled.p.shelfLength / 2;
+  const hy = filled.p.shelfWidth / 2;
+  const corners = [
+    [hx, hy],
+    [hx, -hy],
+    [-hx, hy],
+    [-hx, -hy],
+  ];
+  for (const [cx, cy] of corners) {
+    const minX = Math.min(cx, cx - Math.sign(cx) * coupon);
+    const maxX = Math.max(cx, cx - Math.sign(cx) * coupon);
+    const minY = Math.min(cy, cy - Math.sign(cy) * coupon);
+    const maxY = Math.max(cy, cy - Math.sign(cy) * coupon);
+    const overlaps = cell.x + reach > minX && cell.x - reach < maxX && cell.y + reach > minY && cell.y - reach < maxY;
+    assert.equal(overlaps, false, "a square stays out of the socket-test corner");
+  }
+}
+
+const loose = derive({ holeOffset: 1, fit: "press" });
 close(loose.floorFlat, hex.floorFlat + 2.2, 1e-9, "offset adds both sides");
-assert.ok(loose.mouthFlat > loose.floorFlat, "a looser offset still tapers");
+close(loose.mouthFlat, loose.floorFlat, 1e-9, "a looser offset stays straight");
 
-const built = await buildShelf();
+const built = await buildShelf({ fit: "press" });
 const flatBox = boundsOf(meshToPositions(built.flat));
 const flatSize = sizeOf(flatBox);
 close(flatSize[0], 200, 0.2, "shelf length");
@@ -83,23 +116,23 @@ const filletArea = built.d.coupon.size ** 2 - built.d.cornerR ** 2 * (4 - Math.P
 const missing = filletArea * built.d.p.thickness - built.test.volume;
 assert.equal(built.flat.genus, built.d.cells.length, "only the pattern openings go through");
 assert.equal(built.test.genus, 0, "the corner test pocket does not go through");
-close(missing, pocket, 25, "one tapered socket");
+close(missing, pocket, 25, "one straight socket");
 assert.ok(missing < pocket * 1.4, "the corner test has one hole, not two");
 const testPos = meshToPositions(built.test);
 const hole = built.d.coupon;
 const mouthR = widestRing(testPos, built.d.p.thickness, hole.holeX, hole.holeY);
 const floorR = widestRing(testPos, built.d.p.thickness - built.d.socketDepth, hole.holeX, hole.holeY);
-assert.ok(mouthR > floorR + 0.15, `socket narrows toward the floor (${mouthR.toFixed(2)} to ${floorR.toFixed(2)})`);
+close(mouthR, floorR, 0.12, "the press-fit hole does not narrow");
 
-const wide = await buildShelf({ holeOffset: 1.2 });
+const wide = await buildShelf({ holeOffset: 1.2, fit: "press" });
 assert.ok(wide.d.holeFlat > built.d.holeFlat, "offset widens the socket");
 assert.equal(wide.test.genus, 0);
 
-const thick = derive({ wall: 8 });
+const thick = derive({ wall: 8, fit: "press" });
 assert.equal(thick.wall, 8);
 assert.ok(thick.cellFlat < hex.cellFlat, "a thicker wall leaves a smaller opening");
 
-const squared = await buildShelf({ pattern: "square" });
+const squared = await buildShelf({ pattern: "square", fit: "press" });
 const squareLegs = sizeOf(boundsOf(meshToPositions(squared.legs)));
 close(squareLegs[2], 10, 0.15, "legs still lie on a face");
 close(squared.legs.volume, 4 * profileArea("hex", 10) * squared.d.printedLeg, 1, "legs stay hexagonal");
@@ -120,6 +153,57 @@ assert.match(xml, /Flat piece/);
 assert.match(xml, /Leg 1/);
 
 assert.equal(FILES.test, "stackable-shelf-hole-test.stl");
+
+const marked = await buildSocketTest({ fit: "press" });
+assert.deepEqual(marked.lines, [marked.d.p.holeOffset.toFixed(2), marked.d.socketDepth.toFixed(1)]);
+assert.equal(marked.genus, 0, "the marked socket still does not go through");
+assert.ok(built.test.volume - marked.volume > 0.15, "the setting numbers are cut into the test piece");
+assert.ok(built.test.volume - marked.volume < 8, "the marking is small");
+const markedBox = boundsOf(meshToPositions(marked));
+close(sizeOf(markedBox)[0], built.d.coupon.size, 0.2, "the mark stays on the test piece");
+
+const twist = derive({ fit: "twist" });
+assert.equal(twist.p.fit, "twist");
+assert.ok(twist.twist, "an 8 mm plate fits the twist lock");
+assert.ok(twist.twist.hookRadial >= 3, "the ear sticks out twice as far");
+assert.ok(twist.twist.hookHalfWidth >= 2, "the ear is twice as wide");
+assert.ok(twist.twist.twist > twist.twist.innerHalf, "the twist clears the wider ear");
+assert.ok(twist.twist.landEnd < twist.twist.slotNear, "the slope still rises into the lead-in");
+assert.ok(twist.twist.gap >= 0.5, "clear air between the hook and the catch");
+assert.ok(twist.twist.web >= 0.7, "the two sockets do not meet");
+const twistBuilt = await buildShelf({ fit: "twist" });
+const twistLegs = boundsOf(meshToPositions(twistBuilt.legs));
+const twistLegSize = sizeOf(twistLegs);
+close(twistLegs.min[2], 0, 0.05, "twist legs on the bed");
+close(twistLegSize[2], twistBuilt.d.legFlat, 0.15, "hooks do not lift the leg off its face");
+assert.ok(twistLegSize[1] > twistBuilt.d.legFlat + 1, "hooks stick out the sides");
+assert.equal(twistBuilt.test.genus, 0, "the twist socket does not go through");
+assert.equal(twistBuilt.flat.genus, twistBuilt.d.cells.length, "twist sockets stay blind");
+const fit = await measureTwist();
+assert.ok(fit.gap >= 0.5, "measured gap");
+assert.ok(fit.dropHit < 0.4, `dropped-in leg is clear of the socket (${fit.dropHit.toFixed(3)} mm3)`);
+assert.ok(fit.lockHit < 0.4, `locked leg is clear of the catch (${fit.lockHit.toFixed(3)} mm3)`);
+assert.ok(fit.gapHit < 0.01, `the space under the catch is empty (${fit.gapHit.toFixed(3)} mm3)`);
+assert.ok(fit.catchHit > 0.02, "the catch is solid above that space");
+
+assert.equal(hex.p.holeDepth, 3.5);
+close(hex.socketDepth, 3.5, 0.02, "default press depth");
+const deep = derive({ fit: "press", thickness: 12, holeDepth: 5 });
+close(deep.socketDepth, 5, 0.02, "hole depth follows the slider");
+close(deep.bottomDepth, 5, 0.02, "both press-fit holes use that depth");
+const capped = derive({ fit: "press", holeDepth: 6 });
+assert.ok(capped.socketDepth < 3.6, "a deep hole stops before it meets the other side");
+assert.ok(capped.warnings.some((note) => /depth came down/.test(note)), "the page says the depth was reduced");
+
+const thickFin = derive({ fit: "twist", finThickness: 2.2 });
+close(thickFin.twist.hookHeight, 2.2, 1e-9, "fin thickness");
+close(thickFin.twist.gap, 0.15, 0.02, "a thicker fin closes the air under the catch");
+close(thickFin.twist.hookRadial, twist.twist.hookRadial, 1e-9, "the ear still sticks out the same");
+close(thickFin.twist.hookHalfWidth, twist.twist.hookHalfWidth, 1e-9, "the ear stays the same width");
+close(thickFin.twist.depth, twist.twist.depth, 0.02, "the catch does not move");
+const thickFit = await measureTwist({ finThickness: 2.2 });
+assert.ok(thickFit.lockHit < 0.4, `a thicker fin still clears the catch (${thickFit.lockHit.toFixed(3)} mm3)`);
+assert.ok(thickFit.gap < fit.gap, "the thicker fin leaves less air");
 
 console.log("stackable-shelf geometry ok");
 console.log(

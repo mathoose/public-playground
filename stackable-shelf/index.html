@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v4 -->
+<!-- build: stackable-shelf-v11 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,10 +11,13 @@
   <div class="app">
     <header>
       <div>
-        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/stackable-shelf-f2df/3d-printing/index.html">← 3D printing library</a>
+        <a class="lib" href="../3d-printing/" data-htmlpreview="https://htmlpreview.github.io/?https://github.com/mathoose/public-playground/blob/cursor/shelf-twist-lock-40ec/3d-printing/index.html">← 3D printing library</a>
         <h1>Stackable shelf</h1>
       </div>
-      <p id="header-version">v4 · Nov 17, 2026</p>
+      <div class="header-meta">
+        <div class="header-saves"></div>
+        <p class="version" id="header-version">v11 · Nov 19, 2026</p>
+      </div>
     </header>
     <div class="stage">
       <canvas id="view"></canvas>
@@ -23,6 +26,7 @@
         <button type="button" class="chip active" data-view="stack">Stack</button>
         <button type="button" class="chip" data-view="shelf">Shelf</button>
         <button type="button" class="chip" data-view="legs">Legs</button>
+        <button type="button" class="chip" data-view="socket">Socket</button>
         <button type="button" class="chip" data-view="test">Hole test</button>
       </div>
       <button type="button" class="view-btn" id="resetView">Reset view</button>
@@ -53,7 +57,7 @@
       <details class="settings-group" open>
         <summary>Pattern</summary>
         <div class="group-body">
-          <p class="group-note">Openings can be hexagons or squares. The legs and the sockets stay hexagonal either way. Wall thickness is the material between the holes. The count is how many fit along the length, and the width takes as many whole rows as fit.</p>
+          <p class="group-note">Openings can be hexagons or squares. The legs and the sockets stay hexagonal either way. Wall thickness is the material between the holes. Outside wall is the solid rim. The count runs out to that rim, and the width takes as many whole rows as fit. Each corner stays solid for the socket test.</p>
           <div class="seg">
             <button class="chip active" type="button" data-pattern="hex" aria-pressed="true">Hexagon</button>
             <button class="chip" type="button" data-pattern="square" aria-pressed="false">Square</button>
@@ -68,23 +72,45 @@
             <output id="wall-out">4.0 mm</output>
             <input id="wall" type="range" min="1.2" max="20" step="0.1" value="4" data-unit="mm" />
           </div>
+          <div class="row">
+            <label for="outerWall">Outside wall</label>
+            <output id="outerWall-out">4.0 mm</output>
+            <input id="outerWall" type="range" min="1.2" max="40" step="0.1" value="4" data-unit="mm" />
+          </div>
         </div>
       </details>
 
       <details class="settings-group" open>
         <summary>Fit</summary>
         <div class="group-body">
-          <p class="group-note">Flat-piece thickness is the shelf plate. Hole offset is extra room on each side of the leg at the bottom of the socket. Negative is a press fit. The mouth is wider so the leg starts, then the walls tighten as you press it in. Print the corner test before the full shelf.</p>
+          <div class="seg">
+            <button class="chip active" type="button" data-fit="twist" aria-pressed="true">Twist lock</button>
+            <button class="chip" type="button" data-fit="press" aria-pressed="false">Press fit</button>
+          </div>
+          <p class="group-note">Twist lock is a short clockwise turn. The ears stop under the catch. Press fit is the hex socket. Print the corner test before the full shelf.</p>
+          <div class="row">
+            <label for="finThickness">Fin thickness</label>
+            <output id="finThickness-out">1.80 mm</output>
+            <input id="finThickness" type="range" min="1.2" max="2.2" step="0.05" value="1.8" data-unit="mm" />
+          </div>
+          <p class="group-note">Fin thickness is how thick each twist-lock ear is. A thicker fin leaves less air under the catch, so the leg wiggles less.</p>
           <div class="row">
             <label for="thickness">Flat-piece thickness</label>
             <output id="thickness-out">8.0 mm</output>
             <input id="thickness" type="range" min="2.4" max="16" step="0.1" value="8" data-unit="mm" />
           </div>
           <div class="row">
+            <label for="holeDepth">Hole depth</label>
+            <output id="holeDepth-out">3.5 mm</output>
+            <input id="holeDepth" type="range" min="1" max="7" step="0.1" value="3.5" data-unit="mm" />
+          </div>
+          <p class="group-note">Hole depth is how far the straight press-fit hole goes into the plate. The hole is the same size from the mouth to the floor.</p>
+          <div class="row">
             <label for="holeOffset">Hole offset</label>
             <output id="holeOffset-out">-0.10 mm</output>
             <input id="holeOffset" type="range" min="-0.25" max="1" step="0.05" value="-0.1" data-unit="mm" />
           </div>
+          <p class="group-note">Hole offset is how much larger or smaller the hole is than the leg, on each side.</p>
         </div>
       </details>
 
@@ -96,24 +122,46 @@
             <button type="button" class="wide" data-download="3mf">Download joint 3MF</button>
             <button type="button" class="secondary" data-download="flat">Flat piece STL</button>
             <button type="button" class="secondary" data-download="legs">Legs STL</button>
-            <button type="button" class="secondary" data-download="test">Hole-offset test STL</button>
+            <button type="button" class="secondary" data-download="test">Socket test STL</button>
             <button type="button" class="secondary" id="reset">Reset</button>
           </div>
+          <ul class="test-log" id="testLog" hidden></ul>
           <div id="readout" class="readout"></div>
           <p class="status" id="status"></p>
           <p class="notes">
             The flat piece and the legs are separate. The flat piece prints on its face.
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
-            The legs stay hexagonal when the openings are square. The hole-offset test is one corner and one hexagonal socket, tapered, at the offset you set. Print that first and press a leg in.
+            The legs stay hexagonal when the openings are square.
+            Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The Socket view is one socket with the leg in it, so you can see that gap as you change the fit. The other end of each leg is a plain hex seat.
+            Press fit: the hole is straight, the same size from the mouth to the floor. Hole depth sets how far it goes in. Hole offset is how much larger or smaller that hole is than the leg.
+            The socket test is one corner and one socket. It asks for the settings, engraves those numbers on the piece, and keeps the export in the list below so it can be loaded again. Print that first.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
-            Press each leg into a top socket until it seats, then set the next shelf’s bottom sockets on the leg tops.
             PETG holds a load better than PLA. 0.2 mm layers, 4 walls, 20% infill.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v4 · Nov 17, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v11 · Nov 19, 2026</p>
     </aside>
   </div>
+  <dialog id="testPrompt">
+    <form method="dialog">
+      <h2>Socket test settings</h2>
+      <p>These numbers are engraved on the test piece and saved so you can load this export again.</p>
+      <label>Hole offset
+        <input name="holeOffset" type="number" min="-0.25" max="1" step="0.05" inputmode="decimal" />
+      </label>
+      <label>Hole depth
+        <input name="holeDepth" type="number" min="1" max="7" step="0.1" inputmode="decimal" />
+      </label>
+      <label>Fin thickness
+        <input name="finThickness" type="number" min="1.2" max="2.2" step="0.05" inputmode="decimal" />
+      </label>
+      <div class="actions">
+        <button type="submit" class="chip" value="cancel">Cancel</button>
+        <button type="submit" value="ok">Export test</button>
+      </div>
+    </form>
+  </dialog>
   <script src="./app.bundle.js"></script>
   <script>
     if (location.hostname.indexOf("htmlpreview") !== -1 || location.protocol === "file:") {

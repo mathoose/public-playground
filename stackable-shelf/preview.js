@@ -17,12 +17,15 @@ const DIRS = {
   shelf: [0.35, -1.15, 1.35],
   legs: [0.55, -1.55, 0.72],
   test: [1.05, -1.2, 0.9],
+  socket: [0.58, -0.82, 1.55],
 };
+
+const SOCKET_BED = 0x2c2c30;
 
 export class ShelfPreview {
   constructor({ canvas }) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(BED, 1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -71,7 +74,10 @@ export class ShelfPreview {
     this.legs = new THREE.Mesh(new THREE.BufferGeometry(), this.legMat);
     this.legsFlat = new THREE.Mesh(new THREE.BufferGeometry(), this.legMat);
     this.test = new THREE.Mesh(new THREE.BufferGeometry(), this.shelfMat);
-    for (const mesh of [this.lower, this.upper, this.legs, this.legsFlat, this.test]) {
+    this.socketLeg = new THREE.Mesh(new THREE.BufferGeometry(), this.legMat);
+    this.arrow = makeTwistArrow();
+    this.scene.add(this.arrow);
+    for (const mesh of [this.lower, this.upper, this.legs, this.legsFlat, this.test, this.socketLeg]) {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
@@ -114,7 +120,11 @@ export class ShelfPreview {
     this._set(this.legs, meshPositions(result.legsStanding));
     this._set(this.legsFlat, meshPositions(result.legs));
     this._set(this.test, meshPositions(result.test));
+    this._set(this.socketLeg, meshPositions(result.socketLeg));
+    this.placeArrow(d);
+    this.layout = d;
     this.applyVisibility();
+    if (this.view === "socket") this.clipSocket(d);
     if (!this.fitted) {
       this.fit(this.dir);
       this.fitted = true;
@@ -127,8 +137,16 @@ export class ShelfPreview {
     this.upper.visible = view === "stack";
     this.legs.visible = view === "stack" || view === "shelf";
     this.legsFlat.visible = view === "legs";
-    this.test.visible = view === "test";
+    this.test.visible = view === "test" || view === "socket";
+    this.socketLeg.visible = view === "socket";
+    this.arrow.visible = view === "socket" && !!this.arrow.userData.twist;
     this.grid.visible = true;
+    const socketView = view === "socket";
+    this.renderer.setClearColor(socketView ? SOCKET_BED : BED, 1);
+    const gridMats = Array.isArray(this.grid.material) ? this.grid.material : [this.grid.material];
+    gridMats.forEach((mat, index) => {
+      mat.color.set(socketView ? (index === 0 ? 0x5a5a62 : 0x3e3e44) : index === 0 ? 0xc9bfb0 : 0xddd4c8);
+    });
   }
 
   setNamedView(name, detail) {
@@ -151,6 +169,16 @@ export class ShelfPreview {
     shadow.far = 1400;
     shadow.updateProjectionMatrix();
     this.camera.fov = 38;
+    if (name === "socket") {
+      this.view = "socket";
+      this.dir = DIRS.socket;
+      this.applyVisibility();
+      const d = detail || this.layout;
+      if (d) this.clipSocket(d);
+      this.fit(this.dir);
+      this.fitted = true;
+      return;
+    }
     if (name === "close" && detail) {
       this.view = "stack";
       this.applyVisibility();
@@ -163,6 +191,30 @@ export class ShelfPreview {
     this.applyVisibility();
     this.fit(this.dir);
     this.fitted = true;
+  }
+
+  placeArrow(d) {
+    const t = d.twist;
+    this.arrow.userData.twist = !!t;
+    if (!t) return;
+    const radius = Math.min(d.coupon.size * 0.33, t.pocketOuter + 1.5);
+    this.arrow.position.set(d.coupon.holeX, d.coupon.holeY, d.p.thickness + 0.25);
+    this.arrow.scale.setScalar(radius);
+  }
+
+  clipSocket(d) {
+    const x = d.coupon.holeX;
+    const y = d.coupon.holeY;
+    this.renderer.localClippingEnabled = true;
+    const toward = new THREE.Vector3(0.58, -0.82, 0).normalize();
+    const clip = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      new THREE.Vector3(-0.78, 0.62, 0.08).normalize(),
+      new THREE.Vector3(x, y, d.p.thickness * 0.35).addScaledVector(toward, d.coupon.size * 0.08)
+    );
+    this.shelfMat.clippingPlanes = [clip];
+    this.shelfMat.side = THREE.DoubleSide;
+    this.legMat.clippingPlanes = [];
+    this.placeArrow(d);
   }
 
   frameCorner(d) {
@@ -211,7 +263,7 @@ export class ShelfPreview {
   visibleBounds() {
     const box = new THREE.Box3();
     let any = false;
-    for (const mesh of [this.lower, this.upper, this.legs, this.legsFlat, this.test]) {
+    for (const mesh of [this.lower, this.upper, this.legs, this.legsFlat, this.test, this.socketLeg]) {
       if (!mesh.visible || !mesh.geometry.getAttribute("position")) continue;
       const part = new THREE.Box3().setFromObject(mesh);
       if (part.isEmpty()) continue;
@@ -248,6 +300,30 @@ export class ShelfPreview {
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this._loop);
   }
+}
+
+function makeTwistArrow() {
+  const material = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.4, metalness: 0.04 });
+  const group = new THREE.Group();
+  const start = Math.PI * 0.72;
+  const span = Math.PI * 1.55;
+  const pts = [];
+  const steps = 56;
+  for (let i = 0; i <= steps; i++) {
+    const a = start - (span * i) / steps;
+    pts.push(new THREE.Vector3(Math.cos(a), Math.sin(a), 0));
+  }
+  const curve = new THREE.CatmullRomCurve3(pts);
+  group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.1, 10, false), material));
+  const end = pts[pts.length - 1];
+  const prev = pts[pts.length - 2];
+  const dir = new THREE.Vector3().subVectors(end, prev).normalize();
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.42, 14), material);
+  head.position.copy(end).addScaledVector(dir, 0.18);
+  head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  group.add(head);
+  group.visible = false;
+  return group;
 }
 
 function meshPositions(mesh) {
