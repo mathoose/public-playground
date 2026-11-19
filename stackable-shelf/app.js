@@ -111,7 +111,7 @@ function renderReadout(result) {
     : `Press fit · mouth <b>${fmt(d.mouthFlat)} mm</b>, floor <b>${fmt(d.floorFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep`;
   $("readout").innerHTML = `
     Shelf <b>${fmt(d.p.shelfLength, 0)} × ${fmt(d.p.shelfWidth, 0)} × ${fmt(d.p.thickness)} mm</b><br />
-    ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across · walls ${fmt(d.wall)} mm<br />
+    ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across · walls ${fmt(d.wall)} mm · outside wall ${fmt(d.p.outerWall)} mm<br />
     Hexagonal legs <b>${fmt(d.legFlat, 0)} mm</b> across · clear height ${fmt(d.p.legLength, 0)} mm · printed ${fmt(d.printedLeg)} mm<br />
     ${seat}<br />
     Socket test <b>${fmt(d.coupon.size)} mm</b> corner, one socket<br />

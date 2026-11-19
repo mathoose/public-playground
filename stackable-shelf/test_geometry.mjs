@@ -48,7 +48,41 @@ assert.equal(hex.warnings.length, 0);
 const square = derive({ pattern: "square", count: 3, fit: "press" });
 assert.equal(square.p.pattern, "square");
 assert.equal(square.countUsed, 3);
-assert.equal(square.cells.length, square.countUsed * square.rows);
+assert.ok(square.cells.length > 0 && square.cells.length <= square.countUsed * square.rows);
+
+function nearestOpening(d) {
+  const reach = d.p.pattern === "square" ? d.cellFlat / 2 : d.cellFlat / 2;
+  let gap = Infinity;
+  for (const cell of d.cells) {
+    gap = Math.min(gap, d.p.shelfLength / 2 - (Math.abs(cell.x) + reach));
+    gap = Math.min(gap, d.p.shelfWidth / 2 - (Math.abs(cell.y) + (d.p.pattern === "square" ? reach : d.cellFlat / Math.sqrt(3))));
+  }
+  return gap;
+}
+
+const filled = derive({ pattern: "square", fit: "twist", outerWall: 4 });
+close(nearestOpening(filled), filled.p.outerWall, 0.2, "squares reach the outside wall");
+assert.ok(filled.cells.length >= 8, "the old empty border is filled");
+const coupon = filled.coupon.size;
+for (const cell of filled.cells) {
+  const reach = filled.cellFlat / 2;
+  const hx = filled.p.shelfLength / 2;
+  const hy = filled.p.shelfWidth / 2;
+  const corners = [
+    [hx, hy],
+    [hx, -hy],
+    [-hx, hy],
+    [-hx, -hy],
+  ];
+  for (const [cx, cy] of corners) {
+    const minX = Math.min(cx, cx - Math.sign(cx) * coupon);
+    const maxX = Math.max(cx, cx - Math.sign(cx) * coupon);
+    const minY = Math.min(cy, cy - Math.sign(cy) * coupon);
+    const maxY = Math.max(cy, cy - Math.sign(cy) * coupon);
+    const overlaps = cell.x + reach > minX && cell.x - reach < maxX && cell.y + reach > minY && cell.y - reach < maxY;
+    assert.equal(overlaps, false, "a square stays out of the socket-test corner");
+  }
+}
 
 const loose = derive({ holeOffset: 1, fit: "press" });
 close(loose.floorFlat, hex.floorFlat + 2.2, 1e-9, "offset adds both sides");

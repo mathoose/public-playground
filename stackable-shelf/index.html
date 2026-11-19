@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v7 -->
+<!-- build: stackable-shelf-v8 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       </div>
       <div class="header-meta">
         <div class="header-saves"></div>
-        <p class="version" id="header-version">v7 · Nov 18, 2026</p>
+        <p class="version" id="header-version">v8 · Nov 18, 2026</p>
       </div>
     </header>
     <div class="stage">
@@ -57,7 +57,7 @@
       <details class="settings-group" open>
         <summary>Pattern</summary>
         <div class="group-body">
-          <p class="group-note">Openings can be hexagons or squares. The legs and the sockets stay hexagonal either way. Wall thickness is the material between the holes. The count is how many fit along the length, and the width takes as many whole rows as fit.</p>
+          <p class="group-note">Openings can be hexagons or squares. The legs and the sockets stay hexagonal either way. Wall thickness is the material between the holes. Outside wall is the solid rim. The count runs out to that rim, and the width takes as many whole rows as fit. Each corner stays solid for the socket test.</p>
           <div class="seg">
             <button class="chip active" type="button" data-pattern="hex" aria-pressed="true">Hexagon</button>
             <button class="chip" type="button" data-pattern="square" aria-pressed="false">Square</button>
@@ -71,6 +71,11 @@
             <label for="wall">Wall thickness</label>
             <output id="wall-out">4.0 mm</output>
             <input id="wall" type="range" min="1.2" max="20" step="0.1" value="4" data-unit="mm" />
+          </div>
+          <div class="row">
+            <label for="outerWall">Outside wall</label>
+            <output id="outerWall-out">4.0 mm</output>
+            <input id="outerWall" type="range" min="1.2" max="40" step="0.1" value="4" data-unit="mm" />
           </div>
         </div>
       </details>
@@ -121,7 +126,7 @@
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v7 · Nov 18, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v8 · Nov 18, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>

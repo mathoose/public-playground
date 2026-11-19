@@ -11,8 +11,8 @@
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "7 · Nov 18, 2026";
-export const APP_VERSION_TAG = "v7";
+export const APP_VERSION = "8 · Nov 18, 2026";
+export const APP_VERSION_TAG = "v8";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -32,6 +32,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   wall: 4,
   thickness: 8,
   holeOffset: -0.1,
+  outerWall: 4,
   fit: "twist",
 });
 
@@ -41,6 +42,7 @@ export const SLIDERS = [
   { key: "shelfWidth", label: "Shelf width", min: 60, max: 450, step: 1, unit: "mm", group: "size" },
   { key: "count", label: "Along the length", min: 1, max: 16, step: 1, unit: "", group: "pattern" },
   { key: "wall", label: "Wall thickness", min: 1.2, max: 20, step: 0.1, unit: "mm", group: "pattern" },
+  { key: "outerWall", label: "Outside wall", min: 1.2, max: 40, step: 0.1, unit: "mm", group: "pattern" },
   { key: "thickness", label: "Flat-piece thickness", min: 2.4, max: 16, step: 0.1, unit: "mm", group: "stock" },
   { key: "holeOffset", label: "Hole offset", min: -0.25, max: 1, step: 0.05, unit: "mm", group: "stock" },
 ];
@@ -50,7 +52,6 @@ const LEG_PATTERN = "hex";
 const RIM = 3.2;
 const OPEN_MIN = 8;
 const WEB = 1;
-const PATTERN_GAP = 2.4;
 /** Extra room per side at the socket mouth, above the floor offset. */
 const MOUTH_RELIEF = 0.4;
 
@@ -140,19 +141,20 @@ function cornerRadiusFor(inset, circum) {
   return Math.round(Math.min(5, limit) * 100) / 100;
 }
 
-function layoutSquares(availableL, availableW, count, wall) {
+function layoutSquares(length, width, count, wall, outerWall) {
+  const innerL = length - 2 * outerWall;
+  const innerW = width - 2 * outerWall;
   for (let n = count; n >= 1; n--) {
-    let open = (availableL - (n + 1) * wall) / n;
-    const openMax = availableW - 2 * wall;
-    if (open > openMax) open = openMax;
+    const open = (innerL - (n - 1) * wall) / n;
     if (open < OPEN_MIN - 0.05) continue;
-    let rows = Math.max(1, Math.floor((availableW - wall) / (open + wall) + 1e-6));
-    while (rows > 1 && rows * open + (rows + 1) * wall > availableW + 0.05) rows -= 1;
-    const gridW = rows * open + (rows + 1) * wall;
-    if (gridW > availableW + 0.05) continue;
-    return { countUsed: n, rows, cellFlat: open, wall };
+    let rows = Math.floor((innerW + wall) / (open + wall) + 1e-6);
+    while (rows > 1 && rows * open + (rows - 1) * wall > innerW + 0.05) rows -= 1;
+    if (rows < 1) continue;
+    const gridW = rows * open + (rows - 1) * wall;
+    if (gridW > innerW + 0.05) continue;
+    return { countUsed: n, rows, cellFlat: open, wall, outerWall };
   }
-  return { countUsed: 0, rows: 0, cellFlat: 0, wall };
+  return { countUsed: 0, rows: 0, cellFlat: 0, wall, outerWall };
 }
 
 function layoutHex(availableL, availableW, count, wall) {
@@ -175,12 +177,12 @@ function layoutHex(availableL, availableW, count, wall) {
   return { countUsed: 0, rows: 0, cellFlat: 0, wall };
 }
 
-function squareCells(length, width, layout) {
+function squareCells(layout) {
   const { countUsed, rows, cellFlat, wall } = layout;
-  const gridL = countUsed * cellFlat + (countUsed + 1) * wall;
-  const gridW = rows * cellFlat + (rows + 1) * wall;
-  const x0 = -gridL / 2 + wall + cellFlat / 2;
-  const y0 = -gridW / 2 + wall + cellFlat / 2;
+  const gridL = countUsed * cellFlat + (countUsed - 1) * wall;
+  const gridW = rows * cellFlat + (rows - 1) * wall;
+  const x0 = -gridL / 2 + cellFlat / 2;
+  const y0 = -gridW / 2 + cellFlat / 2;
   const cells = [];
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < countUsed; col++) {
@@ -219,6 +221,28 @@ function keepClear(cells, sockets, cellRadius, holeRadius) {
   return cells.filter((cell) =>
     sockets.every((socket) => Math.hypot(cell.x - socket.x, cell.y - socket.y) >= limit)
   );
+}
+
+function cornerBlocks(length, width, size) {
+  const hx = length / 2;
+  const hy = width / 2;
+  const s = size;
+  return [
+    { minX: hx - s, maxX: hx, minY: hy - s, maxY: hy },
+    { minX: -hx, maxX: -hx + s, minY: hy - s, maxY: hy },
+    { minX: hx - s, maxX: hx, minY: -hy, maxY: -hy + s },
+    { minX: -hx, maxX: -hx + s, minY: -hy, maxY: -hy + s },
+  ];
+}
+
+function clearCorners(cells, blocks, reach) {
+  return cells.filter((cell) => {
+    const minX = cell.x - reach;
+    const maxX = cell.x + reach;
+    const minY = cell.y - reach;
+    const maxY = cell.y + reach;
+    return blocks.every((block) => maxX <= block.minX || minX >= block.maxX || maxY <= block.minY || minY >= block.maxY);
+  });
 }
 
 /**
@@ -336,25 +360,22 @@ export function derive(raw) {
     { x: -(p.shelfLength / 2 - inset), y: -(p.shelfWidth / 2 - inset) },
   ];
 
-  let margin = inset + circum + PATTERN_GAP + (twist ? cornerR : 0);
-  let availableL = p.shelfLength - 2 * margin;
-  let availableW = p.shelfWidth - 2 * margin;
-  if (availableL < 28 || availableW < 28) {
-    margin = inset + circum + 0.8;
-    availableL = p.shelfLength - 2 * margin;
-    availableW = p.shelfWidth - 2 * margin;
-  }
+  const margin = p.outerWall;
+  const availableL = p.shelfLength - 2 * margin;
+  const availableW = p.shelfWidth - 2 * margin;
+  const couponSize = inset + circum + 4;
 
   const layout =
     p.pattern === "square"
-      ? layoutSquares(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count, p.wall)
-      : layoutHex(Math.max(availableL, OPEN_MIN), Math.max(availableW, OPEN_MIN), p.count, p.wall);
+      ? layoutSquares(p.shelfLength, p.shelfWidth, p.count, p.wall, p.outerWall)
+      : availableL < OPEN_MIN || availableW < OPEN_MIN
+        ? { countUsed: 0, rows: 0, cellFlat: 0, wall: p.wall }
+        : layoutHex(availableL, availableW, p.count, p.wall);
 
-  let cells =
-    p.pattern === "square" ? squareCells(p.shelfLength, p.shelfWidth, layout) : hexCells(layout);
-  cells = keepClear(cells, sockets, circumRadius(p.pattern, layout.cellFlat), circum);
-
-  const couponSize = inset + circum + 4;
+  let cells = p.pattern === "square" ? squareCells(layout) : hexCells(layout);
+  const reach = circumRadius(p.pattern, Math.max(layout.cellFlat, 0.1));
+  cells = keepClear(cells, sockets, reach, circum);
+  cells = clearCorners(cells, cornerBlocks(p.shelfLength, p.shelfWidth, couponSize), reach);
   const notes = [];
   if (layout.countUsed < p.count) {
     notes.push(
