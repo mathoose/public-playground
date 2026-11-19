@@ -54,7 +54,7 @@ function noteDownload(filename) {
   savesUi?.noteDownload({ name: filename, params });
 }
 
-const SAVE_KEYS = [...SLIDERS.map((spec) => spec.key), "pattern", "fit"];
+const SAVE_KEYS = [...SLIDERS.map((spec) => spec.key), "pattern", "fit", "chamfer"];
 
 let params = mergeParams(DEFAULT_PARAMS);
 let preview;
@@ -88,6 +88,11 @@ function writeParams(next) {
     btn.classList.toggle("active", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
   });
+  document.querySelectorAll("[data-chamfer]").forEach((btn) => {
+    const on = (btn.getAttribute("data-chamfer") === "on") === params.chamfer;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
   const noun = patternNoun(params.pattern);
   const countLabel = $("count-label");
   if (countLabel) countLabel.textContent = `Number of ${noun}`;
@@ -107,8 +112,8 @@ function renderReadout(result) {
   const grams = (volume) => (result ? ((volume / 1000) * 1.27).toFixed(1) : "—");
   const shape = patternNoun(d.p.pattern);
   const seat = d.twist
-    ? `Twist lock · ears <b>${fmt(d.twist.hookRadial)} mm</b> out · <b>${fmt(d.twist.gap, 2)} mm</b> clear under the catch · socket ${fmt(d.socketDepth)} mm deep`
-    : `Press fit · mouth <b>${fmt(d.mouthFlat)} mm</b>, floor <b>${fmt(d.floorFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep`;
+    ? `Twist lock · fins <b>${fmt(d.twist.hookHeight)} mm</b> thick · <b>${fmt(d.twist.gap, 2)} mm</b> clear under the catch · ears ${fmt(d.twist.hookRadial)} mm out`
+    : `Press fit · mouth <b>${fmt(d.mouthFlat)} mm</b>, floor <b>${fmt(d.floorFlat)} mm</b> (${fmt(d.p.holeOffset, 2)} mm each side) · ${fmt(d.socketDepth)} mm deep · chamfer ${d.p.chamfer ? "on" : "off"}`;
   $("readout").innerHTML = `
     Shelf <b>${fmt(d.p.shelfLength, 0)} × ${fmt(d.p.shelfWidth, 0)} × ${fmt(d.p.thickness)} mm</b><br />
     ${shape[0].toUpperCase()}${shape.slice(1)} <b>${d.countUsed}</b> along the length, <b>${d.rows}</b> ${d.rows === 1 ? "row" : "rows"} · ${fmt(d.cellFlat)} mm across · walls ${fmt(d.wall)} mm · outside wall ${fmt(d.p.outerWall)} mm<br />
@@ -167,7 +172,7 @@ async function downloadKind(kind) {
 }
 
 function sameParams(a, b) {
-  return SLIDERS.every((spec) => a[spec.key] === b[spec.key]) && a.pattern === b.pattern && a.fit === b.fit;
+  return SLIDERS.every((spec) => a[spec.key] === b[spec.key]) && a.pattern === b.pattern && a.fit === b.fit && a.chamfer === b.chamfer;
 }
 
 function bind() {
@@ -195,6 +200,15 @@ function bind() {
       const fit = btn.getAttribute("data-fit");
       if (params.fit === fit) return;
       params = mergeParams({ ...params, fit });
+      writeParams(params);
+      scheduleRebuild();
+    });
+  });
+  document.querySelectorAll("[data-chamfer]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const chamfer = btn.getAttribute("data-chamfer") === "on";
+      if (params.chamfer === chamfer) return;
+      params = mergeParams({ ...params, chamfer });
       writeParams(params);
       scheduleRebuild();
     });

@@ -11,8 +11,8 @@
  * the next. Each printed leg is longer by the two ends that sit in the sockets.
  */
 
-export const APP_VERSION = "8 · Nov 18, 2026";
-export const APP_VERSION_TAG = "v8";
+export const APP_VERSION = "9 · Nov 18, 2026";
+export const APP_VERSION_TAG = "v9";
 export const APP_NAME = "Stackable shelf";
 export const APP_ID = "stackable-shelf";
 
@@ -32,7 +32,10 @@ export const DEFAULT_PARAMS = Object.freeze({
   wall: 4,
   thickness: 8,
   holeOffset: -0.1,
+  holeDepth: 3.5,
+  finThickness: 1.8,
   outerWall: 4,
+  chamfer: true,
   fit: "twist",
 });
 
@@ -44,7 +47,9 @@ export const SLIDERS = [
   { key: "wall", label: "Wall thickness", min: 1.2, max: 20, step: 0.1, unit: "mm", group: "pattern" },
   { key: "outerWall", label: "Outside wall", min: 1.2, max: 40, step: 0.1, unit: "mm", group: "pattern" },
   { key: "thickness", label: "Flat-piece thickness", min: 2.4, max: 16, step: 0.1, unit: "mm", group: "stock" },
+  { key: "holeDepth", label: "Hole depth", min: 1, max: 7, step: 0.1, unit: "mm", group: "stock" },
   { key: "holeOffset", label: "Hole offset", min: -0.25, max: 1, step: 0.05, unit: "mm", group: "stock" },
+  { key: "finThickness", label: "Fin thickness", min: 1.2, max: 2.2, step: 0.05, unit: "mm", group: "stock" },
 ];
 
 const LEG_FLAT = 10;
@@ -74,7 +79,8 @@ export function clampParams(raw) {
   };
   const pattern = raw?.pattern === "square" ? "square" : "hex";
   const fit = raw?.fit === "press" ? "press" : "twist";
-  const out = { pattern, fit };
+  const chamfer = raw?.chamfer === false || raw?.chamfer === "off" || raw?.chamfer === 0 ? false : true;
+  const out = { pattern, fit, chamfer };
   for (const s of SLIDERS) out[s.key] = num(s.key);
   out.count = Math.round(out.count);
   return out;
@@ -124,9 +130,8 @@ export function profileArea(pattern, flat) {
   return (Math.sqrt(3) / 2) * flat * flat;
 }
 
-export function socketDepthFor(thickness) {
+export function socketDepthFor(thickness, wanted = 3.5) {
   const maxDepth = Math.max(0.8, (thickness - WEB) / 2);
-  const wanted = Math.min(5, Math.max(2.6, thickness * 0.5));
   let depth = Math.min(wanted, maxDepth);
   depth = Math.round(depth * 100) / 100;
   if (thickness - 2 * depth < WEB - 0.05) {
@@ -253,11 +258,12 @@ function clearCorners(cells, blocks, reach) {
  * leave the lead-in and sit under the catch. Corners that would hang past the
  * bed flats are clipped when the leg is built, so a flat still lies on the bed.
  */
-export function twistLayout(thickness) {
+export function twistLayout(thickness, finThickness = 1.8) {
   const hookRadial = 3.1;
   const hookHalfWidth = 2.1;
-  const hookHeight = 1.8;
-  const gap = 0.55;
+  const hookHeight = Math.round(Math.min(2.2, Math.max(1.2, finThickness)) * 100) / 100;
+  // The catch stays put. A thicker fin fills the 0.55 mm of air instead of making the pocket deeper.
+  const gap = Math.round((2.35 - hookHeight) * 100) / 100;
   const sideClear = 0.4;
   const tipClear = 0.4;
   const turnClear = 0.28;
@@ -332,9 +338,9 @@ export function derive(raw) {
   const p = clampParams(raw);
   const legFlat = LEG_FLAT;
   const floorFlat = legFlat + 2 * p.holeOffset;
-  const mouthFlat = floorFlat + 2 * MOUTH_RELIEF;
+  const mouthFlat = floorFlat + (p.chamfer ? 2 * MOUTH_RELIEF : 0);
   const holeFlat = floorFlat;
-  const twistTry = p.fit === "twist" ? twistLayout(p.thickness) : null;
+  const twistTry = p.fit === "twist" ? twistLayout(p.thickness, p.finThickness) : null;
   const twist = twistTry?.fits ? twistTry : null;
   const bore = twist ? twist.pocketOuter : circumRadius(LEG_PATTERN, mouthFlat);
   const circum = bore;
@@ -348,7 +354,7 @@ export function derive(raw) {
     }
   }
   const cornerR = cornerRadiusFor(inset, circum);
-  const pressDepth = socketDepthFor(p.thickness);
+  const pressDepth = socketDepthFor(p.thickness, p.holeDepth);
   const socketDepth = twist ? twist.depth : pressDepth;
   const bottomDepth = twist ? twist.bottom : pressDepth;
   const printedLeg = p.legLength + socketDepth + bottomDepth;
@@ -390,9 +396,14 @@ export function derive(raw) {
       `Twist lock leaves ${twist.gap.toFixed(2)} mm of clear air between the hook and the catch. The other end of the leg is a plain hex seat.`
     );
   } else if (p.holeOffset < -0.2) {
-    notes.push("That offset is a hard press. Print the corner test before the full shelf.");
+    notes.push("That offset is a hard press. The hole is smaller than the leg. Print the corner test before the full shelf.");
   } else if (p.holeOffset > 0.15) {
-    notes.push("A positive offset is a slip fit. The leg can move in the socket. The corner test shows the gap.");
+    notes.push("That offset makes the hole larger than the leg, so the leg can move. The corner test shows the gap.");
+  }
+  if (!twist && p.holeDepth - socketDepth > 0.05) {
+    notes.push(
+      `This plate can only take a ${socketDepth.toFixed(1)} mm press-fit hole, so the depth came down from ${p.holeDepth.toFixed(1)} mm.`
+    );
   }
   if (!twist && socketDepth < 2) {
     notes.push("The sockets are shallow. A thicker flat piece gives the legs more to sit in.");

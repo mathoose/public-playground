@@ -179,6 +179,40 @@ assert.ok(fit.lockHit < 0.4, `locked leg is clear of the catch (${fit.lockHit.to
 assert.ok(fit.gapHit < 0.01, `the space under the catch is empty (${fit.gapHit.toFixed(3)} mm3)`);
 assert.ok(fit.catchHit > 0.02, "the catch is solid above that space");
 
+assert.equal(hex.p.chamfer, true);
+assert.equal(hex.p.holeDepth, 3.5);
+close(hex.socketDepth, 3.5, 0.02, "default press depth");
+const deep = derive({ fit: "press", thickness: 12, holeDepth: 5 });
+close(deep.socketDepth, 5, 0.02, "hole depth follows the slider");
+close(deep.bottomDepth, 5, 0.02, "both press-fit holes use that depth");
+const capped = derive({ fit: "press", holeDepth: 6 });
+assert.ok(capped.socketDepth < 3.6, "a deep hole stops before it meets the other side");
+assert.ok(capped.warnings.some((note) => /depth came down/.test(note)), "the page says the depth was reduced");
+
+const straight = derive({ fit: "press", chamfer: false });
+close(straight.mouthFlat, straight.floorFlat, 1e-9, "chamfer off is a straight hole");
+const straightBuilt = await buildShelf({ fit: "press", chamfer: false });
+const straightPos = meshToPositions(straightBuilt.test);
+const straightHole = straightBuilt.d.coupon;
+const straightMouth = widestRing(straightPos, straightBuilt.d.p.thickness, straightHole.holeX, straightHole.holeY);
+const straightFloor = widestRing(
+  straightPos,
+  straightBuilt.d.p.thickness - straightBuilt.d.socketDepth,
+  straightHole.holeX,
+  straightHole.holeY
+);
+close(straightMouth, straightFloor, 0.12, "a straight hole does not narrow");
+
+const thickFin = derive({ fit: "twist", finThickness: 2.2 });
+close(thickFin.twist.hookHeight, 2.2, 1e-9, "fin thickness");
+close(thickFin.twist.gap, 0.15, 0.02, "a thicker fin closes the air under the catch");
+close(thickFin.twist.hookRadial, twist.twist.hookRadial, 1e-9, "the ear still sticks out the same");
+close(thickFin.twist.hookHalfWidth, twist.twist.hookHalfWidth, 1e-9, "the ear stays the same width");
+close(thickFin.twist.depth, twist.twist.depth, 0.02, "the catch does not move");
+const thickFit = await measureTwist({ finThickness: 2.2 });
+assert.ok(thickFit.lockHit < 0.4, `a thicker fin still clears the catch (${thickFit.lockHit.toFixed(3)} mm3)`);
+assert.ok(thickFit.gap < fit.gap, "the thicker fin leaves less air");
+
 console.log("stackable-shelf geometry ok");
 console.log(
   `hex cells ${built.d.cells.length}, coupon ${built.d.coupon.size.toFixed(1)} mm, printed leg ${built.d.printedLeg.toFixed(1)} mm`

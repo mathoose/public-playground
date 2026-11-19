@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: stackable-shelf-v8 -->
+<!-- build: stackable-shelf-v9 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       </div>
       <div class="header-meta">
         <div class="header-saves"></div>
-        <p class="version" id="header-version">v8 · Nov 18, 2026</p>
+        <p class="version" id="header-version">v9 · Nov 18, 2026</p>
       </div>
     </header>
     <div class="stage">
@@ -87,17 +87,35 @@
             <button class="chip active" type="button" data-fit="twist" aria-pressed="true">Twist lock</button>
             <button class="chip" type="button" data-fit="press" aria-pressed="false">Press fit</button>
           </div>
-          <p class="group-note">Twist lock is a short clockwise turn. The hook stops under the catch with clear air between them. Press fit is the tapered hex socket. Hole offset is extra room on each side of the plain hex seat. Print the corner test before the full shelf.</p>
+          <p class="group-note">Twist lock is a short clockwise turn. The ears stop under the catch. Press fit is the hex socket. Print the corner test before the full shelf.</p>
+          <div class="row">
+            <label for="finThickness">Fin thickness</label>
+            <output id="finThickness-out">1.80 mm</output>
+            <input id="finThickness" type="range" min="1.2" max="2.2" step="0.05" value="1.8" data-unit="mm" />
+          </div>
+          <p class="group-note">Fin thickness is how thick each twist-lock ear is. A thicker fin leaves less air under the catch, so the leg wiggles less.</p>
           <div class="row">
             <label for="thickness">Flat-piece thickness</label>
             <output id="thickness-out">8.0 mm</output>
             <input id="thickness" type="range" min="2.4" max="16" step="0.1" value="8" data-unit="mm" />
           </div>
           <div class="row">
+            <label for="holeDepth">Hole depth</label>
+            <output id="holeDepth-out">3.5 mm</output>
+            <input id="holeDepth" type="range" min="1" max="7" step="0.1" value="3.5" data-unit="mm" />
+          </div>
+          <p class="group-note">Hole depth is how far the press-fit hole goes into the plate.</p>
+          <div class="seg">
+            <button class="chip active" type="button" data-chamfer="on" aria-pressed="true">Chamfer on</button>
+            <button class="chip" type="button" data-chamfer="off" aria-pressed="false">Chamfer off</button>
+          </div>
+          <p class="group-note">The chamfer widens the mouth of the press-fit hole so the leg starts easily, then the hole tightens toward the floor. Off leaves a straight hole.</p>
+          <div class="row">
             <label for="holeOffset">Hole offset</label>
             <output id="holeOffset-out">-0.10 mm</output>
             <input id="holeOffset" type="range" min="-0.25" max="1" step="0.05" value="-0.1" data-unit="mm" />
           </div>
+          <p class="group-note">Hole offset is how much larger or smaller the hole is than the leg, on each side.</p>
         </div>
       </details>
 
@@ -119,14 +137,14 @@
             The legs STL is already lying on a flat face, four legs in a row, so they print flat.
             The legs stay hexagonal when the openings are square.
             Twist lock: drop the hooks into the lead-ins, turn clockwise until they stop, and leave the clear gap under the catch. The Socket view is one socket with the leg in it, so you can see that gap as you change the fit. The other end of each leg is a plain hex seat.
-            Press fit: the socket is wider at the mouth and tightens toward the floor. Hole offset changes that seat.
+            Press fit: hole depth sets how far the socket goes in. With the chamfer on, the mouth is wider and the hole tightens toward the floor. With it off, the hole is straight. Hole offset is how much larger or smaller that hole is than the leg.
             The socket test is one corner and one socket. Print that first.
             The joint 3MF is the shelf with the legs stood in the sockets, for checking the stack. Slice the STLs to print.
             PETG holds a load better than PLA. 0.2 mm layers, 4 walls, 20% infill.
           </p>
         </div>
       </details>
-      <p class="foot" id="app-version">Stackable shelf v8 · Nov 18, 2026</p>
+      <p class="foot" id="app-version">Stackable shelf v9 · Nov 18, 2026</p>
     </aside>
   </div>
   <script src="./app.bundle.js"></script>
