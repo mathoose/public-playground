@@ -11,10 +11,11 @@ import {
   patternNoun,
 } from "./geometry.js";
 import { ShelfPreview } from "./preview.js";
-import { buildShelf, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
+import { buildShelf, buildSocketTest, downloadArrayBuffer, stlTriangleCount } from "./cad.js";
 import { installUndo } from "../shared/undo-history.js";
 import { pairSlidersWithNumbers } from "../shared/slider-numbers.js";
 import {
+  LIBRARY_STORE_KEY,
   lastSettings,
   rememberExport,
   rememberSettings,
@@ -54,7 +55,36 @@ function noteDownload(filename) {
   savesUi?.noteDownload({ name: filename, params });
 }
 
+function readLibraryStore() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LIBRARY_STORE_KEY));
+    if (!data || typeof data !== "object") return { favorites: [], activity: [], settings: {} };
+    if (!data.settings || typeof data.settings !== "object") data.settings = {};
+    return data;
+  } catch {
+    return { favorites: [], activity: [], settings: {} };
+  }
+}
+
+function readTestLog() {
+  const list = readLibraryStore().settings[TEST_LOG_KEY];
+  return Array.isArray(list) ? list : [];
+}
+
+function appendTestLog(entry) {
+  const data = readLibraryStore();
+  const list = Array.isArray(data.settings[TEST_LOG_KEY]) ? data.settings[TEST_LOG_KEY] : [];
+  list.unshift(entry);
+  data.settings[TEST_LOG_KEY] = list.slice(0, 12);
+  try {
+    localStorage.setItem(LIBRARY_STORE_KEY, JSON.stringify(data));
+  } catch {
+    /* the download still happened */
+  }
+}
+
 const SAVE_KEYS = [...SLIDERS.map((spec) => spec.key), "pattern", "fit", "chamfer"];
+const TEST_LOG_KEY = "stackable-shelf-tests";
 
 let params = mergeParams(DEFAULT_PARAMS);
 let preview;
@@ -131,16 +161,115 @@ function scheduleRebuild() {
   rebuildTimer = window.setTimeout(rebuild, 80);
 }
 
-async function rebuild() {
+async function rebuild({ quiet = false } = {}) {
   const gen = ++rebuildGen;
-  setStatus("Updating…");
+  if (!quiet) setStatus("Updating…");
   try {
     const result = await buildShelf(params);
     if (gen !== rebuildGen) return;
     latest = result;
     preview.update(result);
     renderReadout(result);
-    setStatus("Live");
+    if (!quiet) setStatus("Live");
+  } catch (err) {
+    console.error(err);
+    setStatus(String(err.message || err), "err");
+  }
+}
+
+function askTestSettings() {
+  const dialog = $("testPrompt");
+  if (!dialog || typeof dialog.showModal !== "function") return Promise.resolve(null);
+  const offset = dialog.querySelector("[name=holeOffset]");
+  const depth = dialog.querySelector("[name=holeDepth]");
+  const fin = dialog.querySelector("[name=finThickness]");
+  const chamfer = dialog.querySelector("[name=chamfer]");
+  if (offset) offset.value = String(params.holeOffset);
+  if (depth) depth.value = String(params.holeDepth);
+  if (fin) fin.value = String(params.finThickness);
+  if (chamfer) chamfer.value = params.chamfer ? "on" : "off";
+  dialog.showModal();
+  return new Promise((resolve) => {
+    const finish = () => {
+      dialog.removeEventListener("close", finish);
+      if (dialog.returnValue !== "ok") {
+        resolve(null);
+        return;
+      }
+      resolve({
+        holeOffset: Number(offset?.value),
+        holeDepth: Number(depth?.value),
+        finThickness: Number(fin?.value),
+        chamfer: chamfer?.value !== "off",
+      });
+    };
+    dialog.addEventListener("close", finish);
+  });
+}
+
+function testLogLabel(item) {
+  const fit = item.params?.fit === "press" ? "press" : "twist";
+  const chamfer = item.params?.chamfer === false ? "chamfer off" : "chamfer on";
+  return `${item.lines.join(" · ")} · ${fit} · ${chamfer}`;
+}
+
+function renderTestLog() {
+  const el = $("testLog");
+  if (!el) return;
+  const list = readTestLog();
+  if (!list.length) {
+    el.hidden = true;
+    el.replaceChildren();
+    return;
+  }
+  el.hidden = false;
+  el.innerHTML = list
+    .map(
+      (item, index) => `
+        <li>
+          <span>${testLogLabel(item)}</span>
+          <button type="button" data-load-test="${index}">Load</button>
+        </li>`
+    )
+    .join("");
+}
+
+function loadTest(index) {
+  const item = readTestLog()[index];
+  if (!item?.params) return;
+  params = mergeParams(item.params);
+  writeParams(params);
+  preview.fitted = false;
+  rememberSettings(APP_ID, params);
+  setStatus(`Loaded socket test ${testLogLabel(item)}`);
+  scheduleRebuild();
+}
+
+async function downloadSocketTest() {
+  const chosen = await askTestSettings();
+  if (!chosen) {
+    setStatus("Socket test canceled.");
+    return;
+  }
+  params = mergeParams({ ...params, ...chosen });
+  writeParams(params);
+  window.clearTimeout(rebuildTimer);
+  rebuildGen += 1;
+  setStatus("Building socket test…");
+  try {
+    const built = await buildSocketTest(params);
+    const filename = FILES.test;
+    downloadArrayBuffer(filename, built.stl);
+    appendTestLog({
+      at: Date.now(),
+      filename,
+      lines: built.lines,
+      params: { ...params },
+    });
+    noteDownload(filename);
+    renderTestLog();
+    await rebuild({ quiet: true });
+    setStatus(`Socket test · ${built.lines.join(" · ")} · engraved on the piece`);
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err), "err");
@@ -148,10 +277,13 @@ async function rebuild() {
 }
 
 async function downloadKind(kind) {
+  if (kind === "test") {
+    await downloadSocketTest();
+    return;
+  }
   const names = {
     flat: FILES.flat,
     legs: FILES.legs,
-    test: FILES.test,
     "3mf": FILES.assembly,
   };
   const filename = names[kind];
@@ -230,6 +362,12 @@ function bind() {
   document.querySelectorAll("[data-download]").forEach((btn) => {
     btn.addEventListener("click", () => downloadKind(btn.getAttribute("data-download")));
   });
+  $("testLog")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-load-test]");
+    if (!button) return;
+    loadTest(Number(button.getAttribute("data-load-test")));
+  });
+  renderTestLog();
 }
 
 const versionEl = $("app-version");

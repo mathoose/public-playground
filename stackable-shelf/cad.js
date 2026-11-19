@@ -295,7 +295,90 @@ function buildSocketLeg(wasm, d, temps) {
   return keep(temps, leg.translate([d.coupon.holeX, d.coupon.holeY, z]));
 }
 
-function buildTest(wasm, d, temps) {
+const DIGIT_SEGS = {
+  0: "abcedf",
+  1: "bc",
+  2: "abged",
+  3: "abgcd",
+  4: "fgbc",
+  5: "afgcd",
+  6: "afgedc",
+  7: "abc",
+  8: "abcdefg",
+  9: "abfgcd",
+};
+
+function glyphBoxes(ch, u0, v0, scale) {
+  const w = 2.2 * scale;
+  const h = 3.2 * scale;
+  const t = Math.max(0.28, 0.46 * scale);
+  const depth = 0.4;
+  const seg = {
+    a: [w / 2, h - t / 2, w, t],
+    b: [w - t / 2, h * 0.75, t, h / 2],
+    c: [w - t / 2, h * 0.25, t, h / 2],
+    d: [w / 2, t / 2, w, t],
+    e: [t / 2, h * 0.25, t, h / 2],
+    f: [t / 2, h * 0.75, t, h / 2],
+    g: [w / 2, h / 2, w - t, t],
+  };
+  const boxes = [];
+  const push = (cu, cv, su, sv) => {
+    boxes.push({ size: [su, depth, sv], at: [u0 + cu, depth / 2, v0 + cv] });
+  };
+  if (ch === "-") {
+    push(w / 2, h / 2, w * 0.7, t);
+    return boxes;
+  }
+  if (ch === ".") {
+    push(w / 2, t / 2, t, t);
+    return boxes;
+  }
+  const on = DIGIT_SEGS[ch] || "";
+  for (const name of on) {
+    const [cu, cv, su, sv] = seg[name];
+    push(cu, cv, su, sv);
+  }
+  return boxes;
+}
+
+export function socketMarkLines(d) {
+  const offset = d.p.holeOffset.toFixed(2);
+  if (d.twist) return [offset, d.p.finThickness.toFixed(2)];
+  return [offset, d.socketDepth.toFixed(1)];
+}
+
+function engraveLines(wasm, solid, d, lines, temps) {
+  const { Manifold } = wasm;
+  const size = d.coupon.size;
+  const flat = Math.max(3, size - 2 * d.cornerR - 0.8);
+  const tall = Math.max(1.6, d.p.thickness - 0.8);
+  const longest = Math.max(...lines.map((line) => line.length), 1);
+  const scale = Math.min(0.72, flat / (longest * 2.7), tall / (lines.length * 3.5 + 0.3));
+  const advance = 2.7 * scale;
+  const glyphH = 3.2 * scale;
+  const gap = 0.35 * scale;
+  const blockH = lines.length * glyphH + (lines.length - 1) * gap;
+  let v = (d.p.thickness - blockH) / 2;
+  let cut = null;
+  for (const line of lines) {
+    let u = -(line.length * advance) / 2;
+    for (const ch of line) {
+      if (ch !== " ") {
+        for (const box of glyphBoxes(ch, u, v, scale)) {
+          const piece = keep(temps, Manifold.cube(box.size, true).translate([box.at[0], -size / 2 + box.at[1], box.at[2]]));
+          cut = cut ? keep(temps, cut.add(piece)) : piece;
+        }
+      }
+      u += advance;
+    }
+    v += glyphH + gap;
+  }
+  if (!cut) return solid;
+  return assertOk(keep(temps, solid.subtract(cut)), "Test marking");
+}
+
+function buildTest(wasm, d, temps, lines = null) {
   const { CrossSection: CS } = wasm;
   const size = d.coupon.size;
   const plate2d = roundedRect(CS, size, size, d.cornerR, 16, temps);
@@ -309,7 +392,22 @@ function buildTest(wasm, d, temps) {
     const cutter = unionAll(socketCutters(CS, d, d.coupon.holeX, d.coupon.holeY, temps, "top"), temps);
     plate = keep(temps, plate.subtract(cutter));
   }
+  if (lines?.length) plate = engraveLines(wasm, plate, d, lines, temps);
   return plate;
+}
+
+export async function buildSocketTest(raw) {
+  const d = derive(raw);
+  const lines = socketMarkLines(d);
+  const wasm = await loadManifold();
+  const temps = [];
+  try {
+    const solid = buildTest(wasm, d, temps, lines);
+    const mesh = capture(solid);
+    return { d, lines, ...mesh, stl: meshToStl(mesh, "hole-test") };
+  } finally {
+    deleteAll(temps);
+  }
 }
 
 export function meshToStl(mesh, name = "mesh") {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { derive, FILES, profileArea } from "./geometry.js";
-import { boundsOf, buildShelf, measureTwist, meshToPositions } from "./cad.js";
+import { boundsOf, buildShelf, buildSocketTest, measureTwist, meshToPositions } from "./cad.js";
 
 function sizeOf(bounds) {
   return bounds.max.map((v, i) => v - bounds.min[i]);
@@ -154,6 +154,14 @@ assert.match(xml, /Flat piece/);
 assert.match(xml, /Leg 1/);
 
 assert.equal(FILES.test, "stackable-shelf-hole-test.stl");
+
+const marked = await buildSocketTest({ fit: "press" });
+assert.deepEqual(marked.lines, [marked.d.p.holeOffset.toFixed(2), marked.d.socketDepth.toFixed(1)]);
+assert.equal(marked.genus, 0, "the marked socket still does not go through");
+assert.ok(built.test.volume - marked.volume > 0.15, "the setting numbers are cut into the test piece");
+assert.ok(built.test.volume - marked.volume < 8, "the marking is small");
+const markedBox = boundsOf(meshToPositions(marked));
+close(sizeOf(markedBox)[0], built.d.coupon.size, 0.2, "the mark stays on the test piece");
 
 const twist = derive({ fit: "twist" });
 assert.equal(twist.p.fit, "twist");
